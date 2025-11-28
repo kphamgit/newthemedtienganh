@@ -1,4 +1,3 @@
-import React from "react";
 import "../styles/Note.css"
 
 export interface NoteProps {
