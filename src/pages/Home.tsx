@@ -1,15 +1,21 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import Note, { type NoteProps } from "../components/Note";
+import Category, { type CategoryProps} from "../components/Category";
 import "../styles/Home.css"
+import Navbar from "../components/Navbar";
+import { Outlet } from "react-router-dom";
 
 function Home() {
     const [notes, setNotes] = useState<NoteProps[]>([]);
     const [content, setContent] = useState("");
     const [title, setTitle] = useState("");
 
+    const [categories, setCategories] = useState<CategoryProps[]>([]);
+
     useEffect(() => {
         getNotes();
+        getCategories();
     }, []);
 
     const getNotes = () => {
@@ -19,6 +25,17 @@ function Home() {
             .then((data) => {
                 setNotes(data);
                 console.log(data);
+            })
+            .catch((err) => alert(err));
+    };
+
+    const getCategories = () => {
+        api
+            .get("/api/categories/")
+            .then((res) => res.data)
+            .then((data) => {
+                setCategories(data);
+                console.log("categories", data);
             })
             .catch((err) => alert(err));
     };
@@ -47,9 +64,31 @@ function Home() {
     };
 
     return (
-        <div>
+        <>
+        <div className="bg-amber-200 p-10">
+              <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+              <Navbar role="student" categories={categories}/>
+            </div>
+        </div>
+        <Outlet />
+        </>
+    );
+}
+
+export default Home;
+
+/*
+ return (
+        <>
+        <div className="bg-amber-200 p-10">
+              <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+              <Navbar role="student" categories={categories}/>
+            </div>
             <div>
-                <h2>Notes</h2>
+                <h2>Categories</h2>
+                {categories.map((category: CategoryProps) => (
+                    <Category {...category} key={category.category_number} />
+                ))}
                 {notes.map((note: NoteProps) => (
                     <Note {...note} onDelete={deleteNote} key={note.id} />
                 ))}
@@ -79,7 +118,7 @@ function Home() {
                 <input type="submit" value="Submit"></input>
             </form>
         </div>
+        <Outlet />
+        </>
     );
-}
-
-export default Home;
+*/

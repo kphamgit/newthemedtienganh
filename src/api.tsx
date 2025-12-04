@@ -5,8 +5,8 @@ import { ACCESS_TOKEN } from "./constants";
 
 const api = axios.create({
  // baseURL: import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : apiUrl,
-    //baseURL: "http://127.0.0.1:8000"
-    baseURL: "https://kpbackend-423a8e253858.herokuapp.com"
+    baseURL: "http://127.0.0.1:8000"
+    //baseURL: "https://kpbackend-423a8e253858.herokuapp.com"
 });
 
 api.interceptors.request.use(

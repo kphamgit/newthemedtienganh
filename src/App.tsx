@@ -4,6 +4,8 @@ import Register from  "./pages/Register"
 import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "../src/components/ProtectedRoute"
+import SubCategory from "./components/SubCategory"
+
 
 function Logout() {
   localStorage.clear()
@@ -19,14 +21,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>}
+        >
+          <Route path="sub_categories_student/:sub_category_id" element={<SubCategory />} />
+        </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/register" element={<RegisterAndLogout />} />
