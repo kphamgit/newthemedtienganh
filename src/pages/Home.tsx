@@ -1,15 +1,22 @@
 import { useState, useEffect } from "react";
 import api from "../api";
-import Note, { type NoteProps } from "../components/Note";
-import Category, { type CategoryProps} from "../components/Category";
+import { type NoteProps } from "../components/Note";
+import { type CategoryProps} from "../components/Category";
 import "../styles/Home.css"
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 
 function Home() {
-    const [notes, setNotes] = useState<NoteProps[]>([]);
+    const [_notes, setNotes] = useState<NoteProps[]>([]);
+    //const [content, setContent] = useState("");
+    const [_title, _setTitle] = useState("");
+
+    /*
+const [notes, setNotes] = useState<NoteProps[]>([]);
     const [content, setContent] = useState("");
     const [title, setTitle] = useState("");
+    */
+
 
     const [categories, setCategories] = useState<CategoryProps[]>([]);
 
@@ -40,6 +47,7 @@ function Home() {
             .catch((err) => alert(err));
     };
 
+    /*
     const deleteNote = (id: number) => {
         api
             .delete(`/api/notes/delete/${id}/`)
@@ -62,6 +70,7 @@ function Home() {
             })
             .catch((err) => alert(err));
     };
+    */
 
     return (
         <>

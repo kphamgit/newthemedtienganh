@@ -15,9 +15,9 @@ type NavItem = {
     const [navItems, setNavItems] = useState<NavItem[]>([]); 
   
    
-    const handleItemClick = (e: any) => {
+    const handleItemClick = () => {
       //e.stopPropagation();
-      //console.log("span clicked");
+      console.log("handleItemClick");
     }
     
   //link: `/categories/${category.id}/sub_categories_student/${sub_category.id}`

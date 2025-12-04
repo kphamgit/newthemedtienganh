@@ -1,8 +1,8 @@
 import "../styles/Note.css"
-import type { CategoryProps } from "./Category";
+//import type { CategoryProps } from "./Category";
 import { useParams } from 'react-router-dom';
 import api from "../api";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface UnitProps {
     id: number,
