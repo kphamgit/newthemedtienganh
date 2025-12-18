@@ -1,6 +1,6 @@
 import "../styles/Note.css"
 //import type { CategoryProps } from "./Category";
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from "../api";
 import { useEffect, useState } from "react";
 
@@ -24,6 +24,8 @@ function SubCategory() {
     const [id, setId] = useState<number>(0);
     //const formattedDate = new Date(created_at).toLocaleDateString("en-US")
 
+    const navigate = useNavigate();
+
     useEffect(() => {
        if (params.sub_category_id) {
            setId(parseInt(params.sub_category_id));
@@ -38,7 +40,7 @@ function SubCategory() {
 
     const getUnits = () => {
         api
-            .get(`/api/units/${id}/`)
+            .get(`/api/sub_categories/${id}/units`)
             .then((res) => res.data)
             .then((data) => {
                 setUnits(data);
@@ -47,8 +49,45 @@ function SubCategory() {
             .catch((err) => alert(err));
     };
 
+    /*
+  const getUnits = () => {
+        api
+            .get(`/english/sub_categories/${id}/units`)
+            .then((res) => res.data)
+            .then((data) => {
+                setUnits(data);
+                console.log("units", data);
+            })
+            .catch((err) => alert(err));
+    };
+
+    */
+
+
+    /*
+{
+    "id": 35,
+    "unit_id": 11,
+    "name": "quiz 1",
+    "quiz_number": 1,
+    "questions": [
+        30,
+        33,
+        34,
+        35,
+        37,
+        38,
+        40,
+        39
+    ]
+}
+    */
+
     const take_quiz = (quiz: QuizProps) => {
         console.log("Taking quiz:", quiz.id);
+        const api_url = `/sub_categories/${id}/take_quiz/${quiz.id}`
+        console.log("Navigating to:", api_url);
+        navigate(api_url)
         /*
         if (sub_category) {
             //const api_url = `/sub_categories/${sub_category.name}/quizzes/${quiz_id}`

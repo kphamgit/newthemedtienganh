@@ -5,7 +5,11 @@ import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "../src/components/ProtectedRoute"
 import SubCategory from "./components/SubCategory"
+import TakeQuiz from "./components/TakeQuiz"
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient()
 
 function Logout() {
   localStorage.clear()
@@ -19,6 +23,7 @@ function RegisterAndLogout() {
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={
@@ -27,6 +32,7 @@ function App() {
           </ProtectedRoute>}
         >
           <Route path="sub_categories_student/:sub_category_id" element={<SubCategory />} />
+          <Route path="sub_categories/:sub_category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
@@ -34,7 +40,11 @@ function App() {
         <Route path="*" element={<NotFound />}></Route>
       </Routes>
     </BrowserRouter>
+    </QueryClientProvider>
   )
 }
 
 export default App
+
+///sub_categories/${id}/take_quiz/${quiz.id}`
+///sub_categories/8/take_quiz/35

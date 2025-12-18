@@ -9,7 +9,7 @@ export interface SubCategoryProps {
 export interface CategoryProps {
         category_number: number;
         name: string;
-        subcategories: SubCategoryProps[];
+        sub_categories: SubCategoryProps[];
 }
 
 function Category({ category_number, name }: CategoryProps) {

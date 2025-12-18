@@ -74,7 +74,7 @@ const [notes, setNotes] = useState<NoteProps[]>([]);
 
     return (
         <>
-        <div className="bg-amber-200 p-10">
+        <div className="flex flex-col bg-amber-200 p-10">
               <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
               <Navbar role="student" categories={categories}/>
             </div>
@@ -85,6 +85,30 @@ const [notes, setNotes] = useState<NoteProps[]>([]);
 }
 
 export default Home;
+
+/*
+ return (
+        <>
+        <div className="flex flex-col bg-amber-200 p-10">
+              <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+              <Navbar role="student" categories={categories}/>
+            </div>
+        </div>
+        <Outlet />
+        </>
+    );
+*/
+
+/*
+    <>
+        <div className="bg-amber-200 p-10">
+              <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+              <Navbar role="student" categories={categories}/>
+            </div>
+        </div>
+        <Outlet />
+        </>
+*/
 
 /*
  return (

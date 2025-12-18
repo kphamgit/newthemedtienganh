@@ -10,7 +10,7 @@ type NavItem = {
     children?: NavItem[];
   };
 
-   export default function Navbar({ role, categories }: { role: string; categories: CategoryProps[] | null }) {
+   export default function NavbarSave({ role, categories }: { role: string; categories: CategoryProps[] | null }) {
     const [animationParent] = useAutoAnimate();
     const [navItems, setNavItems] = useState<NavItem[]>([]);
 
