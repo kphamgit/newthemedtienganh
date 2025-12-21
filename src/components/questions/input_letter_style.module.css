@@ -1,0 +1,19 @@
+.input {
+    /* each letter will take 1ch + 1px and we remove 1px of the last one*/
+    width: calc(2 * (1ch - 5px) - 3px);
+    height: calc(3 * (1ch - 3px) - 3px);
+    padding-left: 1px;
+    padding-right: 1px;
+    margin-left: 1px;
+    border-width: 1px;
+    border-color: rgb(54, 111, 109);
+    background: 
+    repeating-linear-gradient(to right, #e0cdcd, #e3cbcb 1ch, #fff 1ch, #d6bcbc calc(1ch));
+    font-size: 28px;
+    /*since a letter will take 1ch we add 1px to cover the border*/
+    
+    /*we use a monospace font-family so all the letter will take the same width = 1ch*/
+    font-family: monospace;
+    caret-color: color(srgb red green blue);
+   
+  }

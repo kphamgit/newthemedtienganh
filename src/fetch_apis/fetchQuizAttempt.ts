@@ -2,14 +2,16 @@
 //import { store } from "../../redux/store";
 import { ACCESS_TOKEN } from "../constants";
 
-const fetchWithBearerToken = async (quiz_id: string): Promise<any> => {
+export const fetchQuizAttempt = async (quiz_id: string, user_id: string): Promise<any> => {
   try {
     // The second argument to fetch is the options object
     const token = localStorage.getItem(ACCESS_TOKEN);
     const baseURL = import.meta.env.VITE_API_URL
-    const url = `${baseURL}/api/quizzes/${quiz_id}/questions`;
+    const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
+    console.log("fetchQuizAttempt url=", url);
     const response = await fetch(url, {
-      method: 'GET', // Or 'POST', 'PUT', 'DELETE', etc.
+      method: 'POST', // Or 'POST', 'PUT', 'DELETE', etc.
+      body: JSON.stringify({ user_id: user_id }), // Send user_id in the request body
       headers: {
         'Authorization': `Bearer ${token}`, // Key part: 'Authorization': 'Bearer ' + token
         'Content-Type': 'application/json' // Add other headers as needed
@@ -30,7 +32,6 @@ const fetchWithBearerToken = async (quiz_id: string): Promise<any> => {
   }
 };
 
-export default fetchWithBearerToken;
 
 /*
 // Example usage:

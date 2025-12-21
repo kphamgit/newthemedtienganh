@@ -119,7 +119,7 @@ function SubCategory() {
                                 <div key={quiz.id} style={{ marginLeft: '20px' }}>
                                     <p>Quiz number: {quiz.quiz_number}</p>
                                     <button className=' px-2 rounded-md hover:underline bg-bgColor2 text-textColor2' onClick={() => take_quiz(quiz)}>
-                                       Quiz Name:  {quiz.name}</button>
+                                       Quiz Name:  {quiz.name} Quiz id: {quiz.id} </button>
                                 </div>
                             ))
                         }
