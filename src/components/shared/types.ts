@@ -29,6 +29,7 @@ export interface QuestionProps {
     question_number: number,
     content: string,
     format: string,
+    answer_key: string,
     //quizzes?: QuizProps[]
   }
 
@@ -47,3 +48,9 @@ export type RadioProps =
   export interface InputLetterRef {
     getFillContent: () => string | undefined;
   }
+
+  export interface QuestionAttempResultsProps {
+    answer: string | undefined,
+    score: number,
+    error_flag: boolean,
+}

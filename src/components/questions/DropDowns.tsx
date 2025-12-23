@@ -31,10 +31,10 @@ interface Props {
   }
   
   useEffect(() => {
-    console.log("in HERE DropDowns useEffect with content:", props.content);
+    //console.log("in HERE DropDowns useEffect with content:", props.content);
     const regExp = /\[.*?\]/g
     const  matches = props.content?.match(regExp);
-    console.log("MATCHES:", matches)
+    //console.log("MATCHES:", matches)
     //matches = ["[sentence]","[square brackets]"]
     //remove the square brackets from matches
     const matches_no_brackets =  matches?.map((item) => {
@@ -110,14 +110,20 @@ interface Props {
       {inputFields?.map((field) => (
         <div key={field.id}>
           { field.type === 'input' ?
-          <select className='cloze_answer'>
-          { (field.value as string[]).map( (choice, index) => {
-               return <option key={index} id={index.toString()} >{choice} </option>
-          })
-          }
-        </select>
+      <select className='bg-blue-200 cloze_answer' defaultValue="">
+      <option className='bg-amber-100' value="" disabled>
+        &nbsp;
+      </option>
+      {(field.value as string[]).map((choice, index) => {
+        return (
+          <option key={index} id={index.toString()} value={choice}>
+            {choice}
+          </option>
+        );
+      })}
+    </select>
           :
-          <span className='bg-bgColor1 text-textColor2'>{field.value}</span>
+          <span className='bg-amber-100'>{field.value}</span>
           }
         </div>
       ))}

@@ -8,7 +8,7 @@ export const fetchQuizAttempt = async (quiz_id: string, user_id: string): Promis
     const token = localStorage.getItem(ACCESS_TOKEN);
     const baseURL = import.meta.env.VITE_API_URL
     const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
-    console.log("fetchQuizAttempt url=", url);
+    //console.log("fetchQuizAttempt url=", url);
     const response = await fetch(url, {
       method: 'POST', // Or 'POST', 'PUT', 'DELETE', etc.
       body: JSON.stringify({ user_id: user_id }), // Send user_id in the request body

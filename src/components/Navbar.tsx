@@ -19,7 +19,7 @@ type NavItem = {
    
     const handleItemClick = () => {
       //e.stopPropagation();
-      console.log("handleItemClick");
+      //console.log("handleItemClick");
     }
     
   //link: `/categories/${category.id}/sub_categories_student/${sub_category.id}`
@@ -47,7 +47,7 @@ type NavItem = {
         <section ref={animationParent} className="flex items-center gap-10">
           {/* logo */}
           <div className="hidden md:flex items-center gap-0.5 transition-all">
-              <div className='text-md bg-green-400 text-red-400  p-2 text-sm font-bold'>
+              <div className='text-md bg-amber-500 p-2 text-sm font-bold'>
                 <Link to={`/homepage/${role}`} >Home</Link>
               </div>
             {navItems.map((d, i) => (
@@ -55,7 +55,7 @@ type NavItem = {
                 key={i}
                 className="relative group py-3 transition-all "
               >
-                <p className="bg-green-300 text-red-400 flex cursor-pointer p-2  items-center group-hover:text-textColor4 text-sm " >
+                <p className="bg-amber-500 flex cursor-pointer p-2  items-center group-hover:text-textColor4 text-sm " >
                   <span>{d.label}</span>
                   {d.children && (
                     <IoIosArrowDown className=" rotate-180  transition-all group-hover:rotate-0" />
@@ -68,7 +68,7 @@ type NavItem = {
                     {d.children.map((ch, i) => (
                       <Link to={ch.link ?? "#"}
                         key={i}
-                        className=" flex cursor-pointer items-center  py-1 pl-4 pr-4 bg-gray-100 text-orange-500 hover:text-blue-400  "
+                        className=" flex cursor-pointer items-center  py-1 pl-4 pr-4 bg-gray-100 hover:text-blue-400  "
                       >
                         {/* item */}
                         <span onClick={handleItemClick} className=" whitespace-nowrap ">
@@ -80,7 +80,7 @@ type NavItem = {
                 )}
               </div>
             ))}
-              <div className='text-md bg-amber-600 text-blue-400 text-sm p-2'>
+              <div className='text-md bg-amber-400 text-sm p-2'>
                 <Link to="/games">Games</Link>
               </div>
               

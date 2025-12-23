@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 //import { useQuiz } from '../hooks/useQuiz';
 import { useQuizAttempt } from '../hooks/useQuizAttempt';
-import { useQuestionAttempt } from '../hooks/useQuestionAttempt';
 import QuizStartModal from './QuizStartModal';
 import api from '../api';
 import RedoQuestionModal from './RedoQuestionModal';
@@ -19,6 +18,7 @@ import { SRContinuous } from './questions/SRContinuous';
 import { WordsSelect } from './questions/WordsSelect';
 import { DynamicLetterInputs } from './questions/DynamicLetterInputs';
 import { processQuestion } from './processQuestion';
+import { Explanations } from './Explanations';
 
 export interface ChildRef {
     getAnswer: () => string | undefined;
@@ -29,8 +29,6 @@ function TakeQuiz() {
    const {quiz_id } = useParams<{ sub_category_id: string, quiz_id: string }>();
    const [fetchQuizEnabled, setFetchQuizEnabled] = useState(true)  // only fetch quiz once
    //setNextQuestionEnabled(true)  
-   const [newQuestionAttemptEnabled, setNewQuestionAttemptEnabled] = useState(false)  // only fetch next question once
-
     const [showStartModal, setShowStartModal] = useState<boolean|null>(false);
 
     const [questionData, setQuestionData] = useState<any>(null);
@@ -39,12 +37,17 @@ function TakeQuiz() {
 
     const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
-    const [quizAttemptCreated, setQuizAttemptCreated] = useState<boolean | null>(null);
+    const [_quizAttemptCreated, setQuizAttemptCreated] = useState<boolean | null>(null);
     
     const [showRedoModal, setShowRedoModal] = useState<boolean|null>(false);
 
     const [redoInProgress, setRedoInProgress] = useState<boolean>(false);
+    const [showExplanation, setShowExplanation] = useState<boolean>(false);
+
+    const [showSubmitButton, setShowSubmitButton] = useState<boolean>(true);
+
     // indicates whether a redo of erroneous attempts is in progress
+    //const tempQuestionHolder = useRef<any>(null);
 
     const childRef =  useRef<ChildRef>(null);
 /*
@@ -64,23 +67,6 @@ function TakeQuiz() {
     "2",  // use a fixed user id for now
     fetchQuizEnabled
 );
-
-   
-    const {data: questionAttemptData} = useQuestionAttempt(
-        quizAttempt ? quizAttempt.id : "",
-        questionData ? (questionData.question_number + 1) : 0,
-        newQuestionAttemptEnabled
-    );
-
-    useEffect(() => {
-        if (questionAttemptData) {
-            //console.log("Next question attempt data loaded:", questionAttemptData);
-            // destructure question, question_attempt_id from questionAttemptData
-            setQuestionData(questionAttemptData.question);
-            setQuestionAttemptId(questionAttemptData.question_attempt_id);
-            setNewQuestionAttemptEnabled(false); // disable further fetching for next question attempt
-        }
-    }, [questionAttemptData]);
 
     useEffect(() => {
         if (quizAttemptData) {
@@ -113,10 +99,11 @@ function TakeQuiz() {
                 setQuizAttempt(quizAttemptData.quiz_attempt);
                 setQuestionAttemptId(quizAttemptData.question_attempt_id);
                 setQuestionData(quizAttemptData.question);
+                setShowSubmitButton(true);
                 setShowStartModal(false);
               }
             //setFetchQuizEnabled(false); // disable further fetching for quiz_attempt
-            //setNewQuestionAttemptEnabled(true); // enable fetching next question attempt
+            //enable fetching next question attempt
         }
     }, [quizAttemptData]);
 
@@ -137,6 +124,7 @@ function TakeQuiz() {
             const { question } = res.data;
             //console.log("Next question to continue:", question);
             setQuestionData(question);
+            setShowSubmitButton(true);
             setQuestionAttemptId(res.data.question_attempt_id);
         })
         .catch((err) => alert(err));
@@ -149,6 +137,7 @@ function TakeQuiz() {
             const { question } = res.data;
             //console.log("First question after reset:", question);
             setQuestionData(question);
+            setShowSubmitButton(true);
             setQuestionAttemptId(res.data.question_attempt_id);
             // proceed to create question attempt for first question
         })
@@ -159,6 +148,14 @@ function TakeQuiz() {
     }
     setShowStartModal(false);
   }
+
+  /*
+ export interface QuestionAttempResultsProps {
+    answer: string | undefined,
+    score: number,
+    error_flag: boolean,
+}
+  */
 
   const processQuestionAttempt = () => {
     //alert("here processQuestionAttempt ")
@@ -171,10 +168,17 @@ function TakeQuiz() {
         alert("Answer cannot be empty. Please provide an answer before submitting.");
         return;
     }
-        const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
-        console.log("processQuestionAttempt result=", result)
-       
-    setQuestionData(null);
+    
+    const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
+    //console.log("processQuestionAttempt result=", result)
+       /*
+{
+    "answer": "three",
+    "score": 0,
+    "error_flag": true
+}
+       */
+    
     let url = `/api/question_attempts/${questionAttemptId}/update/`;
     if (redoInProgress) {
         url = `/api/question_attempts/${questionAttemptId}/update_during_redo/`;
@@ -186,98 +190,93 @@ function TakeQuiz() {
         setTimeout(() => {
             //setSubmitDisabled(false);
             //setShowNextButton(true);
-            //console.log("Question attempt processed. Response data=", res.data);
-            if (res.data.question === null) {
-                //alert("Quiz completed!");
-                setQuestionData(null);
-                if (res.data.question == null) {
-                    //alert(JSON.stringify(res.data));
-                    //console.log(" ************** Message:", res.data.message);
-                    if (res.data.message.includes("redo")) {
-                        setShowRedoModal(true);
-                    }
-                    else {
-                        alert("Quiz completed!");
-                    }
+            //console.log("processQuestionAttempt Response from server after submitting answer:", res.data);
+            if (result?.error_flag === true) {
+                //console.log(" there was an error in your answer.");
+                //console.log(" New question received.", res.data.question);
+                setShowExplanation(true);
+                setShowSubmitButton(false);
+                //tempQuestionHolder.current = res.data.question;
+             }  
+             else {
+                //console.log(" processQuestionAttempt answer was correct. Moving to next question.");
+                if (res.data.question) {
+                    //console.log(" Next question data=", res.data.question);
+                    setQuestionData(res.data.question);
+                    setShowSubmitButton(true);
+                    setQuestionAttemptId(res.data.question_attempt_id);
                 }
-                return;
+             }
+            //console.log("processQuestionAttempt Question attempt processed. Response data=", res.data);
+            // check req.data.message for end of quiz message
+            if (res.data.message && res.data.message.includes("No more questions")) {
+                if (res.data.message.includes("there are errorneous questions")) {
+                    //console.log("No more questions in quiz! However, there are erroneous questions to redo.");
+                    setShowRedoModal(true);
+                }
+                else {
+                    alert("No more questions. Quiz completed!");
+                    setQuestionData(null);
+                    setShowSubmitButton(false);
+                }
             }
-            setQuestionData(res.data.question);
-            setQuestionAttemptId(res.data.question_attempt_id);
-        }, 200); // re-enable after 2 seconds
-     
-        // handle response here
-    })
-    .catch((err) => alert(err));
-    // handle answer submission here
-    
- /*
-{
-    "answer": "  am",
-    "score": 5,
-    "error_flag": false
-}
-        */
-    
+            else if (res.data.message && res.data.message.includes("completed")) {
+                alert("Quiz completed!");
+                setQuestionData(null);
+                setShowSubmitButton(false);
+            }
 
-    /*
-    let url = `/api/question_attempts/${questionAttemptId}/update/`;
-    if (redoInProgress) {
-        url = `/api/question_attempts/${questionAttemptId}/update_during_redo/`;
-    }
-    //console.log("Submitting answer for question attempt id=", questionAttemptId, " to url=", url, " error=", error);
-    //api.post(`/api/question_attempts/${questionAttemptId}/update/`, {
-    api.post(url, {
-        error_flag : error, score: 5, answer: "sample answer" 
-    })
-    .then((res) => {
-        setTimeout(() => {
-            //setSubmitDisabled(false);
-            //setShowNextButton(true);
-            //console.log("Question attempt processed. Response data=", res.data);
-            if (res.data.question === null) {
-                //alert("Quiz completed!");
-                setQuestionData(null);
-                if (res.data.question == null) {
-                    //alert(JSON.stringify(res.data));
-                    //console.log(" ************** Message:", res.data.message);
-                    if (res.data.message.includes("redo")) {
-                        setShowRedoModal(true);
-                    }
-                    else {
-                        alert("Quiz completed!");
-                    }
-                }
-                return;
-            }
-            setQuestionData(res.data.question);
-            setQuestionAttemptId(res.data.question_attempt_id);
-        }, 200); // re-enable after 2 seconds
+           
+        }, 500); // re-enable after 2 seconds
      
         // handle response here
     })
     .catch((err) => alert(err));
     // handle answer submission here
-    */
   }
 
   /*
-return Response({
-                    "message": "QuestionAttempt updated successfully. No more questions available in the quiz.",
-                    "question_attempt_id": pk,
-                    "question": None,
-                })
+{
+    "message": "All errorneous questions have been finished. QuizAttempt marked as completed.",
+    "question_attempt_id": null,
+    "question": null
+}
+  */
+
+  /*
+ if (res.data.question === null) {
+                //alert("Quiz completed!");
+                setQuestionData(null);
+                if (res.data.question == null) {
+                    //alert(JSON.stringify(res.data));
+                    //console.log(" ************** Message:", res.data.message);
+                    if (res.data.message.includes("redo")) {
+                        setShowRedoModal(true);
+                    }
+                    else {
+                        alert("Quiz completed!");
+                    }
+                }
+                return;
+            }
+       
   */
 
   const handleRedo = () => {
     setShowRedoModal(false);
+    console.log("Redoing erroneous question attempts...");
     // reload the page to start over
-    api.get(`/api/quiz_attempts/${quizAttempt.id}/redo_errorneous_attempts/`)
+    //redoInProgress.current = true;
+    //setNewQuestionAttemptRedoEnabled(true); // trigger fetching next question attempt in redo mode
+    
+    api.post(`/api/quiz_attempts/${quizAttempt.id}/create_next_question_attempt_redo/`, {
+
+    })
     .then((res) => {
-        //console.log("Quiz attempt reset:", res.data);
-        // destructure question from res.data
+        //console.log("handleRedo: res.data=", res.data);
         const { question } = res.data;
-        //console.log("First question after reset:", question);
+        //console.log("handleRedo, question:", question);
+        //setQuestionData(null);
         setQuestionData(question);
         setQuestionAttemptId(res.data.question_attempt_id);
         setRedoInProgress(true); // indicate that redo is in progress
@@ -285,18 +284,90 @@ return Response({
         
     })
     .catch((err) => alert(err));
+    
   }
 
+  /*
+let url = ``;
+    let bodyData = {};
+    url = `${baseURL}/api/quiz_attempts/${quiz_attempt_id}/create_next_question_attempt_redo/`;
+    console.log("*** fetchQuestionAttemptRedo url=", url, 'body data=', bodyData);
+    const response = await fetch(url, {
+      method: 'POST', // Or 'POST', 'PUT', 'DELETE', etc.
+      body: JSON.stringify(bodyData), // Send question_id in the request body
+  */
+
+
+  const displayQuestion = (format: string) => {
+        if (format === "1") {
+            return <DynamicWordInputs content={questionData.content} ref={childRef} />
+        }
+        else if (format === "2") {
+            return <ButtonSelectCloze content={questionData.content} choices={questionData.button_cloze_options}  ref={childRef} />
+        }
+        else if (format === "3") {
+            return <ButtonSelect content={questionData.content} ref={childRef} />
+        }
+        else if (format === "4") {
+            return <RadioQuestion content={questionData.content} ref={childRef} />
+        }
+        else if (format === "5") {
+            return <CheckboxQuestion content={questionData.content} ref={childRef} />
+        }
+        else if (format === "6") {
+            return <DragDrop content={questionData.content} ref={childRef} />
+        }
+        else if (format === "7") {
+            return <SRContinuous content={questionData.content} ref={childRef} />
+        }
+        else if (format === "8") {
+            return <WordsSelect content={questionData.content} ref={childRef} />
+        }
+        else if (format === "10") {
+            return <DropDowns content={questionData.content} ref={childRef} />
+        }
+        else if (format === "11") {
+            return <DynamicLetterInputs content={questionData.content} ref={childRef} />
+        }
+  }
+
+  /*
+{
+    "message": "No more questions available, but there are errorneous questions to review. Let's redo them.",
+    "question_attempt_id": 273,
+    "question": null
+}
+  */
+
+  const continueQuiz = () => {
+    //console.log("Continuing quiz... Enabling new question attempt fetch.");
+    setShowExplanation(false);
+    api.post(`/api/quiz_attempts/${quizAttempt.id}/create_next_question_attempt/`, {
+        question_number: questionData.question_number
+    })
+    .then((res) => {
+        //console.log("continueQuiz: res.data=", res.data);
+        if (res.data.message && res.data.message.includes("errorneous questions to review") ) {
+            //console.log("No more questions available, but there are erroneous questions to review. Let's redo them.");
+            setQuestionData(null);
+            setShowRedoModal(true);
+            return;
+        }
+        
+        const { question } = res.data;
+        //console.log("continueQuiz, question:", question);
+        setQuestionData(question);
+        setShowSubmitButton(true);
+        setQuestionAttemptId(res.data.question_attempt_id);
+        // so that we can handle question attempts differently 
+        
+    })
+    .catch((err) => alert(err));
+    
+    //setNewQuestionAttemptEnabled(true); // 
+    }
   return (
     <>
-    <div>Redo in progress: {redoInProgress.toString()}</div>
-    {
-        quizAttemptCreated &&
-        <div className='bg-green-200 p-5 m-5'>
-            <h2>Quiz attempt created: {quizAttemptCreated.toString()}</h2>
-        </div>
-    }
-
     { showRedoModal &&
         <RedoQuestionModal closeModal={handleRedo}/>
     }
@@ -304,50 +375,46 @@ return Response({
     { showStartModal &&
         <QuizStartModal parentCallback={handleCallback}/>
     }
-          {questionData &&
-              <div className='m-10 p-10 border-2 border-blue-500'>
-                  <h2>Question: {questionData.question_number}, Question Id: {questionData.id}</h2>
-                  <div>
-                    {questionData.format === 1 &&
-                         <DynamicWordInputs content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 2 &&
-                        <ButtonSelectCloze content={questionData.content} choices={questionData.button_cloze_options}  ref={childRef} />
-                    }
-                    {questionData.format === 3 &&
-                         <ButtonSelect content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 4 &&
-                         <RadioQuestion content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 5 &&
-                         <CheckboxQuestion content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 6 &&
-                        <DragDrop content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 7 &&
-                         <SRContinuous content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 8 &&
-                         <WordsSelect content={questionData.content} ref={childRef} />
-                    }
-                    {questionData.format === 10 &&
-                         <DropDowns content={questionData.content} ref={childRef} />
-                    }
-                    { questionData.format === 11 &&
-                         <DynamicLetterInputs content={questionData.content} ref={childRef} />
-                    }
-                  </div>
-             
-                  <button className='bg-red-400 text-white mx-10 hover:bg-red-700'
+   
+    <div className='grid grid-cols-12 mx-16'> 
+        <div className='col-span-8 m-1 p-10 border-2 border-blue-500 bg-gray-100'>
+        {questionData &&
+        <>
+            <h2>Question: {questionData.question_number}, Question Id: {questionData.id}</h2>
+            <div>
+                    {displayQuestion(questionData.format.toString())}
+            </div>
+            { showSubmitButton &&
+            <button className='bg-red-400 text-white mx-10 mt-7 hover:bg-red-700'
                       onClick={() => processQuestionAttempt()} 
-                  >Submit</button>
-
+            >
+                Submit
+            </button>
+            }
+            </>
+        }
+        </div>
         
-
-              </div>
-          }
+        <div className='col-span-4 m-1 p-10 border-2 bg-gray-100 border-blue-500'>
+           {
+            showExplanation &&
+            <div>
+                <Explanations 
+                    question={questionData}
+                    response={{
+                        answer: childRef.current?.getAnswer(),
+                        score: 0,
+                        error_flag: true
+                    }} 
+                />
+                <button className='bg-green-400 '
+                    onClick={() => continueQuiz()}
+                >Continue</button>
+            </div>
+                }
+        </div>
+    </div>
+    
  
     </>
   )
@@ -356,11 +423,11 @@ return Response({
 export default TakeQuiz
 
 /*
-  if (question?.format === 1) {  //word scramble
-            return (
-                <div>
-                 <DynamicWordInputs content={question.content} ref={childRef} />
-                </div>
-            )
-        }
+   {
+        quizAttemptCreated &&
+        <div className='bg-green-200 p-5 m-5'>
+            <h2>Quiz attempt created: {quizAttemptCreated.toString()}</h2>
+        </div>
+    }
+
 */

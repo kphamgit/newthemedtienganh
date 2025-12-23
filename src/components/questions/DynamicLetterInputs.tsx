@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle, useRef} from 'react';
 import { type ChildRef } from '../TakeQuiz';
-import { type InputLetterRef } from './types'
+import { type InputLetterRef } from '../shared/types'
 import { InputLetter } from './InputLetter';
 
 

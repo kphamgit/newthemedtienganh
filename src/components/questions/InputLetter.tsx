@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 //import styles from "./input_letter_style.module.css";
-import { type InputLetterRef } from './types';
+import { type InputLetterRef } from '../shared/types';
 //import { color } from 'framer-motion';
 
   interface Props {
