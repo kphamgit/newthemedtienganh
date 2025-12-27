@@ -1,12 +1,13 @@
-import { forwardRef, useImperativeHandle, useState } from 'react'
+import { useImperativeHandle, useState } from 'react'
 import { AzureButton} from '../shared/AzureButton';
 import { type ChildRef } from '../TakeQuiz';
 
 interface Props {
     content: string | undefined;
+    ref: React.Ref<ChildRef>;
   }
 
-export const ButtonSelect = forwardRef<ChildRef, Props>((props, ref) => {
+export const ButtonSelect = ( props: Props, ) => {
   const [answer, setAnswer] = useState<string | undefined>()
   const labels = props.content?.split('/')
 
@@ -18,7 +19,7 @@ export const ButtonSelect = forwardRef<ChildRef, Props>((props, ref) => {
     setAnswer(selected_text)
 
   }
-  useImperativeHandle(ref, () => ({
+  useImperativeHandle(props.ref, () => ({
     getAnswer,
   }));
 
@@ -31,4 +32,4 @@ export const ButtonSelect = forwardRef<ChildRef, Props>((props, ref) => {
       </ul>
     </>
   )
-})
+}

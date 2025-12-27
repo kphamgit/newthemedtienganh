@@ -10,7 +10,7 @@ type NavItem = {
     children?: NavItem[];
   };
 
-   export default function Navbar({ role, categories }: { role: string; categories: CategoryProps[] | null }) {
+   export default function Navbar({ categories }: { role: string; categories: CategoryProps[] | null }) {
     const [animationParent] = useAutoAnimate();
     const [navItems, setNavItems] = useState<NavItem[]>([]);
 
@@ -47,9 +47,6 @@ type NavItem = {
         <section ref={animationParent} className="flex items-center gap-10">
           {/* logo */}
           <div className="hidden md:flex items-center gap-0.5 transition-all">
-              <div className='text-md bg-amber-500 p-2 text-sm font-bold'>
-                <Link to={`/homepage/${role}`} >Home</Link>
-              </div>
             {navItems.map((d, i) => (
               <div
                 key={i}
@@ -81,7 +78,7 @@ type NavItem = {
               </div>
             ))}
               <div className='text-md bg-amber-400 text-sm p-2'>
-                <Link to="/games">Games</Link>
+                <Link to="/logout">Log out</Link>
               </div>
               
           </div>

@@ -19,6 +19,7 @@ import { WordsSelect } from './questions/WordsSelect';
 import { DynamicLetterInputs } from './questions/DynamicLetterInputs';
 import { processQuestion } from './processQuestion';
 import { Explanations } from './Explanations';
+import SentenceScramble from './questions/SentenceScramble';
 
 export interface ChildRef {
     getAnswer: () => string | undefined;
@@ -27,9 +28,9 @@ export interface ChildRef {
 function TakeQuiz() {
 
    const {quiz_id } = useParams<{ sub_category_id: string, quiz_id: string }>();
-   const [fetchQuizEnabled, setFetchQuizEnabled] = useState(true)  // only fetch quiz once
+   const [fetchQuizAttemptEnabled, setFetchQuizAttemptEnabled] = useState(true)  // only fetch quiz once
    //setNextQuestionEnabled(true)  
-    const [showStartModal, setShowStartModal] = useState<boolean|null>(false);
+    const [showStartModal, setShowStartModal] = useState<boolean|null>(null);
 
     const [questionData, setQuestionData] = useState<any>(null);
 
@@ -37,7 +38,7 @@ function TakeQuiz() {
 
     const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
-    const [_quizAttemptCreated, setQuizAttemptCreated] = useState<boolean | null>(null);
+    //const [_quizAttemptCreated, setQuizAttemptCreated] = useState<boolean | null>(null);
     
     const [showRedoModal, setShowRedoModal] = useState<boolean|null>(false);
 
@@ -50,42 +51,47 @@ function TakeQuiz() {
     //const tempQuestionHolder = useRef<any>(null);
 
     const childRef =  useRef<ChildRef>(null);
-/*
- useQuizAttempt = (quiz_id: string, _video_url: string | null, user_id: string, enabled: boolean) => {
-  const { data: quizAttemptData } = useQuizAttempt(
-    quiz_id ? quiz_id : "",
-    null,
-    localStorage.getItem("user_id") || "",
-    fetchQuizEnabled
-);
- */
 
    // Call useQuizAttempt and destructure the response
    const { data: quizAttemptData } = useQuizAttempt(
     quiz_id ? quiz_id : "",
     null,
     "2",  // use a fixed user id for now
-    fetchQuizEnabled
+    fetchQuizAttemptEnabled
 );
 
     useEffect(() => {
         if (quizAttemptData) {
-            setFetchQuizEnabled(false); // disable further fetching for quiz_attempt
+            setFetchQuizAttemptEnabled(false); // disable further fetching for quiz_attempt
             //console.log("quiz_attempt loaded:", quizAttemptData);
            // Destructure the fields from quizAttemptData
-            const { created } = quizAttemptData || {};           
+            const { created } = quizAttemptData || {};  
+            setQuizAttempt(quizAttemptData.quiz_attempt);         
            // if a quiz attempt already exists, show a pop up modal to ask if the user wants to continue or start over
            if (created === false) {
                 //console.log(" quiz attempt already exists. Show modal to continue or start over.");
                 //alert("You have already started this quiz. Do you want to continue where you left off or start over?");
                 // Implement modal with options to continue or start over
-                setQuizAttempt(quizAttemptData.quiz_attempt);
-                setShowStartModal(true);
-                setQuizAttemptCreated(false);
-
+                console.log(" quiz attempt already exists. quizAttemptData:", quizAttemptData);
+                // quizAttemptData contains the quiz attempt info
+                // quizAttemptData ALSO contains the last question attempt ID
+                // and question data if applicable (in case the server detected
+                // that the last question unfinished IS the first question of the quiz)
+                // check if quizAttemptData.question is present
+                if (quizAttemptData.question) { // the last quesion unfinished is the first question of the quiz
+                    console.log(" There is a last question to continue from. question data:", quizAttemptData.question);
+                    setQuestionData(quizAttemptData.question);
+                    setQuestionAttemptId(quizAttemptData.last_question_attempt_id);
+                    setShowSubmitButton(true);
+                    setShowStartModal(null); // no need to show start modal
+                    //return; // exit here
+                }
+                else {
+                    setShowStartModal(true);
+                }
             } else {
-                //console.log(" quiz attempt created.")
-                setQuizAttemptCreated(true);
+                console.log(" quiz attempt created. First question: ", quizAttemptData.question);
+                //setQuizAttemptCreated(true);
                 // proceed to create quiz attempt for first question
                 /*
                     return Response({
@@ -95,15 +101,12 @@ function TakeQuiz() {
                     "question_attempt_id": question_attempt.id,
                 })
                 */
-                // destructure question, question_attempt_id from quizAttemptData
-                setQuizAttempt(quizAttemptData.quiz_attempt);
                 setQuestionAttemptId(quizAttemptData.question_attempt_id);
+                
                 setQuestionData(quizAttemptData.question);
                 setShowSubmitButton(true);
-                setShowStartModal(false);
+                setShowStartModal(null);
               }
-            //setFetchQuizEnabled(false); // disable further fetching for quiz_attempt
-            //enable fetching next question attempt
         }
     }, [quizAttemptData]);
 
@@ -119,7 +122,7 @@ function TakeQuiz() {
         // continue existing quiz attempt
         api.get(`/api/quiz_attempts/${quizAttempt.id}/continue/`)
         .then ((res) => {
-            //console.log("Continuing quiz attempt:", res.data);
+            console.log("Continuing quiz attempt:", res.data);
             // destructure question from res.data
             const { question } = res.data;
             //console.log("Next question to continue:", question);
@@ -146,7 +149,7 @@ function TakeQuiz() {
         // then, start a new question attempt for first question of this quiz
         // 
     }
-    setShowStartModal(false);
+    setShowStartModal(null);
   }
 
   /*
@@ -156,6 +159,8 @@ function TakeQuiz() {
     error_flag: boolean,
 }
   */
+
+
 
   const processQuestionAttempt = () => {
     //alert("here processQuestionAttempt ")
@@ -169,6 +174,12 @@ function TakeQuiz() {
         return;
     }
     
+    console.log("processQuestionAttempt..... the_answer=", the_answer);
+    const result0 = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
+
+    console.log("processQuestionAttempt result0=", result0);
+
+    return ;
     const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
     //console.log("processQuestionAttempt result=", result)
        /*
@@ -235,33 +246,6 @@ function TakeQuiz() {
     // handle answer submission here
   }
 
-  /*
-{
-    "message": "All errorneous questions have been finished. QuizAttempt marked as completed.",
-    "question_attempt_id": null,
-    "question": null
-}
-  */
-
-  /*
- if (res.data.question === null) {
-                //alert("Quiz completed!");
-                setQuestionData(null);
-                if (res.data.question == null) {
-                    //alert(JSON.stringify(res.data));
-                    //console.log(" ************** Message:", res.data.message);
-                    if (res.data.message.includes("redo")) {
-                        setShowRedoModal(true);
-                    }
-                    else {
-                        alert("Quiz completed!");
-                    }
-                }
-                return;
-            }
-       
-  */
-
   const handleRedo = () => {
     setShowRedoModal(false);
     console.log("Redoing erroneous question attempts...");
@@ -286,17 +270,6 @@ function TakeQuiz() {
     .catch((err) => alert(err));
     
   }
-
-  /*
-let url = ``;
-    let bodyData = {};
-    url = `${baseURL}/api/quiz_attempts/${quiz_attempt_id}/create_next_question_attempt_redo/`;
-    console.log("*** fetchQuestionAttemptRedo url=", url, 'body data=', bodyData);
-    const response = await fetch(url, {
-      method: 'POST', // Or 'POST', 'PUT', 'DELETE', etc.
-      body: JSON.stringify(bodyData), // Send question_id in the request body
-  */
-
 
   const displayQuestion = (format: string) => {
         if (format === "1") {
@@ -328,6 +301,9 @@ let url = ``;
         }
         else if (format === "11") {
             return <DynamicLetterInputs content={questionData.content} ref={childRef} />
+        }
+        else if (format === "12") {
+            return <SentenceScramble content= {questionData.content} ref={childRef} />
         }
   }
 
@@ -372,7 +348,7 @@ let url = ``;
         <RedoQuestionModal closeModal={handleRedo}/>
     }
    
-    { showStartModal &&
+    { (showStartModal == true) &&
         <QuizStartModal parentCallback={handleCallback}/>
     }
    
@@ -380,7 +356,7 @@ let url = ``;
         <div className='col-span-8 m-1 p-10 border-2 border-blue-500 bg-gray-100'>
         {questionData &&
         <>
-            <h2>Question: {questionData.question_number}, Question Id: {questionData.id}</h2>
+            <h2 className='mb-10'>Question: {questionData.question_number}, Question Id: {questionData.id}</h2>
             <div>
                     {displayQuestion(questionData.format.toString())}
             </div>
@@ -422,12 +398,4 @@ let url = ``;
 
 export default TakeQuiz
 
-/*
-   {
-        quizAttemptCreated &&
-        <div className='bg-green-200 p-5 m-5'>
-            <h2>Quiz attempt created: {quizAttemptCreated.toString()}</h2>
-        </div>
-    }
 
-*/

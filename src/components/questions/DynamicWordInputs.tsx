@@ -116,16 +116,29 @@ useEffect(() => {
 
     function renderContent(type: string, value: string, id: string, index: number) {
       if (type === 'input') {
-        return (<input
-          className='bg-green-300 rounded-md cloze_answer'
-          type="text"
-          value={value}
-          size={maxLength}
-          onChange={(e) => handleInputChange(id, e.target.value)}
-          ref={(el: HTMLInputElement) => {
-            inputRefs.current[index] = el;
-          }}
-        />
+        return (
+          <div className="relative inline-block">
+            <div className="absolute -top-7 left-0">
+              <div className="relative bg-lime-300 text-lime-900 px-2 py-0 
+              rounded-xl text-sm font-medium shadow border-[0.5px] border-lime-600">
+                draw
+                <div className="absolute left-3 -bottom-1 w-2 h-2 
+                bg-lime-300 rotate-135  border-r-[0.5px]  border-t-[0.5px] border-lime-600"></div>
+              </div>
+            </div>
+
+            <input
+              className='px-4 py-0 border-2 border-blue-400 rounded-md 
+           focus:outline-none focus:ring-2 focus:ring-blue-300'
+              type="text"
+              value={value}
+              size={maxLength}
+              onChange={(e) => handleInputChange(id, e.target.value)}
+              ref={(el: HTMLInputElement) => {
+                inputRefs.current[index] = el;
+              }}
+            />
+          </div>
         )
       }
       else if (type === "newline_tag") {
@@ -155,3 +168,33 @@ useEffect(() => {
   );
 });
 
+/*
+
+ if (type === 'input') {
+        return (
+        <>
+        <input
+          className='bg-green-300 rounded-md cloze_answer'
+          type="text"
+          value={value}
+          size={maxLength}
+          onChange={(e) => handleInputChange(id, e.target.value)}
+          ref={(el: HTMLInputElement) => {
+            inputRefs.current[index] = el;
+          }}
+        />
+
+
+<div className="relative inline-block">
+  <div className="absolute -top-7 left-3 bg-lime-200 text-lime-800 
+              px-3 py-1 rounded-full text-sm font-medium shadow">
+    draw
+  </div>
+  <input
+    type="text"
+    className="w-64 px-4 py-3 border-2 border-blue-400 rounded-md 
+           focus:outline-none focus:ring-2 focus:ring-blue-300"
+    placeholder=""
+  />
+</div>
+*/

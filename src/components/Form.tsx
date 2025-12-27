@@ -11,8 +11,8 @@ interface FormProps {
 }
 
 function Form({ route, method }: FormProps) {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("kpham");
+    const [password, setPassword] = useState("9#beeyen");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 

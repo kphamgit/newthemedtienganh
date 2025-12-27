@@ -107,6 +107,28 @@ const compare_cloze_answers = (user_answer: string, answer_key: string) => {
     return match
 }
 
+const process_sentence_scramble = (answer_key:string, user_answer: string ) => {
+    let error = true;
+    let score = 0
+    console.log("process_sentence_scramble answer_key = ", answer_key)
+    console.log("process_sentence_scramble user_answer = ", user_answer)
+    /*
+{
+    "answer": "3,1,2",
+    "score": 0,
+    "error_flag": true
+}
+    */
+
+    const rc =  { ...default_results,
+        answer: user_answer,
+        score: score,
+        error_flag: error,
+        }
+
+     return rc
+}
+
 const process_letter_cloze = (answer_key:string, user_answer: string ) => {
     // answer_key is a string without slashes, e.g. "UR"
     // user_answer is a string with slashes, e.g. "U/R" (because user fills in the letters individually)
@@ -376,6 +398,11 @@ switch (format) {
         );
     case '11': // dropdown
         return process_letter_cloze(
+            answer_key!,
+            user_answer!
+        );
+    case '12': // dropdown
+        return process_sentence_scramble(
             answer_key!,
             user_answer!
         );
