@@ -175,13 +175,13 @@ function TakeQuiz() {
     }
     
     console.log("processQuestionAttempt..... the_answer=", the_answer);
-    const result0 = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
+    //const result0 = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
 
-    console.log("processQuestionAttempt result0=", result0);
+    //console.log("processQuestionAttempt result0=", result0);
 
-    return ;
+    //return ;
     const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
-    //console.log("processQuestionAttempt result=", result)
+    console.log("processQuestionAttempt result=", result)
        /*
 {
     "answer": "three",
