@@ -11,12 +11,12 @@ import QuestionHelper from './QuestionHelper';
 //import { ProcessQuestionResultsProps } from '../live/processQuestion';
 
  
-    export function Explanations(props:
-        { 
-                question: QuestionProps | undefined,
-                response: QuestionAttempResultsProps
-            }) 
-           {
+    export function Explanations(props:{ 
+            question: QuestionProps | undefined,
+            response: QuestionAttempResultsProps
+        })
+        
+        {
         //console.log("XXXXQQQQQQQQ", question_attempt_results)
         const [displayedUserAnswer, setDisplayedUserAnswer] = useState('')
         const [displayedAnswerKey, setDisplayedAnswerKey] = useState('')

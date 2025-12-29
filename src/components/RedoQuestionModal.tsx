@@ -7,7 +7,7 @@ function RedoQuestionModal({ closeModal }: RedoQuestionModalProps) {
 
 
   return (
-    <div className="fixed inset-50 bg-blue-700 bg-opacity-50 flex items-center justify-center z-10">
+    <div className="fixed inset-100 bg-blue-300 bg-opacity-50 flex items-center justify-center z-10">
         <div className='bg-white p-5 rounded-md shadow-md'>
             <h2 className='text-lg font-bold mb-4'>Redo Question</h2>
             <div className='flex justify-end gap-4'>

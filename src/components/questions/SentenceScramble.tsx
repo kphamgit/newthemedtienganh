@@ -34,7 +34,7 @@ useEffect(() => {
 }, [props.content]);
 
  const getAnswer = () => {
-  console.log("getAnswer called in SentenceScramble");  
+    //console.log("getAnswer called in SentenceScramble");  
     const childAnswer = childRef.current?.getAnswer();
     return childAnswer
   }

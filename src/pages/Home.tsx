@@ -14,10 +14,12 @@ function Home() {
     }, []);
 
     const getCategories = () => {
+        //console.log("Fetching categories...");
         api
-            .get("/api/categories/")
+            .get("/api/categories/list/")
             .then((res) => res.data)
             .then((data) => {
+                //console.log("categories", data);
                 setCategories(data);
                 //console.log("categories", data);
             })

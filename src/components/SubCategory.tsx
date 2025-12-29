@@ -34,17 +34,20 @@ function SubCategory() {
 
     useEffect(() => {
         if (id !== 0) {
+            console.log("Fetching units for sub-category id:", id);
             getUnits();
         }
     }, [id]);
 
     const getUnits = () => {
+        console.log("Getting units for sub-category id:", id);
         api
-            .get(`/api/sub_categories/${id}/units`)
+            .get(`/api/sub_categories/${id}/units/`)
             .then((res) => res.data)
             .then((data) => {
+                console.log("************ units", data);
                 setUnits(data);
-                //console.log("units", data);
+               
             })
             .catch((err) => alert(err));
     };

@@ -41,6 +41,7 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
         const now = Date.now() / 1000;
 
         if (tokenExpiration && tokenExpiration < now) {
+            alert("Session has expired. Do you want to continue?");
             await refreshToken();
         } else {
             setIsAuthorized(!!tokenExpiration);

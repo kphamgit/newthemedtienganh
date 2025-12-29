@@ -72,14 +72,14 @@ function TakeQuiz() {
                 //console.log(" quiz attempt already exists. Show modal to continue or start over.");
                 //alert("You have already started this quiz. Do you want to continue where you left off or start over?");
                 // Implement modal with options to continue or start over
-                console.log(" quiz attempt already exists. quizAttemptData:", quizAttemptData);
+                //console.log(" quiz attempt already exists. quizAttemptData:", quizAttemptData);
                 // quizAttemptData contains the quiz attempt info
                 // quizAttemptData ALSO contains the last question attempt ID
                 // and question data if applicable (in case the server detected
                 // that the last question unfinished IS the first question of the quiz)
                 // check if quizAttemptData.question is present
                 if (quizAttemptData.question) { // the last quesion unfinished is the first question of the quiz
-                    console.log(" There is a last question to continue from. question data:", quizAttemptData.question);
+                    //console.log(" There is a last question to continue from. question data:", quizAttemptData.question);
                     setQuestionData(quizAttemptData.question);
                     setQuestionAttemptId(quizAttemptData.last_question_attempt_id);
                     setShowSubmitButton(true);
@@ -90,7 +90,7 @@ function TakeQuiz() {
                     setShowStartModal(true);
                 }
             } else {
-                console.log(" quiz attempt created. First question: ", quizAttemptData.question);
+                //console.log(" quiz attempt created. First question: ", quizAttemptData.question);
                 //setQuizAttemptCreated(true);
                 // proceed to create quiz attempt for first question
                 /*
@@ -174,14 +174,14 @@ function TakeQuiz() {
         return;
     }
     
-    console.log("processQuestionAttempt..... the_answer=", the_answer);
+    //console.log("processQuestionAttempt..... the_answer=", the_answer);
     //const result0 = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
 
     //console.log("processQuestionAttempt result0=", result0);
 
     //return ;
     const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")
-    console.log("processQuestionAttempt result=", result)
+    //console.log("processQuestionAttempt result=", result)
        /*
 {
     "answer": "three",
@@ -248,7 +248,7 @@ function TakeQuiz() {
 
   const handleRedo = () => {
     setShowRedoModal(false);
-    console.log("Redoing erroneous question attempts...");
+    //console.log("Redoing erroneous question attempts...");
     // reload the page to start over
     //redoInProgress.current = true;
     //setNewQuestionAttemptRedoEnabled(true); // trigger fetching next question attempt in redo mode
@@ -264,6 +264,8 @@ function TakeQuiz() {
         setQuestionData(question);
         setQuestionAttemptId(res.data.question_attempt_id);
         setRedoInProgress(true); // indicate that redo is in progress
+        //show submit button
+        setShowSubmitButton(true);
         // so that we can handle question attempts differently 
         
     })

@@ -110,15 +110,16 @@ const compare_cloze_answers = (user_answer: string, answer_key: string) => {
 const process_sentence_scramble = (answer_key:string, user_answer: string ) => {
     let error = true;
     let score = 0
-    console.log("process_sentence_scramble answer_key = ", answer_key)
-    console.log("process_sentence_scramble user_answer = ", user_answer)
-    /*
-{
-    "answer": "3,1,2",
-    "score": 0,
-    "error_flag": true
-}
-    */
+    //console.log("process_sentence_scramble answer_key = ", answer_key)
+    //console.log("process_sentence_scramble user_answer = ", user_answer)
+   
+    //answer_key =  1,2,3,4
+    //user_answer = 2,1,4,3
+
+    if (answer_key === user_answer) {
+        error = false
+        score = 5
+    }
 
     const rc =  { ...default_results,
         answer: user_answer,
