@@ -4,7 +4,7 @@ import Register from  "./pages/Register"
 import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "../src/components/ProtectedRoute"
-import SubCategory from "./components/SubCategory"
+import Category from "./components/Category"
 import TakeQuiz from "./components/TakeQuiz"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,8 +31,8 @@ function App() {
             <Home />
           </ProtectedRoute>}
         >
-          <Route path="sub_categories_student/:sub_category_id" element={<SubCategory />} />
-          <Route path="sub_categories/:sub_category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />
+          <Route path="categories/:category_id" element={<Category />} />
+          <Route path="categories/:category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
@@ -46,5 +46,4 @@ function App() {
 
 export default App
 
-///sub_categories/${id}/take_quiz/${quiz.id}`
-///sub_categories/8/take_quiz/35
+//   <Route path="sub_categories/:sub_category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />

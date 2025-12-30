@@ -25,7 +25,7 @@ export interface ChildRef {
     getAnswer: () => string | undefined;
   }
 
-function TakeQuiz() {
+function TakeQuizSave() {
 
    const {quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
    const [fetchQuizAttemptEnabled, setFetchQuizAttemptEnabled] = useState(true)  // only fetch quiz once
@@ -62,6 +62,7 @@ function TakeQuiz() {
 
     useEffect(() => {
         if (quizAttemptData) {
+            alert("quizAttemptData loaded");
             setFetchQuizAttemptEnabled(false); // disable further fetching for quiz_attempt
             //console.log("quiz_attempt loaded:", quizAttemptData);
            // Destructure the fields from quizAttemptData
@@ -383,6 +384,6 @@ function TakeQuiz() {
   )
 }
 
-export default TakeQuiz
+export default TakeQuizSave
 
 

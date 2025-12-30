@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { IoIosArrowDown } from "react-icons/io";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link } from "react-router-dom";
-import type { CategoryProps, SubCategoryProps } from "./Category";
+import type { LevelProps, CategoryProps } from "./Level";
 
 type NavItem = {
     label: string;
@@ -10,28 +10,26 @@ type NavItem = {
     children?: NavItem[];
   };
 
-   export default function Navbar({ categories }: { role: string; categories: CategoryProps[] | null }) {
+   export default function Navbar({ levels }: { role: string; levels: LevelProps[] | null }) {
     const [animationParent] = useAutoAnimate();
     const [navItems, setNavItems] = useState<NavItem[]>([]);
 
-
-  
-   
     const handleItemClick = () => {
+      //alert("Item clicked");
       //e.stopPropagation();
       //console.log("handleItemClick");
     }
     
   //link: `/categories/${category.id}/sub_categories_student/${sub_category.id}`
     useEffect(() => {
-      if (categories) {
-        const nav_items = categories.map((category: CategoryProps) => {
+      if (levels) {
+        const nav_items = levels.map((level: LevelProps) => {
           return {
-            label: category.name,
-            children: category.sub_categories.map((sub_category: SubCategoryProps) => {
+            label: level.name,
+            children: level.categories.map((category: CategoryProps) => {
               return {
-                label: sub_category.name,
-                link: `/sub_categories_student/${sub_category.id}`
+                label: category.name,
+                link: `/categories/${category.id}`
               }
             })
           }
@@ -39,7 +37,7 @@ type NavItem = {
         //console.log("HERE nav_items", nav_items)
         setNavItems(nav_items)
       }
-  }, [categories])
+  }, [levels])
   
     return (
       <div className="flex  max-w-7xl justify-between px-5 py-0">
@@ -62,17 +60,21 @@ type NavItem = {
                 {/* dropdown */}
                 {d.children && (
                   <div className="absolute  left-0 mt-3  top-10 hidden w-auto  flex-col bg-gray-100 py-3 shadow-md text-sm transition-all group-hover:flex ">
-                    {d.children.map((ch, i) => (
-                      <Link to={ch.link ?? "#"}
-                        key={i}
-                        className=" flex cursor-pointer items-center  py-1 pl-4 pr-4 bg-gray-100 hover:text-blue-400  "
-                      >
-                        {/* item */}
-                        <span onClick={handleItemClick} className=" whitespace-nowrap ">
-                          {ch.label}
-                        </span>
-                      </Link>
-                    ))}
+{d.children.map((ch, i) => {
+  console.log(ch.link); // Debugging: Print the value of `ch` to the console
+  return (
+    <Link
+      to={ch.link ?? "#"}
+      key={i}
+      className="flex cursor-pointer items-center py-1 pl-4 pr-4 bg-gray-100 hover:text-red-800"
+    >
+      {/* item */}
+      <span onClick={handleItemClick} className="whitespace-nowrap">
+        {ch.label}
+      </span>
+    </Link>
+  );
+})}
                   </div>
                 )}
               </div>
