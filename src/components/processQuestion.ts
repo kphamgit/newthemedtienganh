@@ -4,7 +4,7 @@ export interface ProcessQuestionResultsProps {
     answer: string | undefined,
     score: number,
     error_flag: boolean,
-   
+    error_flag_array?: boolean[],
 }
 
 
@@ -63,15 +63,21 @@ const process_cloze = (answer_key:string, user_answer: string ) => {
             //console.log(" multiple answers")
             let possible_answers = a_key.split('*')
             //console.log("possible_answers: ",possible_answers)
+            let possible_answer_match = false
             possible_answers.forEach ( (possible_answer: string) => {
-                 if (compare_cloze_answers(u_answer.toLowerCase(), possible_answer.toLowerCase())) {
+                possible_answer_match = compare_cloze_answers(u_answer.toLowerCase(), possible_answer.toLowerCase())
+                if (possible_answer_match) {
                     error = false;
-                 }
+                }
             })
          
         }
-        else if (compare_cloze_answers(u_answer.toLowerCase(), answer_key_parts[index].toLowerCase())) {
-            error = false;
+        else {
+            const match = compare_cloze_answers(u_answer.toLowerCase(), answer_key_parts[index].toLowerCase())
+            if (match) {
+                error = false;
+            }
+          
         }
     })
 
@@ -90,21 +96,29 @@ const process_cloze = (answer_key:string, user_answer: string ) => {
 }
 
 const compare_cloze_answers = (user_answer: string, answer_key: string) => {
-  
-    // remove all spaces from both user answer and answer key
-    let match = true
-    const u_answer_densed = user_answer.replace(/\s+/g, '');
-    //const u_answer_densed =  user_answer.replace(/[\s\x00-\x1F\x7F]+/g, '');
-    const answer_key_densed = answer_key.replace(/\s+/g, '');
-    //const answer_key_densed = answer_key.replace(/[\s\x00-\x1F\x7F]+/g, '');
-    //const noWhitespace = str.replace(/\s+/g, '');
-    //console.log("answer_key_densed =", answer_key_densed, "**")
-    if (u_answer_densed !== answer_key_densed) {
-        //console.log("user answer and answer key do not match")
-        match = false
-    }
-    //console.log("compare_cloze_answers match = ", match)
-    return match
+    // answer_key is a string separated by slashes"
+    // user_answer is a string separated by slashes"
+    // assume number of parts in both strings is the same
+    const match_array: boolean[] = []
+    // split both strings into parts
+    const answer_key_parts = answer_key.split('|')
+    const user_answer_parts = user_answer.split('|')
+    user_answer_parts.forEach( (u_part, index) => {
+        let a_part = answer_key_parts[index]
+        if (a_part === undefined) {
+            return undefined
+        }
+        if (a_part === u_part) {
+            match_array.push(true)
+        }
+        else {
+            match_array.push(false)
+        }
+    })
+    //console.log("match_array = ", match_array)
+    // if all parts match, return true
+    return match_array.every( (part) => part === true)
+   
 }
 
 const process_sentence_scramble = (answer_key:string, user_answer: string ) => {

@@ -61,7 +61,7 @@ type NavItem = {
                 {d.children && (
                   <div className="absolute  left-0 mt-3  top-10 hidden w-auto  flex-col bg-gray-100 py-3 shadow-md text-sm transition-all group-hover:flex ">
 {d.children.map((ch, i) => {
-  console.log(ch.link); // Debugging: Print the value of `ch` to the console
+  //console.log(ch.link); // Debugging: Print the value of `ch` to the console
   return (
     <Link
       to={ch.link ?? "#"}

@@ -65,14 +65,14 @@ function Category() {
             {
                 units.map((unit) => (
                     <div key={unit.id}>
-                        <p className="px-3">Unit {unit.unit_number}. <span>{unit.name}</span></p>
+                        <p className="px-3 my-1 text-blue-500 text-lg">Unit {unit.unit_number}. <span>{unit.name}</span></p>
                         
                         {
                             unit.quizzes && unit.quizzes.map((quiz) => (
-                                <div key={quiz.id} style={{ marginLeft: '20px' }}>
-                                    <p>Quiz: {quiz.quiz_number}</p>
-                                    <button className=' px-2 rounded-md hover:underline bg-blue-100' onClick={() => take_quiz(quiz)}>
-                                        {quiz.name} Quiz id: {quiz.id} </button>
+                                <div key={quiz.id} className="px-6 my-1">
+                                    <span>{quiz.quiz_number}.</span>
+                                    <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
+                                        {quiz.name} </button>
                                 </div>
                             ))
                         }
