@@ -4,11 +4,18 @@ export interface ProcessQuestionResultsProps {
     answer: string | undefined,
     score: number,
     error_flag: boolean,
-    error_flag_array?: boolean[],
+    cloze_question_results?: ClozeAnswerResultsProps[] | undefined,
+}
+
+type ClozeAnswerResultsProps = {
+    user_answer: string,
+    answer_key: string,
+    score: number,
+    error_flag: boolean,
 }
 
 
-export const processQuestion = (format: string | undefined, answer_key: string | undefined, user_answer: any | undefined) => {
+export const processQuestion = (format: string | undefined, answer_key: string | undefined, user_answer: any | undefined): ProcessQuestionResultsProps | undefined => {
   
    //console.log("processQuestion format = ", format)
   const default_results = {
@@ -36,89 +43,80 @@ export const processQuestion = (format: string | undefined, answer_key: string |
         }
 }
 
+
 const process_cloze = (answer_key:string, user_answer: string ) => {
-    
-    //console.log("process_cloze answer_key = ", answer_key)
-
-    //console.log("process_cloze user_answer = ", user_answer)
-
     let error = true;
     let score = 0
-
     let user_answer_parts = user_answer.trim().split('/')
+    const result_array: ClozeAnswerResultsProps[] = []
+
     //console.log("user_answer_parts = ", user_answer_parts)
     let answer_key_parts = answer_key.split('/')
-    //console.log("answer_key_parts = ", answer_key_parts)
-
+    // console.log("answer_key_parts = ", answer_key_parts)
     user_answer_parts.forEach( (u_answer, index) => {
-        //console.log("u answer = ", u_answer)
+        //console.log("u answer =", u_answer, "*****")
         //console.log("answer key = "+answer_key_parts[index])
         let a_key = answer_key_parts[index]
         //console.log("akey = ", a_key)
         if (a_key === undefined) {
             return undefined
         }
-
-        if (a_key?.indexOf('*') >= 0 ) { //there are several possible answers
-            //console.log(" multiple answers")
-            let possible_answers = a_key.split('*')
-            //console.log("possible_answers: ",possible_answers)
-            let possible_answer_match = false
-            possible_answers.forEach ( (possible_answer: string) => {
-                possible_answer_match = compare_cloze_answers(u_answer.toLowerCase(), possible_answer.toLowerCase())
-                if (possible_answer_match) {
-                    error = false;
-                }
-            })
-         
+        error = compare_cloze_answers(u_answer.toLowerCase().trim(), answer_key_parts[index].toLowerCase().trim())
+        
+        // start test
+        const test_result: ClozeAnswerResultsProps = {
+            user_answer: u_answer,
+            answer_key: a_key,
+            score: error ? 0 : 5,
+            error_flag: error,
         }
-        else {
-            const match = compare_cloze_answers(u_answer.toLowerCase(), answer_key_parts[index].toLowerCase())
-            if (match) {
-                error = false;
-            }
-          
-        }
+        //console.log("********* process_cloze test_result = ", test_result)
+        result_array.push(test_result)
+/*
+[
+    {
+        "user_answer": "ww",
+        "answer_key": "was",
+        "score": 0,
+        "error_flag": true
+    },
+    {
+        "user_answer": "  qqq",
+        "answer_key": "saw",
+        "score": 0,
+        "error_flag": true
+    }
+]
+*/
+        //end testing
+        
     })
 
   
+    // overall error flag is true if any of the parts is incorrect
+    const overall_error = result_array.find( (part_result) => part_result.error_flag === true)
     if (!error) {
         score = 5
     }        
-    const rc =  { ...default_results,
+    const rc: ProcessQuestionResultsProps =  { ...default_results,
         answer: user_answer,
         score: score,
-        error_flag: error,
-
+        error_flag: overall_error ? true : false,
+        cloze_question_results: result_array,
         }
      return rc
-        //return results;
+   
 }
 
 const compare_cloze_answers = (user_answer: string, answer_key: string) => {
-    // answer_key is a string separated by slashes"
-    // user_answer is a string separated by slashes"
-    // assume number of parts in both strings is the same
-    const match_array: boolean[] = []
-    // split both strings into parts
-    const answer_key_parts = answer_key.split('|')
-    const user_answer_parts = user_answer.split('|')
-    user_answer_parts.forEach( (u_part, index) => {
-        let a_part = answer_key_parts[index]
-        if (a_part === undefined) {
-            return undefined
-        }
-        if (a_part === u_part) {
-            match_array.push(true)
-        }
-        else {
-            match_array.push(false)
-        }
-    })
-    //console.log("match_array = ", match_array)
-    // if all parts match, return true
-    return match_array.every( (part) => part === true)
-   
+    let error = false;
+    if (user_answer === answer_key) {
+        error = false;
+    }
+    else {
+        error = true;
+    }
+    return error
 }
 
 const process_sentence_scramble = (answer_key:string, user_answer: string ) => {

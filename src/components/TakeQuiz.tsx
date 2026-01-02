@@ -17,9 +17,11 @@ import DragDrop from './questions/dragdrop/DragDrop';
 import { SRContinuous } from './questions/SRContinuous';
 import { WordsSelect } from './questions/WordsSelect';
 import { DynamicLetterInputs } from './questions/DynamicLetterInputs';
-import { processQuestion } from './processQuestion';
-import { Explanations } from './Explanations';
+import { processQuestion, type ProcessQuestionResultsProps } from './processQuestion';
 import SentenceScramble from './questions/SentenceScramble';
+import Explanation from './explanations/Explanation';
+import ClozeExplanation from './explanations/ClozeExplanation';
+//import WordScrambleExplanation from './explanations/WordScrambleExplanation';
 
 export interface ChildRef {
     getAnswer: () => string | undefined;
@@ -47,6 +49,9 @@ function TakeQuiz() {
 
     const [showSubmitButton, setShowSubmitButton] = useState<boolean>(true);
 
+    //const [showContinueButton, setShowContinueButton] = useState<boolean>(false);
+
+    const [processQuestionResults, setProcessQuestionResults] = useState<ProcessQuestionResultsProps>();
     // indicates whether a redo of erroneous attempts is in progress
     //const tempQuestionHolder = useRef<any>(null);
 
@@ -160,8 +165,6 @@ function TakeQuiz() {
 }
   */
 
-
-
   const processQuestionAttempt = () => {
     //alert("here processQuestionAttempt ")
     const the_answer = childRef.current?.getAnswer()
@@ -175,12 +178,16 @@ function TakeQuiz() {
     }
     
     const result = processQuestion(questionData?.format?.toString() ?? "", questionData?.answer_key ?? "", the_answer ?? "")  
+    console.log("RESULTS =", result);
+    setProcessQuestionResults(result);
+
     let url = `/api/question_attempts/${questionAttemptId}/update/`;
     if (redoInProgress) {
         url = `/api/question_attempts/${questionAttemptId}/update_during_redo/`;
     }
     //console.log("Submitting answer for question attempt id=", questionAttemptId, " to url=", url, " error=", error);
     //api.post(`/api/question_attempts/${questionAttemptId}/update/`, {
+  
     api.post(url, result)
     .then((res) => {
         setTimeout(() => {
@@ -340,7 +347,7 @@ function TakeQuiz() {
     }
    
     <div className='grid grid-cols-12 mx-16'> 
-        <div className='col-span-8 m-1 p-10 border-2 border-blue-500 bg-gray-100'>
+        <div className='col-span-8 m-1 p-10 border-2 border-gray-200 rounded-md bg-gray-100'>
         {questionData &&
         <>
             <h2 className='mb-10'>Question: {questionData.question_number}, Question Id: {questionData.id}</h2>
@@ -358,11 +365,33 @@ function TakeQuiz() {
         }
         </div>
         
-        <div className='col-span-4 m-1 p-10 border-2 bg-gray-100 border-blue-500'>
-           {
+        <div className='col-span-4 m-1 p-10 border-2 bg-gray-100 border-gray-200 rounded-md'>
+                  {showExplanation && (
+                      <>
+                          <Explanation>
+                              {questionData.format === 1 && <ClozeExplanation content={questionData.content} processQuestionResults={processQuestionResults} />}
+                          </Explanation>
+                          <button className='bg-green-400 mt-2 p-2 rounded-md '
+                              onClick={() => continueQuiz()}
+                          >Continue</button>
+                      </>
+                  )}
+        </div>
+    </div>
+    
+ 
+    </>
+  )
+}
+
+export default TakeQuiz
+
+
+/*
+    {
             showExplanation &&
             <div>
-                <Explanations 
+                <Explanations
                     question={questionData}
                     response={{
                         answer: childRef.current?.getAnswer(),
@@ -375,14 +404,4 @@ function TakeQuiz() {
                 >Continue</button>
             </div>
                 }
-        </div>
-    </div>
-    
- 
-    </>
-  )
-}
-
-export default TakeQuiz
-
-
+*/

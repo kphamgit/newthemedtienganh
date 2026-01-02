@@ -2,12 +2,14 @@ import { useState, useEffect, forwardRef, useImperativeHandle, useRef} from 'rea
 import { type ChildRef } from '../TakeQuiz'
 import { v4 as uuidv4 } from "uuid";
 
-interface InputField {
+
+export interface InputField {  // this is used in both Cloze question,  and explanation components for Cloze questions
   id: string;
   blank_index?: number;
   type: string;
   value: string;
   blank_prompt?: string;
+  error?: boolean;  // used ONLY in explanation display
 }
 
 
@@ -36,16 +38,38 @@ interface Props {
   
     // Iterate through each sentence and process it to create input fields
     sentences_array?.forEach((sentence) => {
-      //console.log("*************** sentence =", sentence);
+      console.log("*************** sentence =", sentence);
+      /*
+Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's driveway.
+      */
+
       const regExp = /\[.*?\]/g;
       const matches = sentence.match(regExp);
-      //console.log("MMMM matches =", matches);
+      console.log("MMMM matches =", matches);
+      /*
+[
+    "[was(to be)]",
+    "[saw(see)]"
+]
+      */
   
+      // Determine the length of the longest word within brackets for input size
+      // but first, check if the bracketed word contains a prompt in parentheses
+      // if so, remove the parentheses and prompt from the length calculation
+      const processed_matches = matches?.map((item) => {
+        const prompt_index = item.indexOf('(');
+        if (prompt_index !== -1) {
+          return item.substring(0, prompt_index) + ']'; // keep up to the opening parenthesis
+        }
+        return item;
+      });
+      //console.log("MMMMM processed_matches =", processed_matches);
+
       let length_of_longest_word = 1;
-      if (matches) {
-        for (let i = 0; i < matches.length; i++) {
-          if (matches[i].length > length_of_longest_word) {
-            length_of_longest_word = matches[i].length + 1;
+      if (processed_matches) {
+        for (let i = 0; i < processed_matches.length; i++) {
+          if (processed_matches[i].length > length_of_longest_word) {
+            length_of_longest_word = processed_matches[i].length;
           }
         }
         setMaxLength(length_of_longest_word);
@@ -122,7 +146,7 @@ interface Props {
       //console.log("renderContent type=", type, " value=", value)
       if (type === 'input') {
         return (
-          <div className="relative inline-block">
+          <div className="relative inline-block my-3">
             {blank_prompt &&
               <div className="absolute -top-7 left-0">
                 <div className="relative bg-lime-300 text-lime-900 px-2 py-0 
@@ -134,8 +158,8 @@ interface Props {
               </div>
             }
             <input
-              className='px-4 py-0 border-2 border-blue-400 rounded-md 
-           focus:outline-none focus:ring-2 focus:ring-blue-300'
+              className='px-1 py-0 border-2 border-blue-400 rounded-md 
+           focus:outline-none focus:ring-1 focus:ring-blue-300'
               type="text"
               value={value}
               size={maxLength}
