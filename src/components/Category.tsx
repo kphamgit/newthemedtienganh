@@ -33,7 +33,7 @@ function Category() {
 
     useEffect(() => {
         if (id !== 0) {
-            console.log("Fetching units for category id:", id);
+            //console.log("Fetching units for category id:", id);
             getUnits();
         }
     }, [id]);
@@ -45,7 +45,7 @@ function Category() {
             .get(`/api/categories/${id}/units/`)
             .then((res) => res.data)
             .then((data) => {
-                console.log("************ units", data);
+                //console.log("************ units", data);
                 setUnits(data);
                
             })

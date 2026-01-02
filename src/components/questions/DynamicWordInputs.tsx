@@ -38,14 +38,14 @@ interface Props {
   
     // Iterate through each sentence and process it to create input fields
     sentences_array?.forEach((sentence) => {
-      console.log("*************** sentence =", sentence);
+      //console.log("*************** sentence =", sentence);
       /*
 Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's driveway.
       */
 
       const regExp = /\[.*?\]/g;
       const matches = sentence.match(regExp);
-      console.log("MMMM matches =", matches);
+      //console.log("MMMM matches =", matches);
       /*
 [
     "[was(to be)]",
