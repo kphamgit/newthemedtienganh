@@ -30,7 +30,7 @@ export interface QuestionProps {
     content: string,
     format: string,
     answer_key: string,
-    //quizzes?: QuizProps[]
+    timeout: number,
   }
 
   
