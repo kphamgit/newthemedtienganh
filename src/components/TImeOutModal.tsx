@@ -9,6 +9,7 @@ function TimeoutModal({ parentCallback }: TimeoutModalProps) {
 
     const handleContinue = () => {
         // Continue the quiz from where the user left off
+        //alert("You clicked continue after timeout.");
         parentCallback("continue");
     }
 

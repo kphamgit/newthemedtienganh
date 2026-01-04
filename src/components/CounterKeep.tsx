@@ -11,7 +11,7 @@ interface CounterProps {
   ref?: React.RefObject<CounterHandleRefProps | null>; // Optional ref to expose start/stop methods
 }
 
-const Counter: React.FC<CounterProps> = ({ duration, onComplete, ref }) => {
+const CounterKeep: React.FC<CounterProps> = ({ duration, onComplete, ref }) => {
   const initialCount = Math.ceil(duration / 1000); // Convert milliseconds to seconds
   const [count, setCount] = useState(initialCount);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null); // To store the interval ID
@@ -68,4 +68,4 @@ const Counter: React.FC<CounterProps> = ({ duration, onComplete, ref }) => {
   );
 };
 
-export default Counter;
+export default CounterKeep;
