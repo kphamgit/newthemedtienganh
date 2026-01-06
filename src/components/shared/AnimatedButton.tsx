@@ -62,20 +62,7 @@ export const AnimatedButton = (props: AzureButtonProps) => {
           props.parentFunc1(myRect.width);  //now that I got my reactangle, let inform parent of my width
         }
       }, [myRect, props]);
-  /*
-      useEffect(() => {
-        if (dynamicHorizontalOffsets.length === 0 || dynamicVerticalOffsets.length === 0) {
-          //console.log("in useEffect: horizontalOffsets or verticalOffsets are empty, cannot log offsets");
-          return;
-        }
-        if (dynamicHorizontalOffsets.length !== dynamicVerticalOffsets.length) {
-          //console.log("in useEffect: horizontalOffsets and verticalOffsets lengths do not match, cannot log offsets");
-          return;
-        }
-          //console.log("in useEffect: my ID: ", props.id, " my button text: ", props.button_text,  "my horizontalOffsets", dynamicHorizontalOffsets);
-          //console.log("in useEffect: my ID: ", props.id, " my button text: ", props.button_text, "my verticalOffsets", dynamicVerticalOffsets);
-      }, [dynamicHorizontalOffsets, dynamicVerticalOffsets, props.id]);
-*/
+  
       const handleClick: MouseEventHandler<HTMLButtonElement> = () => {
           // increment click count
           clickCount.current += 1;

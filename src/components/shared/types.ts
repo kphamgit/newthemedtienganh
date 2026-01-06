@@ -24,6 +24,40 @@ export type QuestionProps = {
 }
 */
 
+/*
+  {showIncorrectModal && <ModalForIncorrect 
+        parentCallback={handleInCorrectModalClose} 
+        format={questionAttemptData?.question.format ?? 1}
+        content={questionAttemptData?.question.content ?? ""}
+        processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+        />
+      }
+*/
+
+
+export interface ProcessQuestionAttemptResultsProps {
+  assessment_results: QuestionAttemptAssesmentResultsProps,
+  quiz_attempt: {
+      completed: boolean,
+      errorneous_question_ids?: string,
+  }
+  next_question_id? : number,
+}
+
+export interface QuestionAttemptAssesmentResultsProps {
+  answer?: string 
+  score: number,
+  error_flag: boolean,
+  cloze_question_results?: ClozeAnswerResultsProps[] | undefined,
+}
+
+type ClozeAnswerResultsProps = {
+  user_answer: string,
+  answer_key: string,
+  score: number,
+  error_flag: boolean,
+}
+
 export interface QuestionProps {
     id: number,
     quiz_id: number,
