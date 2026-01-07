@@ -21,6 +21,10 @@ import DragDrop from "./questions/dragdrop/DragDrop";
 import { WordsSelect } from "./questions/WordsSelect";
 import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
+import { useSelector } from 'react-redux';
+import type { RootState } from '../redux/store';
+
+import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
 
 export interface ChildRef {
@@ -48,17 +52,25 @@ const TakeQuiz: React.FC = () => {
 
     // this state helps to fix a bug where handleTimerComplete event fires at the very begining of quiz attempt
     //const [quizAttemptInProgress, setQuizAttemptInProgress] = useState<boolean>(false);
-    //const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
-    const endOfQuiz = useRef<boolean>(false);
+    const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
+    //const endOfQuiz = useRef<boolean>(false);
+
 
     const childRef = useRef<ChildRef>(null);
 
     const [quizAttemptData, setQuizAttemptData] = useState<QuizAttemptCreatedProps>(null as any);
 
+    const [quizStarted, setQuizStarted] = useState(false);
+
     const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
         useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const user = useSelector((state: RootState) => state.user);
+
+    const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
+    const counterRef = useRef<CoundownTimerHandleProps>(null);
 
     /*
     const { data: quizAttemptData } = useQuizAttempt(
@@ -72,7 +84,7 @@ const TakeQuiz: React.FC = () => {
     useEffect(() => {
       const baseURL = import.meta.env.VITE_API_URL
       const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
-      api.post(url, { user_id: "2" })  // use a fixed user id for now
+      api.post(url, { user_name: user.name })  // use a fixed user id for now
         .then((response) => {
           //console.log("Fetched quiz attempt data:", response.data);
           setQuizAttemptData(response.data);
@@ -88,8 +100,9 @@ const TakeQuiz: React.FC = () => {
     //const { seconds, isRunning, start, stop, reset } = useCountdown(10000, handleComplete);
   
     useEffect(() => {
-        if (quizAttemptData) {
+        if (quizAttemptData && quizStarted === false) {
             //setFetchQuizAttemptEnabled(false); // disable further fetching for quiz_attempt
+            setQuizStarted(true); // mark quiz as started to prevent re-entry
             //console.log("***** quiz_attempt loaded:", quizAttemptData);
            // Destructure the fields from quizAttemptData
             const { created } = quizAttemptData || {};  
@@ -115,6 +128,7 @@ const TakeQuiz: React.FC = () => {
                     setQuestion(quizAttemptData.question);
                     setQuestionAttemptId(quizAttemptData.question_attempt_id);
                     setShowQuestion(true);
+                    setTimerDuration(quizAttemptData.question.timeout);
                     
                     //start_question_attempt(quizAttemptData.question, quizAttemptData.question_attempt_id);
                     //return; // exit here
@@ -128,6 +142,7 @@ const TakeQuiz: React.FC = () => {
                 setQuestion(quizAttemptData.question);
                 setQuestionAttemptId(quizAttemptData.question_attempt_id);
                 setShowQuestion(true); // show question when quiz attempt is created
+                setTimerDuration(quizAttemptData.question.timeout);
                 
                 //alert("New quiz attempt started. First question loaded.");
                 //alert("Quiz attempt started. First question loaded.");
@@ -155,6 +170,8 @@ const TakeQuiz: React.FC = () => {
         setQuestion(question);
         setQuestionAttemptId(question_attempt_id);
         setShowQuestion(true); // Show the next question
+        setTimerDuration(question.timeout);
+        counterRef.current?.start(); // Start the countdown timer for the next question
         nextQuestionId.current = null; // Reset nextQuestionId
       } catch (error) {
         console.error("Error creating next question attempt:", error);
@@ -169,40 +186,54 @@ const TakeQuiz: React.FC = () => {
         }
         else {
             // no next question id means end of quiz reached
-            endOfQuiz.current = true;
-            alert("You have completed the quiz!");
+            setEndOfQuiz(true);
+            //alert("You have completed the quiz!");
         }
       };
 
     const handleCorrectModalTimeout = () => {
-        console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
+        //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
         setShowCorrectModal(false);
         if (nextQuestionId.current !== null) {
             createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
         }
         else {
             // no next question id means end of quiz reached
-            endOfQuiz.current = true;
-            alert("You have completed the quiz!");
+            setEndOfQuiz(true);
+            //alert("You have completed the quiz!");
         }
       };
     
+      useEffect(() => {
+
+        return () => {
+          // Cleanup on unmount
+          if (correctModalTimerRef.current) {
+            clearTimeout(correctModalTimerRef.current);
+          }
+        };
+      }, [endOfQuiz]);
+
     const handleSubmit = () => {
         setShowQuestion(false); //
+        // stop countdown timer
+        counterRef.current?.stop();
         //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
         const url = `/api/question_attempts/${questionAttemptId}/process/`;
         //console.log("POSTing to url =", url);
         
         api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
-          .then((res) => {
-            // destructure properties from res.data
-            //const { assessment_results, next_question_attempt_data,  quiz_attempt } = res.data;
-          
-            
+          .then((res) => {     
             const { assessment_results, next_question_id } = res.data;
-           // setNextQuestionId(next_question_id ?? null)   // set next question id no question_id is returned from server
-                                                          // which means end of quiz reached
-            //console.log("Received assessment_results process question attempt:", assessment_results);
+            // update quizAttemptData.quiz_attempt
+            setQuizAttemptData((prevData) => ({
+              ...prevData,
+              quiz_attempt: {
+                ...prevData.quiz_attempt,
+                score: res.data.quiz_attempt.score,
+              },
+            }));
+
             setQuestionAttemptAssessmentResults(assessment_results);
             //alert("Score for this question: " + JSON.stringify(assessment_results) );
             nextQuestionId.current = next_question_id ?? null;
@@ -227,28 +258,20 @@ const TakeQuiz: React.FC = () => {
         
     }
 //
-/*
-   <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <h2>Countdown Timer: {seconds}s</h2>
-        <p>Status: {isRunning ? 'Running' : 'Stopped'}</p>
-        <button onClick={start} disabled={isRunning || seconds === 0}>
-          Start
-        </button>
-        <button onClick={stop} disabled={!isRunning}>
-          Stop
-        </button>
-        <button onClick={reset}>
-          Reset
-        </button>
-      </div>
 
-*/
-
-
+    const handdleTimerComplete = () => {
+        //alert("Time is up! Submitting your answer.");
+        //handleSubmit();
+    }
+    
     return (
-    <>
-   
+    <div className="mx-20 my-5">
 
+      <div className='flex flex-row justify-center mb-3'>
+      <CountdownTimer initialSeconds={timerDuration} onComplete={handdleTimerComplete} ref={counterRef} />
+      </div>
+  
+     
       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <ModalForIncorrect 
         parentCallback={handleInCorrectModalClose} 
@@ -258,9 +281,18 @@ const TakeQuiz: React.FC = () => {
         processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />
       }
-     
+   
+      { quizStarted && (
+        <div className='mb-3 text-center'>
+          <div>Total score: <span className='text-blue-500 font-bold'>{quizAttemptData.quiz_attempt.score}</span></div>
+          { endOfQuiz && 
+              <div className='text-green-600 text-lg'>End Of Quiz</div>
+          }
+          </div>
+      )
+      }
           {question && questionAttemptId && showQuestion && (
-            <div className="col-span-8 m-25 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
+            <div className="col-span-8 m-15 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
               <div className="mb-10 text-lg font-bold">
                 Question: {question?.question_number}
               </div>
@@ -271,8 +303,6 @@ const TakeQuiz: React.FC = () => {
               </div>
             )
             }
-            
-
               <div>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />
@@ -309,7 +339,7 @@ const TakeQuiz: React.FC = () => {
           )}
         
   
-      </>
+      </div>
     );
   };
   

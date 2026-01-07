@@ -37,7 +37,7 @@ const ClozeExplanation = ({ content, processQuestionResults }: Props) => {
    useEffect(() => {
       // retrieve cloze question results from processQuestionResults prop
       const cloze_question_results = processQuestionResults?.cloze_question_results;
-      console.log("ClozeExplanation cloze_question_results =", cloze_question_results);
+      //console.log("ClozeExplanation cloze_question_results =", cloze_question_results);
      // search content for bracketed words and replace each bracketed word with corresponding user answer and error flag
      const regExp = /\[.*?\]/g;
       let result_index = 0;

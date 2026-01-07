@@ -1,45 +1,10 @@
-/*
-export type QuestionProps = {
-    id: number
-    question_number: number,
-    format: number,
-    audio_src: string,
-    audio_str : string,
-    video_src : string,
-    instruction : string,
-    prompt : string,
-    content : string,
-    words_scramble_direction : string,
-    answer_key : string,
-    score : number,
-    show_help : boolean,
-    help1 : string,
-    help2 : string,
-    coding : boolean,
-    quizId : number,
-    radio : RadioProps,
-    speech_recognition : boolean
-    button_cloze_options: string,
-    timeout: number
-}
-*/
-
-/*
-  {showIncorrectModal && <ModalForIncorrect 
-        parentCallback={handleInCorrectModalClose} 
-        format={questionAttemptData?.question.format ?? 1}
-        content={questionAttemptData?.question.content ?? ""}
-        processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
-        />
-      }
-*/
 
 
 export interface ProcessQuestionAttemptResultsProps {
   assessment_results: QuestionAttemptAssesmentResultsProps,
   quiz_attempt: {
       completed: boolean,
-      errorneous_question_ids?: string,
+      score: number,
   }
   next_question_id? : number,
 }
@@ -76,12 +41,11 @@ export interface QuestionProps {
   export interface QuizAttemptProps {
     id: number,
     quiz_id: number,
-    user_id: string,
+    user_name: string,
     score: number,
     created_at: string,
     updated_at: string,
     completion_status: string,
-    errorneous_questions: string,
   }
 
   export interface QuizAttemptCreatedProps {

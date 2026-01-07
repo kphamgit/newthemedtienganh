@@ -2,8 +2,11 @@ import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import { useAppDispatch } from "../redux/hooks";
+
 
 import LoadingIndicator from "./LoadingIndicator"
+import { setUser } from "../redux/user";
 
 interface FormProps {
     route: string;
@@ -18,6 +21,8 @@ function Form({ route, method }: FormProps) {
 
     const name = method === "login" ? "Login" : "Register";
 
+    const dispatch = useAppDispatch();
+
     const handleSubmit = async (e: any) => {
         setLoading(true);
         e.preventDefault();
@@ -25,8 +30,11 @@ function Form({ route, method }: FormProps) {
         try {
             const res = await api.post(route, { username, password })
             if (method === "login") {
+                console.log("Login successful:", res.data);
                 localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
+                /* store user name in redux store */
+                dispatch(setUser({ name: username }));
                 navigate("/")
             } else {
                 navigate("/login")
