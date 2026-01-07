@@ -261,9 +261,18 @@ const TakeQuiz: React.FC = () => {
      
           {question && questionAttemptId && showQuestion && (
             <div className="col-span-8 m-25 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
-              <h2 className="mb-10">
-                Question: {question?.question_number}, Question Id: {question?.id} Question Attempt Id: {questionAttemptId}
-              </h2>
+              <div className="mb-10 text-lg font-bold">
+                Question: {question?.question_number}
+              </div>
+
+            {question?.prompt && (
+              <div className="mb-5 text-amber-700">
+                {question.prompt}
+              </div>
+            )
+            }
+            
+
               <div>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />
