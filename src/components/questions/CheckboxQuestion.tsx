@@ -57,7 +57,7 @@ export const CheckboxQuestion = forwardRef<ChildRef, Props>((props, ref) => {
   }));
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-start justify-center p-4">
     <div className="flex flex-col">
       {myOptions?.options.map((option) => (
         <label key={option.value}>

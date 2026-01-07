@@ -1,10 +1,19 @@
-const WordScrambleExplanation = ({ scrambledWords }: { scrambledWords: string[] }) => {
+import type { QuestionAttemptAssesmentResultsProps } from "../shared/types";
+
+interface Props {
+  content: string;
+  processQuestionResults?: QuestionAttemptAssesmentResultsProps
+}
+
+const WordScrambleExplanation = ({ content }: Props) => {
     return (
-      <ul>
-        {scrambledWords.map((word, index) => (
-          <li key={index}>{word}</li>
+      
+      <div>
+        {content.split('/').map((word, index) => (
+          <span className="m-1" key={index}>{word}</span>
         ))}
-      </ul>
+      </div>
+      
     );
   };
 

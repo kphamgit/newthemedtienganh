@@ -73,22 +73,22 @@ const columns = useMemo<ColumnDef<SentenceScrambleItemProps>[]>(
  
     {
       accessorKey: "itemId",
-      header: "ID",
+      header: "",
       cell: info => (
-        <span className='text-red-500 opacity-50'>{info.row.original.itemId}</span>
+        <span className='text-red-500 opacity-0'>{info.row.original.itemId}</span>
       )
     },
     {
       accessorKey: "sentence",
-      header: "Name",
+      header: "",
       cell: info => (
-        <div className='my-1 bg-green-200 mr-4'>{info.row.original.sentence}</div>
+        <div className='my-1 bg-green-200 mr-4 p-2 rounded-md'>{info.row.original.sentence}</div>
       )
     },
   
     {
       id: "drag-handle",
-      header: "Move",
+      header: "",
       cell: ({ row }) => <RowDragHandleCell rowId={row.id} />,
       size: 60,
     },

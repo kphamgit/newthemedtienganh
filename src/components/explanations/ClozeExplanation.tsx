@@ -12,11 +12,6 @@ const ClozeExplanation = ({ content, processQuestionResults }: Props) => {
  
   const [arrayOfInputFields, setArrayOfInputFields] = useState<InputField[][]>() // array of input fields 
   
-  useEffect(() => {
-     if (processQuestionResults) 
-       console.log("ClozeExplanation processQuestionResults =", processQuestionResults);
-      console.log("ClozeExplanation content =", content);
-  }, [processQuestionResults, content]);
 
   /*
 {
@@ -102,7 +97,7 @@ const ClozeExplanation = ({ content, processQuestionResults }: Props) => {
             return { id: uuidv4(), type: 'static_text', value: part };
           }
         });
-        console.log("----- XXXXXXXXX------------- input_fields_array=", input_fields_array);
+        //console.log("----- XXXXXXXXX------------- input_fields_array=", input_fields_array);
         // Add the input fields array to arrayOfInputFields state
         //setArrayOfInputFields((prevArray) => [...(prevArray || []), input_fields_array]);
         tempArrayOfInputFields.push(input_fields_array);

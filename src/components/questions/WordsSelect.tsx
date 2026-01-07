@@ -75,6 +75,7 @@ export const WordsSelect = forwardRef<ChildRef, Props>((props, ref) => {
      
 
      const getAnswer = () => {
+        //alert(" WordsSelect getAnswer called " + JSON.stringify(answerarray))
         return answerarray.join('/')
      }
 

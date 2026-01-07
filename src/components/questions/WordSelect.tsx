@@ -26,11 +26,11 @@ function WordSelect(props: WordSelectProps ) {
    };
    const spanRef = useRef<HTMLSpanElement>(null);
 
-   let btnClass = 'btn m-0 px-1 rounded-md py-0 ';
+   let btnClass = 'btn m-0 px-2 rounded-md py-1 bg-gray-200  ';
 
-   let btnClass1 = 'btn mx-0 px-0 py-0 rounded-md';
+   let btnClass1 = 'btn mx-0 px-0 py-1 rounded-md';
 
-   let btnClass2 = 'btn mx-0 pl-1 pr-0 rounded-md ';
+   let btnClass2 = 'btn mx-0 pl-1 pr-1 rounded-md ';
 	
    if (props.pair.word === '.' || props.pair.word === '?') {
     btnClass = btnClass1; // Use btnClass1 if the word is a dot or question mark
@@ -51,7 +51,10 @@ function WordSelect(props: WordSelectProps ) {
          if (isHovered) { 
             btnClass += ' underline';
          }
-         if (oddClickCount) btnClass += ' bg-blue-300';
+         if (oddClickCount) {
+            btnClass = btnClass.replace('bg-gray-200', ''); // remove bg-gray-200
+            btnClass += ' bg-blue-300'; // add bg-blue-300
+         }
    //;}
 
     const handleClick: MouseEventHandler<HTMLSpanElement> = (event) => {

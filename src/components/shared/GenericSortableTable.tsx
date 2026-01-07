@@ -118,7 +118,7 @@ function GenericSortableTable<T extends genericItemType>({
  const getAnswer = () => {
   const item_ids = getColumnValues("itemId") as string[];
   //const sorted_numbers: number[] = getColumnValues("item_number") as number[];
-    return item_ids.join(",");
+    return item_ids.join("/");
   }
 
   useImperativeHandle(ref, () => ({
