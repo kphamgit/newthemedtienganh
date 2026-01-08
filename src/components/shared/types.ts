@@ -35,6 +35,8 @@ export interface QuestionProps {
     audio_str?: string,
     score: number,
     button_cloze_options?: string,
+    hint?: string,
+    explanation?: string,
     timeout: number,
   }
 

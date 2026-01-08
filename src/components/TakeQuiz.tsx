@@ -104,7 +104,7 @@ const TakeQuiz: React.FC = () => {
         if (quizAttemptData && quizStarted === false) {
             //setFetchQuizAttemptEnabled(false); // disable further fetching for quiz_attempt
             setQuizStarted(true); // mark quiz as started to prevent re-entry
-            //console.log("***** quiz_attempt loaded:", quizAttemptData);
+            console.log("***** quiz_attempt loaded:", quizAttemptData);
            // Destructure the fields from quizAttemptData
             const { created } = quizAttemptData || {};  
             //setQuizAttempt(quizAttemptData.quiz_attempt);         
@@ -286,6 +286,7 @@ const TakeQuiz: React.FC = () => {
         format={question?.format ?? 1}
         content={question?.content ?? ""}
         answer_key={question?.answer_key ?? ""}
+        explanation={question?.explanation ?? ""}
         processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />
       }

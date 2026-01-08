@@ -15,6 +15,7 @@ export interface Props {
     format: number;
     answer_key: string;
     content: string;
+    explanation?: string;
     processQuestionResults?: QuestionAttemptAssesmentResultsProps;
 }
 
@@ -36,7 +37,7 @@ type ClozeAnswerResultsProps = {
 */
 
 
-function ModalForIncorrect({ parentCallback, format, answer_key, content, processQuestionResults }: Props) {
+function ModalForIncorrect({ parentCallback, format, answer_key, content, explanation,  processQuestionResults }: Props) {
 
     const handleCloseModal = () => {
         // Continue the quiz from where the user left off
@@ -50,6 +51,7 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, proces
 >
  
     <div className="bg-white rounded-lg shadow-lg p-6 w-auto h-auto text-center">
+        <div className="mb-4 text-green-900">{explanation}</div>
         <Explanation>
             {format === 1 && <ClozeExplanation content={content} processQuestionResults={processQuestionResults} />}
             {format === 3 && <ButtonSelectExplanation content={content}  processQuestionResults={processQuestionResults} />}
