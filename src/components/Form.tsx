@@ -12,10 +12,14 @@ interface FormProps {
     route: string;
     method: "login" | "register";
 }
-
+// const baseURL = import.meta.env.VITE_API_URL
 function Form({ route, method }: FormProps) {
-    const [username, setUsername] = useState("kpham");
-    const [password, setPassword] = useState("beeyen#9");
+
+    const user_name_env = import.meta.env.VITE_USER_NAME
+    const password_env = import.meta.env.VITE_PASSWORD
+
+    const [username, setUsername] = useState(user_name_env);
+    const [password, setPassword] = useState(password_env);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
