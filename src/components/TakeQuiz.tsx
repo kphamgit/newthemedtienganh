@@ -23,8 +23,9 @@ import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../redux/store';
+import DOMPurify from 'dompurify';
 
-import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
+//import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
 
 export interface ChildRef {
@@ -69,8 +70,8 @@ const TakeQuiz: React.FC = () => {
 
     const user = useSelector((state: RootState) => state.user);
 
-    const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
-    const counterRef = useRef<CoundownTimerHandleProps>(null);
+    //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
+    //const counterRef = useRef<CoundownTimerHandleProps>(null);
 
     /*
     const { data: quizAttemptData } = useQuizAttempt(
@@ -128,7 +129,7 @@ const TakeQuiz: React.FC = () => {
                     setQuestion(quizAttemptData.question);
                     setQuestionAttemptId(quizAttemptData.question_attempt_id);
                     setShowQuestion(true);
-                    setTimerDuration(quizAttemptData.question.timeout);
+                    //setTimerDuration(quizAttemptData.question.timeout);
                     
                     //start_question_attempt(quizAttemptData.question, quizAttemptData.question_attempt_id);
                     //return; // exit here
@@ -142,7 +143,7 @@ const TakeQuiz: React.FC = () => {
                 setQuestion(quizAttemptData.question);
                 setQuestionAttemptId(quizAttemptData.question_attempt_id);
                 setShowQuestion(true); // show question when quiz attempt is created
-                setTimerDuration(quizAttemptData.question.timeout);
+                //setTimerDuration(quizAttemptData.question.timeout);
                 
                 //alert("New quiz attempt started. First question loaded.");
                 //alert("Quiz attempt started. First question loaded.");
@@ -170,8 +171,8 @@ const TakeQuiz: React.FC = () => {
         setQuestion(question);
         setQuestionAttemptId(question_attempt_id);
         setShowQuestion(true); // Show the next question
-        setTimerDuration(question.timeout);
-        counterRef.current?.start(); // Start the countdown timer for the next question
+        //setTimerDuration(question.timeout);
+        //counterRef.current?.start(); // Start the countdown timer for the next question
         nextQuestionId.current = null; // Reset nextQuestionId
       } catch (error) {
         console.error("Error creating next question attempt:", error);
@@ -217,7 +218,7 @@ const TakeQuiz: React.FC = () => {
     const handleSubmit = () => {
         setShowQuestion(false); //
         // stop countdown timer
-        counterRef.current?.stop();
+        //counterRef.current?.stop();
         //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
         const url = `/api/question_attempts/${questionAttemptId}/process/`;
         //console.log("POSTing to url =", url);
@@ -259,18 +260,25 @@ const TakeQuiz: React.FC = () => {
     }
 //
 
-    const handdleTimerComplete = () => {
-        //alert("Time is up! Submitting your answer.");
-        //handleSubmit();
-    }
     
-    return (
-    <div className="mx-20 my-5">
-
-      <div className='flex flex-row justify-center mb-3'>
+    /*
+  <div className='flex flex-row justify-center mb-3'>
       <CountdownTimer initialSeconds={timerDuration} onComplete={handdleTimerComplete} ref={counterRef} />
       </div>
   
+    */
+
+    function SafeHTML({ content }: { content: string }) {
+        const sanitizedContent = DOMPurify.sanitize(content, {
+          USE_PROFILES: { html: true },
+          ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br', 'span', 'div', 'img'],
+          ALLOWED_ATTR: ['href', 'target', 'rel']
+        });
+        return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
+      }
+//<div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instruction ?? '' }}></div>
+    return (
+    <div className="mx-20 my-5">
      
       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <ModalForIncorrect 
@@ -283,7 +291,7 @@ const TakeQuiz: React.FC = () => {
       }
    
       { quizStarted && (
-        <div className='mb-3 text-center'>
+        <div className='mb-1 text-center'>
           <div>Total score: <span className='text-blue-500 font-bold'>{quizAttemptData.quiz_attempt.score}</span></div>
           { endOfQuiz && 
               <div className='text-green-600 text-lg'>End Of Quiz</div>
@@ -292,18 +300,20 @@ const TakeQuiz: React.FC = () => {
       )
       }
           {question && questionAttemptId && showQuestion && (
-            <div className="col-span-8 m-15 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
-              <div className="mb-10 text-lg font-bold">
+            <div className="col-span-8 mx-10 my-5 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
+              <div className="mb-3 text-lg font-bold">
                 Question: {question?.question_number}
               </div>
 
+            {SafeHTML({ content: question.instructions ?? "" })}
+
             {question?.prompt && (
-              <div className="mb-5 text-amber-700">
+              <div className="mb-3 mt-5 text-amber-700">
                 {question.prompt}
               </div>
             )
             }
-              <div>
+              <div className='my-5'>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />
               }
