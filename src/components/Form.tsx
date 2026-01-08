@@ -18,6 +18,8 @@ function Form({ route, method }: FormProps) {
     const user_name_env = import.meta.env.VITE_USER_NAME
     const password_env = import.meta.env.VITE_PASSWORD
 
+    console.log("User name from env:", user_name_env);
+
     const [username, setUsername] = useState(user_name_env);
     const [password, setPassword] = useState(password_env);
     const [loading, setLoading] = useState(false);
