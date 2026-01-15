@@ -30,9 +30,22 @@ function Home() {
             .catch((err) => alert(err));
     };
 
+    const sendMessage = () => {
+        const channelId = Math.floor(Math.random() * 10000);
+        const websocket = new WebSocket(
+            `ws://localhost:8000/ws/bar/${channelId}/low/`
+        );
+        websocket.onmessage = function (e) {
+            let data = JSON.parse(e.data);
+            console.log('Received data:', data);
+        }
+    };
+    
     return (
         <>
+        
         <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
+        <div><button className="text-red bg-green-300" onClick={sendMessage}>Send Message</button></div>
         <div className="flex flex-col bg-amber-200 py-2 px-10">
               <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
               <Navbar role="student" levels={levels}/>
