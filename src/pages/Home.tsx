@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import { type RootState } from "../redux/store";
 import { useSelector } from "react-redux";
+//import , { type ChatPageRefProps } from "../components/chat/ChatPage";
 
 
 function Home() {
@@ -13,9 +14,53 @@ function Home() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const user = useSelector((state: RootState) => state.user);
 
+    const [testMessage, setTestMessage] = useState("");
+
+    //const ws_url = import.meta.env.VITE_WS_URL
+
+    //const chatPageRef = useRef<ChatPageRefProps>(null);
+    //const channelId = Math.floor(Math.random() * 10000);
+    //console.log('Connecting to WebSocket at ws://'+ws_url+'/ws/bar/'+channelId+'/low/');
+    /*
+    const websocket = new WebSocket(
+        `ws://${ws_url}/ws/bar/${channelId}/low/`
+    );
+    */
+// WebSocket reference
+    //let websocket: WebSocket | null = null;
+    const websocketRef = useRef<WebSocket | null>(null);
+
+    /*
+    const websocket = new WebSocket(
+        `ws://${ws_url}/ws/socket-server/`
+    );
+    */
+
+    /*
+    useEffect(() => {
+        websocketRef.current = new WebSocket(
+        `ws://${ws_url}/ws/socket-server/kpham/`
+    );
+    websocketRef.current.onopen = () => {
+        console.log('WebSocket connection opened');
+       };
+
+       //clean up the WebSocket connection when the component unmounts
+       // kpham: make sure you clean up upon logout as well
+       
+         return () => {
+          if (websocketRef.current) {
+            websocketRef.current.close();
+                console.log('WebSocket connection closed');
+          }
+         };
+         
+    }, []);
+*/
+
     useEffect(() => {
         getLevels();
-    }, []);
+    }, []);  // empty dependency array to run only once on mount
 
     const getLevels = () => {
         //console.log("Fetching categories...");
@@ -31,15 +76,14 @@ function Home() {
     };
 
     const sendMessage = () => {
-        const ws_url = import.meta.env.VITE_WS_URL
-        const channelId = Math.floor(Math.random() * 10000);
-        const websocket = new WebSocket(
-            `ws://${ws_url}/ws/bar/${channelId}/low/`
-        );
-        websocket.onmessage = function (e) {
-            let data = JSON.parse(e.data);
-            console.log('Received data:', data);
+        //alert("Sendingggg message: " + testMessage);
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
         }
+        websocketRef.current.send(JSON.stringify({
+            message: testMessage
+        }));
     };
 
     return (
@@ -47,11 +91,16 @@ function Home() {
         
         <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
         <div><button className="text-red bg-green-300" onClick={sendMessage}>Send Message</button></div>
+        <div className="bg-red-300"><input className="bg-green-300 text-black" value = {testMessage} onChange={(e) => setTestMessage(e.target.value)}/></div>
         <div className="flex flex-col bg-amber-200 py-2 px-10">
               <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
               <Navbar role="student" levels={levels}/>
             </div>
         </div>
+
+     
+
+
         <Outlet />
         </>
     );
