@@ -31,16 +31,17 @@ function Home() {
     };
 
     const sendMessage = () => {
+        const ws_url = import.meta.env.VITE_WS_URL
         const channelId = Math.floor(Math.random() * 10000);
         const websocket = new WebSocket(
-            `ws://localhost:8000/ws/bar/${channelId}/low/`
+            `ws://${ws_url}/ws/bar/${channelId}/low/`
         );
         websocket.onmessage = function (e) {
             let data = JSON.parse(e.data);
             console.log('Received data:', data);
         }
     };
-    
+
     return (
         <>
         
