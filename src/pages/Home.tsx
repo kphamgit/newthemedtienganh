@@ -19,6 +19,8 @@ function Home() {
 
     const ws_url = import.meta.env.VITE_WS_URL
 
+    const ws_protocol = import.meta.env.VITE_WS_PROTOCOL
+
     const chatPageRef = useRef<ChatPageRefProps>(null);
     //const channelId = Math.floor(Math.random() * 10000);
     //console.log('Connecting to WebSocket at ws://'+ws_url+'/ws/bar/'+channelId+'/low/');
@@ -38,9 +40,15 @@ function Home() {
     */
 
     
+//const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+//const socketUrl = `${protocol}django-with-redis-c6f7d6ccaf6e.herokuapp.com/ws/socket-server/kpham/`;
+//const socket = new WebSocket(socketUrl);
+    
+
+    
     useEffect(() => {
         websocketRef.current = new WebSocket(
-        `ws://${ws_url}/ws/socket-server/kpham/`
+        `${ws_protocol}://${ws_url}/ws/socket-server/kpham/`
     );
     websocketRef.current.onopen = () => {
         console.log('WebSocket connection opened');
