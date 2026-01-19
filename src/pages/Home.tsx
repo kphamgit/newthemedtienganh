@@ -48,7 +48,7 @@ function Home() {
     
     useEffect(() => {
         websocketRef.current = new WebSocket(
-        `${ws_protocol}://${ws_url}/ws/socket-server/kpham/`
+        `${ws_protocol}://${ws_url}/ws/socket-server/teacher/`
     );
     websocketRef.current.onopen = () => {
         console.log('WebSocket connection opened');
