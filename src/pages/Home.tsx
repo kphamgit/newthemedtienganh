@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import { type RootState } from "../redux/store";
 import { useSelector } from "react-redux";
+import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 //import , { type ChatPageRefProps } from "../components/chat/ChatPage";
 
 
@@ -16,9 +17,9 @@ function Home() {
 
     const [testMessage, setTestMessage] = useState("");
 
-    //const ws_url = import.meta.env.VITE_WS_URL
+    const ws_url = import.meta.env.VITE_WS_URL
 
-    //const chatPageRef = useRef<ChatPageRefProps>(null);
+    const chatPageRef = useRef<ChatPageRefProps>(null);
     //const channelId = Math.floor(Math.random() * 10000);
     //console.log('Connecting to WebSocket at ws://'+ws_url+'/ws/bar/'+channelId+'/low/');
     /*
@@ -36,7 +37,7 @@ function Home() {
     );
     */
 
-    /*
+    
     useEffect(() => {
         websocketRef.current = new WebSocket(
         `ws://${ws_url}/ws/socket-server/kpham/`
@@ -56,7 +57,7 @@ function Home() {
          };
          
     }, []);
-*/
+
 
     useEffect(() => {
         getLevels();
@@ -98,6 +99,11 @@ function Home() {
             </div>
         </div>
 
+        <div className="fixed bottom-20 right-5 ">
+        <div className="bg-blue-400 rounded-md p-0">
+            <ChatPage websocket={websocketRef.current} ref={chatPageRef} />
+        </div>
+      </div>
      
 
 
