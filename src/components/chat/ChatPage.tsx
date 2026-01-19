@@ -11,27 +11,18 @@ export interface ChatPageRefProps {
 
 export interface ChatPageProps {
     websocket: WebSocket | null, 
-    id?: string | undefined,
-    name?: string | undefined,
-    role?:string | undefined,
-    text?: string | undefined,
     ref: React.Ref<ChatPageRefProps>;
   }
 
-  
-
-//export const ChatPage = () => {
-/*
-  interface Props {
-      content: string | undefined;
-      ref: React.Ref<ChildRef>;
-    }
-    */
-
+export interface ChatMessageProps {
+    message_type: string;
+    message: string;
+    user_name: string;
+  }
   
     export const ChatPage = ({ websocket, ref }: ChatPageProps) => {
 
-    const [messages, setMessages] = useState<ChatPageProps[]>([]);
+    const [messages, setMessages] = useState<ChatMessageProps[]>([]);
  
     const [isChatOpen, setIsChatOpen] = useState(true);
 
@@ -54,8 +45,8 @@ export interface ChatPageProps {
       }
       websocket.onmessage = (e) => {
         let data = JSON.parse(e.data);
-        //console.log('Received message:', data);
-        if (data.type === 'chat') {
+        console.log('Received message from server:', data);
+        if (data.message_type === 'chat') {
             console.log('ChatPage: Chat Message from server: ' + data.message);
             setMessages((prevMessages) => {
 
@@ -76,7 +67,7 @@ export interface ChatPageProps {
            
         )}
         <div className='flex justify-center bg-white rounded-md p-2'>
-          <button  onClick={() => setChatOpen(!isChatOpen)}> {isChatOpen ? 'Close Chat' : 'Open Chat'}</button>
+          <button className='bg-green-300 p-2 rounded-md'  onClick={() => setChatOpen(!isChatOpen)}> {isChatOpen ? 'Close Chat' : 'Open Chat'}</button>
           </div>
         </div>
         </>

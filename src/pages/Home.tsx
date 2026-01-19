@@ -48,7 +48,7 @@ function Home() {
     
     useEffect(() => {
         websocketRef.current = new WebSocket(
-        `${ws_protocol}://${ws_url}/ws/socket-server/teacher/`
+        `${ws_protocol}://${ws_url}/ws/socket-server/${user.name}/`
     );
     websocketRef.current.onopen = () => {
         console.log('WebSocket connection opened');
@@ -91,15 +91,32 @@ function Home() {
             return;
         }
         websocketRef.current.send(JSON.stringify({
-            message: testMessage
+            message_type: "chat",
+            message: testMessage,
+            user_name: user.name,
         }));
     };
+
+    const sendQuestionId = () => {
+        //alert("Sendingggg message: " + testMessage);
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        websocketRef.current.send(JSON.stringify({
+            message_type: "question_id",
+            message: testMessage,
+            user_name: user.name,
+        }));
+    };
+
 
     return (
         <>
         
         <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
-        <div><button className="text-red bg-green-300" onClick={sendMessage}>Send Message</button></div>
+        <div><button className="text-red bg-green-300 mb-2" onClick={sendMessage}>Send Message</button></div>
+        <div><button className="text-red bg-green-300 mb-2" onClick={sendQuestionId}>Send Question Id</button></div>
         <div className="bg-red-300"><input className="bg-green-300 text-black" value = {testMessage} onChange={(e) => setTestMessage(e.target.value)}/></div>
         <div className="flex flex-col bg-amber-200 py-2 px-10">
               <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
