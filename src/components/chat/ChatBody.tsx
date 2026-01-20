@@ -12,7 +12,7 @@ const ChatBody = (props: {messages: ChatMessageProps[]}) => {
     }    
     
   useEffect(() => {
-    console.log("ChatBody: messages updated=", props.messages)
+    //console.log("ChatBody: messages updated=", props.messages)
     scrollToBottom()
   }, [props.messages])
 
@@ -26,7 +26,7 @@ const ChatBody = (props: {messages: ChatMessageProps[]}) => {
           
            return (
            <div key={uuidv4()} className='m-1'>
-                <p ref={messagesEndRef}>{message.user_name}: {message.message}</p>
+                <p ref={messagesEndRef}>{message.user_name}: {message.text}</p>
             </div> )
           }
         )}
