@@ -23,6 +23,12 @@ type ClozeAnswerResultsProps = {
   error_flag: boolean,
 }
 
+export interface WebSocketMessageProps {
+  message_type: "chat" | "quiz_id" | "question_number";
+  message: string;
+  user_name: string;
+}
+
 export interface QuestionProps {
     id: number,
     quiz_id: number,

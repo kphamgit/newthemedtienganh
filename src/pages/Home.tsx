@@ -8,6 +8,8 @@ import { type RootState } from "../redux/store";
 import { useSelector } from "react-redux";
 import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 import { WebSocketProvider } from "../components/context/WebSocketContext";
+import TeacherControlPanel from "./TeacherControlPanel";
+import TakeQuizLive from "../components/TakeQuizLive";
 
 
 function Home() {
@@ -19,12 +21,15 @@ function Home() {
 
     const [isChatOpen, setIsChatOpen] = useState<boolean | null>(null);
 
-    const [questionId, setQuestionId] = useState("");
-    const [quizId, setQuizId] = useState("");
+    //const [questionId, setQuestionId] = useState("");
+
 
 
     const chatPageRef = useRef<ChatPageRefProps>(null);
 
+    //const {websocketRef} = useWebSocket();
+
+    //const navigate = useNavigate();
 
 
     //const { websocketRef } = useWebSocket();
@@ -120,6 +125,7 @@ function Home() {
     }, [websocketRef]);
 */
 
+
     useEffect(() => {
         getLevels();
     }, []);  // empty dependency array to run only once on mount
@@ -183,14 +189,13 @@ function Home() {
         setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
     }
 
+   
+
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
             <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
   
-  
-            <div className="bg-red-300"><input className="bg-blue-300 text-black mb-2" placeholder="question id..." value={questionId} onChange={(e) => setQuestionId(e.target.value)} /></div>
-
-            <div className="bg-red-300"><input className="bg-blue-300 text-black" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} /></div>
+           
 
             <div className="flex flex-col bg-amber-200 py-2 px-10">
                 <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
@@ -205,7 +210,14 @@ function Home() {
                 <div className='flex justify-center bg-white rounded-md p-2'>
                     <button className='bg-green-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Close Chat' : 'Open Chat'}</button>
                 </div>
+            
             </div>
+            
+            { user.name === "teacher" ?
+            <TeacherControlPanel />
+            :
+            <TakeQuizLive />
+}
 
             <Outlet />
         </WebSocketProvider>

@@ -4,6 +4,7 @@ import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../redux/store';
+import type { WebSocketMessageProps } from '../shared/types';
 
 //import { useAppSelector } from '../../redux/store';
 
@@ -62,7 +63,7 @@ export interface ChatMessageProps {
         return;
       }
       websocketRef.current.onmessage = (e) => {
-        let data = JSON.parse(e.data);
+        let data : WebSocketMessageProps = JSON.parse(e.data);
         console.log('ChatPage: Received message from server:', data);
        
         if (data.message_type === 'chat') {
