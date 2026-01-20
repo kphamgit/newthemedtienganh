@@ -4,7 +4,7 @@ import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../redux/store';
-import type { WebSocketMessageProps } from '../shared/types';
+//import type { WebSocketMessageProps } from '../shared/types';
 
 //import { useAppSelector } from '../../redux/store';
 
@@ -37,7 +37,7 @@ export interface ChatMessageProps {
 
     //const user = useAppSelector(state => state.user.value)
 
-    const {websocketRef} = useWebSocket();
+    const {websocketRef, eventEmitter} = useWebSocket();
     
 
     useImperativeHandle(ref, () => ({
@@ -56,12 +56,13 @@ export interface ChatMessageProps {
     }, [chat_message]);
 */
 
-    
+    /*
     useEffect(() => {
       if (!websocketRef.current) {
         //alert('ChatPage: WebSocket is not connected');
         return;
       }
+      console.log('ChatPage: Setting up WebSocket onmessage handler');
       websocketRef.current.onmessage = (e) => {
         let data : WebSocketMessageProps = JSON.parse(e.data);
         console.log('ChatPage: Received message from server:', data);
@@ -73,15 +74,6 @@ export interface ChatMessageProps {
             //alert('New chat message received, opening chat box.');
             setIsChatOpen(true);
           }
-            //console.log('ChatPage: Chat Message from server data.message: ' + data.message);
-            /*
-{
-    "message_type": "chat",
-    "message": "Hello from ChatPage",
-    "user_name": "teacher"
-}
-            */
-
             setIncomingMessages((prevMessages) => {
 
               return [...prevMessages, {text: data.message, user_name: data.user_name}]
@@ -89,7 +81,28 @@ export interface ChatMessageProps {
         }
        };
     }, [websocketRef.current]);
-    
+    */
+
+    useEffect(() => {
+      const handleMessage = (data: any) => {
+        if (data.message_type === "chat") {
+          console.log("ChatPage: Received chat message:", data.message);
+          setIncomingMessages((prevMessages) => [
+            ...prevMessages,
+            { text: data.message, user_name: data.user_name },
+          ]);
+        }
+      };
+  
+      // Subscribe to the "message" event
+      eventEmitter?.on("message", handleMessage);
+  
+      // Cleanup the event listener on unmount
+      return () => {
+        eventEmitter?.off("message", handleMessage);
+      };
+    }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
     const sendChatMessage = () => {
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
         alert('ChatPage: WebSocket is not connected');

@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef } from "react";
+import { EventEmitter } from "eventemitter3"
 
 interface WebSocketContextType {
   websocketRef: React.MutableRefObject<WebSocket | null>;
+  eventEmitter?: EventEmitter;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -11,6 +13,7 @@ export const WebSocketProvider: React.FC<{
   shouldConnect: boolean;
   children: React.ReactNode }> = ({ wsUrl,shouldConnect, children }) => {
   const websocketRef = useRef<WebSocket | null>(null);
+  const eventEmitter = useRef<EventEmitter>(new EventEmitter()).current;
 
   useEffect(() => {
     // Initialize WebSocket connection
@@ -26,6 +29,7 @@ export const WebSocketProvider: React.FC<{
     websocketRef.current.onmessage = (e) => {
       const data = JSON.parse(e.data);
       console.log("Received data:", data);
+      eventEmitter?.emit("message", data);
     };
 
     websocketRef.current.onerror = (error) => {
@@ -43,10 +47,10 @@ export const WebSocketProvider: React.FC<{
         console.log("WebSocket connection cleaned up");
       }
     };
-  }, [wsUrl]);
+  }, [wsUrl, shouldConnect, eventEmitter]);
 
   return (
-    <WebSocketContext.Provider value={{ websocketRef }}>
+    <WebSocketContext.Provider value={{ websocketRef, eventEmitter }}>
       {children}
     </WebSocketContext.Provider>
   );

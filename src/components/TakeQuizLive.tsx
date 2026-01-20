@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 //import {  useParams } from 'react-router-dom';
 import { useWebSocket } from './context/WebSocketContext';
-import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, WebSocketMessageProps } from './shared/types';
+import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps } from './shared/types';
 import api from '../api';
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
 import { ButtonSelect } from './questions/ButtonSelect';
@@ -25,7 +25,7 @@ function TakeQuizLive() {
     const [receivedQuestionNumber, setReceivedQuestionNumber] = useState("");
     const [question, setQuestion] = useState<QuestionProps | null>(null);
     const childRef = useRef<ChildRef>(null);
-    const {websocketRef} = useWebSocket();
+    const {eventEmitter} = useWebSocket();
     const [showQuestion, setShowQuestion] = useState<boolean>(false); // work in conjunction with questionAttemptData 
 
     const [showCorrectModal, setShowCorrectModal] = useState(false);
@@ -36,6 +36,7 @@ function TakeQuizLive() {
      const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
             useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
+            /*
     useEffect(() => {
         if (!websocketRef.current) {
           //alert('ChatPage: WebSocket is not connected');
@@ -43,25 +44,17 @@ function TakeQuizLive() {
         }
         websocketRef.current.onmessage = (e) => {
           let data : WebSocketMessageProps = JSON.parse(e.data);
-          console.log('ChatPage: Received message from server:', data);
+          console.log('TakeQuizLive: Received message from server:', data);
          
           if (data.message_type === 'quiz_id') {
-            console.log('Received Quiz ID message from server:', data);
-            /*
-{
-    "message_type": "quiz_id",
-    "message": "567855556",
-    "user_name": "teacher"
-}
-            */
-
-            console.log("Home: Quiz ID received from server: " + data.message); //note that data.message is the quiz id
+            console.log('TakeQuizLive: Received Quiz ID message from server:', data);
+            console.log("TakeQuizLive: Quiz ID received from server: " + data.message); //note that data.message is the quiz id
             setReceivedQuizId(data.message);
             //const api_url = `/take_quiz_live/${data.message}`;
           }
           if (data.message_type === 'question_number') {
-            console.log('Received Question ID message from server:', data);
-            console.log("Home: Question Number received from server: " + data.message); //note that data.message is the quiz id
+            console.log('TakeQuizLive: Received Question ID message from server:', data);
+            console.log("TakeQuizLive: Question Number received from server: " + data.message); //note that data.message is the quiz id
             console.log("TakeQuizLive: showQuestion status =", showQuestion);
             setReceivedQuestionNumber(data.message);
             //const api_url = `/take_quiz_live/${data.message}`;
@@ -69,8 +62,28 @@ function TakeQuizLive() {
          };
          
       }, [websocketRef.current]);
-
+*/
       
+useEffect(() => {
+    const handleMessage = (data: any) => {
+      if (data.message_type === "quiz_id") {
+        console.log("ChatPage: Received chat message:", data.message);
+        setReceivedQuizId(data.message);
+      }
+      if (data.message_type === "question_number") {
+        setReceivedQuestionNumber(data.message);
+      }
+    };
+
+    // Subscribe to the "message" event
+    eventEmitter?.on("message", handleMessage);
+
+    // Cleanup the event listener on unmount
+    return () => {
+      eventEmitter?.off("message", handleMessage);
+    };
+  }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
     
       useEffect(() => {
          // call api to get quiz question data for quizId and questionId
