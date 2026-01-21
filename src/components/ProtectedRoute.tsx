@@ -9,6 +9,7 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
     useEffect(() => {
+        console.log("ProtectedRoute: Checking authorization...");
         auth().catch(() => setIsAuthorized(false))
     }, [])
 
@@ -37,8 +38,19 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
             return;
         }
         const decoded = jwtDecode(token);
+        // print decoded for debugging
+        console.log("Decoded token:", decoded);
         const tokenExpiration = decoded.exp;
+        console.log("Token expiration time (epoch):", tokenExpiration);
         const now = Date.now() / 1000;
+        console.log("Current time (epoch):", now);
+        if (tokenExpiration === undefined) {
+            setIsAuthorized(false);
+            return;
+        }
+        else {
+            console.log("Token expiration time - now:", tokenExpiration - now);
+        }
 
         if (tokenExpiration && tokenExpiration < now) {
             alert("Session has expired. Do you want to continue?");
