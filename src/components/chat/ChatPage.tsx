@@ -122,8 +122,8 @@ export interface ChatMessageProps {
         return (
           <>
           <ChatBody messages={incomingMessages} />
-          <div className="bg-red-300"><input className="bg-green-300 text-black mb-2" placeholder="chat message" value={outgoingMessage} onChange={(e) => setOutgoingMessage(e.target.value)} /></div>
-          <div><button className="text-red bg-green-300 mb-2" onClick={sendChatMessage}>Send Message</button></div>
+          <div><input className="bg-gray-200 text-black w-80 p-2" placeholder="chat message" value={outgoingMessage} onChange={(e) => setOutgoingMessage(e.target.value)} /></div>
+          <div><button className=" bg-amber-300 p-2 m-2" onClick={sendChatMessage}>Send Message</button></div>
           </>
         );
         

@@ -1,16 +1,37 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import type { RootState } from "../redux/store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 
 function TeacherControlPanel() {
      
-    const {websocketRef} = useWebSocket();
+    const {eventEmitter, websocketRef} = useWebSocket();
     const user = useSelector((state: RootState) => state.user);
+
+    const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
         const [quizId, setQuizId] = useState("");
         const [questionNumber, setQuestionNumber] = useState("");
+
+    useEffect(() => {
+      const handleMessage = (data: any) => {
+        //if (data.message_type === "chat") {
+          console.log("TeacherControlPanel: Received  connection message from server:", data);
+          if (data.message_type === "connection_change" && data.connected_users) {
+            setConnectedUsers(data.connected_users);
+        }
+        //}
+      };
+  
+      // Subscribe to the "message" event
+      eventEmitter?.on("message", handleMessage);
+  
+      // Cleanup the event listener on unmount
+      return () => {
+        eventEmitter?.off("message", handleMessage);
+      };
+    }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
     const sendQuizId = () => {
         console.log("Sendingggg Quiz id: ");
@@ -44,6 +65,18 @@ function TeacherControlPanel() {
       
   return (
     <>
+    {
+    <div className="bg-green-300 p-2 mb-2">
+        <div>Connected Users:</div>
+        { connectedUsers && connectedUsers.length > 0 &&
+        <ul>
+            {connectedUsers.map((username, index) => (
+                <li key={index}>{username}</li>
+            ))}
+        </ul>
+}
+    </div>
+    }
     <div>TeacherControlPanel</div>
     <div className="bg-red-300"><input className="bg-blue-300 text-black" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} /></div>
      

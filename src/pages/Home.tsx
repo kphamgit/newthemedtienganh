@@ -10,6 +10,7 @@ import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 import { WebSocketProvider } from "../components/context/WebSocketContext";
 import TeacherControlPanel from "./TeacherControlPanel";
 import TakeQuizLive from "../components/TakeQuizLive";
+import StudentControlPanel from "./StudentControlPanel";
 
 
 function Home() {
@@ -193,33 +194,36 @@ function Home() {
 
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
+            <div className="mx-10">
             <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
-  
-           
-
             <div className="flex flex-col bg-amber-200 py-2 px-10">
                 <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
                     <Navbar role="student" levels={levels} />
                 </div>
             </div>
 
-            <div className="fixed bottom-20 right-5 ">
-                <div className="bg-blue-400 rounded-md p-0">
+            <div className="fixed bottom-20 right-10 w-80 space-y-2 z-50">
+                <div className="bg-cyan-200 rounded-md p-0">
                     <ChatPage ref={chatPageRef} />
                 </div>
                 <div className='flex justify-center bg-white rounded-md p-2'>
-                    <button className='bg-green-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Close Chat' : 'Open Chat'}</button>
+                    <button className='bg-blue-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Open Chat' : 'Close Chat'}</button>
                 </div>
-            
+
             </div>
-            
-            { user.name === "teacher" ?
-            <TeacherControlPanel />
-            :
-            <TakeQuizLive />
-}
+
+            {user.name === "teacher" ?
+                <TeacherControlPanel />
+                :
+                <div >
+                <StudentControlPanel />
+                <TakeQuizLive />
+                </div>
+            }
+          
 
             <Outlet />
+            </div>
         </WebSocketProvider>
     );
 }
