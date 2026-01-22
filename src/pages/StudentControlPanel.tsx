@@ -1,11 +1,13 @@
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { type RootState}  from "../redux/store";
 
 
 function StudentControlPanel() {
      
     const {eventEmitter} = useWebSocket();
-    //const user = useSelector((state: RootState) => state.user);
+    const user = useSelector((state: RootState) => state.user);
 
     const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
@@ -27,8 +29,22 @@ function StudentControlPanel() {
           console.log("TeacherControlPanel: Received  connecttion message from server:", data);
             setConnectedUsers(data.connected_users);
         //}
-          }
-      };
+      }
+      else if (data.message_type === "disconnect_user" && data.message) {
+          console.log("StudentControlPanel: Received dis_connection message:", data);
+            //setConnectedUsers(data.connected_users);
+            // is it for me?
+            // user name to be disconnected is in data.message
+            console.log(" user in localStorage:", localStorage.getItem("user_name"));
+            console.log(" user in redux store:", user.name);
+            if (data.message === user.name ) {
+                alert("You have been disconnected by the teacher.");
+                localStorage.clear();
+                window.location.reload();
+            }
+           
+        }
+      }
 
       /*
 {
@@ -57,11 +73,12 @@ function StudentControlPanel() {
     <div className="bg-green-300 p-2 mb-2">
         <div>Connected Users:</div>
         { connectedUsers && connectedUsers.length > 0 &&
-        <ul>
+        <div className="flex flex-row justify-start space-x-4">
             {connectedUsers.map((username, index) => (
-                <li key={index}>{username}</li>
+                <div key={index}>{username}</div>
+                
             ))}
-        </ul>
+        </div>
 }
     </div>
     }
