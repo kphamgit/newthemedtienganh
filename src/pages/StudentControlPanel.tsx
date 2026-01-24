@@ -1,7 +1,8 @@
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 //import { type RootState}  from "../redux/store";
+import { logout } from "../redux/userSlice";
 
 
 function StudentControlPanel() {
@@ -11,6 +12,7 @@ function StudentControlPanel() {
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
+    const dispatch = useDispatch();
 
     useEffect(() => {
       const handleMessage = (data: any) => {
@@ -36,13 +38,14 @@ function StudentControlPanel() {
             //setConnectedUsers(data.connected_users);
             // is it for me?
             // user name to be disconnected is in data.message
-            console.log(" user in localStorage:", localStorage.getItem("user_name"));
-            console.log(" user in redux store:", name);
+            //console.log(" user name in redux store:", name);
             if (data.message === name ) {
-                alert("You have been disconnected by the teacher.");
+                //alert("You will be disconnected by the teacher.");
+                dispatch(logout());
+                localStorage.removeItem("access");
+                localStorage.removeItem("refresh");
                 //localStorage.clear();
-                localStorage.clear();
-                window.location.reload();
+               //window.location.reload();
             }
            
         }

@@ -9,8 +9,13 @@ function Logout() {
 
     useEffect(() => {
         if (!hasLoggedOut.current) {
+            
             dispatch(logout());
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
             hasLoggedOut.current = true; // Ensure logout is only dispatched once
+            // clear access and refresh tokens from localStorage
+   
         }
     }, [dispatch]);
 

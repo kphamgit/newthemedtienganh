@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 function TeacherControlPanel() {
      
     const {eventEmitter, websocketRef} = useWebSocket();
-    const user_name = useSelector((state: { name: string }) => state.name);
+    //const user_name = useSelector((state: { name: string }) => state.name);
+    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
@@ -42,7 +43,7 @@ function TeacherControlPanel() {
         websocketRef.current.send(JSON.stringify({
             message_type: "quiz_id",
             message: quizId,
-            user_name: user_name,
+            user_name: name,   // identify sender
         }));
         // clear input field
         setQuizId("");
@@ -56,8 +57,8 @@ function TeacherControlPanel() {
         }
         websocketRef.current.send(JSON.stringify({
             message_type: "disconnect_user",
-            message: username,
-            user_name: user_name,
+            message: username,  // user to be disconnected
+            user_name: name,    // identify sender
         }));
         // clear input field
         //setQuizId("");
@@ -72,7 +73,7 @@ function TeacherControlPanel() {
         websocketRef.current.send(JSON.stringify({
             message_type: "question_number",
             message: questionNumber,
-            user_name: user_name,
+            user_name: name,    // identify sender, which is teacher
         }));
         // clear input field
         setQuestionNumber("");
