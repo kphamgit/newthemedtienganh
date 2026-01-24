@@ -3,15 +3,39 @@ import { jwtDecode } from "jwt-decode";
 import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
 import { useState, useEffect, type JSX } from "react";
+import { useSelector } from "react-redux";
 
 
 function ProtectedRoute({ children: children }: { children: JSX.Element }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
+    const { isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+
+    // kpham: this component deals with ACCESS TOKEN expiration and refresh only,
+    // it has nothing to do with login status which is handled by redux store
+    // see explanation below in the first useEffect
+
+
     useEffect(() => {
-        //console.log("ProtectedRoute: Checking authorization...");
-        auth().catch(() => setIsAuthorized(false))
-    }, [])
+        // KPHAM: only check auth if user is logged in
+        // ********* keep this logic, which works in conjunction with the one in HOME.tsx to make sure
+        // that all tabs are logged out when user logs out from one tab.
+
+        // Let's say you are logged in on two tabs: TAB 1, and TAB 2. And you log out of TAB 2. 
+        // 
+        // If you don't check for user logged in before validating token, 
+        // 
+        // then when user tries to refresh
+        // a tab after logging out from another tab, the HOME page will still display BUT WITHOUT valid user name
+        // because the redux-persist store has been cleared by the logout action in the other tab
+        if (isLoggedIn)
+            //console.log("ProtectedRoute: Checking TOKEN...now that user is logged in");
+            auth().catch(() => setIsAuthorized(false))
+        else {
+            setIsAuthorized(false);
+            return
+        }
+    }, [isLoggedIn])
 
     const refreshToken = async () => {
         //const refreshToken = localStorage.getItem(REFRESH_TOKEN);

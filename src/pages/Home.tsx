@@ -133,7 +133,15 @@ function Home() {
     }, [websocketRef]);
 */
 
-   
+/*
+    useEffect(() => {
+        if (!name) {
+            // User is not logged in, redirect to login page
+            //console.log("User not logged in, redirecting to login page...");
+            //navigate("/login");
+        }
+    }, [name]); // Only run when 'name' changes
+   */
     useEffect(() => {
         //console.log("Home component mounted, fetching levels...");
         getLevels();
@@ -152,53 +160,54 @@ function Home() {
             .catch((err) => alert(err));
     };
 
-    /*
-    const sendChatMessage = () => {
-        //alert("Sendingggg message: " + testMessage);
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "chat",
-            message: chatMessage,
-            user_name: user.name,
-        }));
-    };
+    // Listen for user logging out in other tabs. If that happends, reload this tab to reflect the logout state
+    // which effectively logs out this tab as well and redirects to login page
 
-    const sendQuestionId = () => {
-        console.log("Sendingggg question id: " + questionId);
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "question_id",
-            message: questionId,
-            user_name: user.name,
-        }));
-    };
+    // KPHAM: this logic works in conjunction with ProtecedRoute component
+    // in which, upon component mount, the loggedin state of the use is checked before 
+    // attempting to authorize access to protected routes
 
-    const sendQuizId = () => {
-        console.log("Sendingggg Quiz id: " + questionId);
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "quiz_id",
-            message: quizId,
-            user_name: user.name,
-        }));
-    };
-*/
+    useEffect(() => {
+        console.log("Home: Setting up storage event listener for logout detection across tabs...");
+        const handleStorageChange = (event: StorageEvent) => {
+            console.log("Storage event detected:", event);
+            if (event.key === "persist:root") {
+                console.log("LocalStorage &&&&&& changed by redux-persist:", event.newValue);
+                // this is what you see in localStorage when redux-persist saves the state
+                //persist:root = `{"user":"{\"name\":null,\"isLoggedIn\":false}","_persist":"{\"version\":-1,\"rehydrated\":true}"}`;
+                // Parse the new value of persist:root
+                if (event.newValue) {
+                    const persistedState = JSON.parse(event.newValue);
+                    //console.log("Parsed persisted state:", persistedState);
+                    const userState = JSON.parse(persistedState.user || "{}");
+                    //console.log("Updated user state from localStorage:", userState);
+                    // check isLoggedIn value, if false, meaning user logged out from another tab,
+                    // then reload this tab to reflect the logout state
+                    if (userState.isLoggedIn === false) {
+                        console.log("User logged out in another tab, reloading this tab...");
+                        // reload the page which will redirect to login page
+                        window.location.reload();
+                    }
+
+                    // You can perform additional actions here, such as updating the component state
+                    // or triggering a Redux action if needed.
+                }
+
+            }
+        };
+        // Add the event listener
+        window.addEventListener("storage", handleStorageChange);
+        // Cleanup the event listener on component unmount
+        return () => {
+            console.log("Home: Cleaning up storage event listener...");
+            window.removeEventListener("storage", handleStorageChange);
+        };
+    }, []);
 
     const toggleChatBox = () => {
         chatPageRef.current?.toggle_chat();
         setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
     }
-
-   
 
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
