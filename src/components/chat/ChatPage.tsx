@@ -3,7 +3,7 @@ import { useEffect, useImperativeHandle, useState } from 'react';
 import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../../redux/store';
+//import type { RootState } from '../../redux/store';
 //import type { WebSocketMessageProps } from '../shared/types';
 
 //import { useAppSelector } from '../../redux/store';
@@ -29,7 +29,7 @@ export interface ChatMessageProps {
     const [incomingMessages, setIncomingMessages] = useState<ChatMessageProps[]>([]);
 
     //get user from redux store using useAppSelector
-    const user = useSelector((state: RootState) => state.user);
+    //const user_name = useSelector((state: RootState) => state.name);
  
     const [isChatOpen, setIsChatOpen] = useState(true);
 
@@ -39,8 +39,11 @@ export interface ChatMessageProps {
 
     const {websocketRef, eventEmitter} = useWebSocket();
     
+    //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     useImperativeHandle(ref, () => ({
+
       get_isChatOpen: () => isChatOpen,
       toggle_chat: () => setIsChatOpen(!isChatOpen)
     }));
@@ -111,7 +114,7 @@ export interface ChatMessageProps {
       const messageToSend = {
         message_type: 'chat',
         message: outgoingMessage,
-        user_name: user.name // You can replace this with the actual user name from your state
+        user_name: name // You can replace this with the actual user name from your state
       };
       websocketRef.current.send(JSON.stringify(messageToSend));
       //console.log('ChatPage: Sent message to server:', messageToSend);

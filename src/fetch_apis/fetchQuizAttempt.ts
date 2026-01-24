@@ -5,6 +5,7 @@ import { ACCESS_TOKEN } from "../constants";
 export const fetchQuizAttempt = async (quiz_id: string, user_id: string): Promise<any> => {
   try {
     // The second argument to fetch is the options object
+    //const token = localStorage.getItem(ACCESS_TOKEN);
     const token = localStorage.getItem(ACCESS_TOKEN);
     const baseURL = import.meta.env.VITE_API_URL
     const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
@@ -36,7 +37,7 @@ export const fetchQuizAttempt = async (quiz_id: string, user_id: string): Promis
 /*
 // Example usage:
 const apiUrl = 'https://api.example.com/protected-resource'; // Replace with your API endpoint
-const userToken = 'your_actual_bearer_token'; // Retrieve this from storage (e.g., localStorage, sessionStorage)
+const userToken = 'your_actual_bearer_token'; // Retrieve this from storage (e.g., localStorage, localStorage)
 
 fetchWithBearerToken(apiUrl, userToken)
   .then(data => {

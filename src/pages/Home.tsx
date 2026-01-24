@@ -4,21 +4,28 @@ import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
-import { type RootState } from "../redux/store";
-import { useSelector } from "react-redux";
+//import { type RootState } from "../redux/store";
+//import { useSelector } from "react-redux";
 import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 import { WebSocketProvider } from "../components/context/WebSocketContext";
 import TeacherControlPanel from "./TeacherControlPanel";
 import TakeQuizLive from "../components/TakeQuizLive";
 import StudentControlPanel from "./StudentControlPanel";
 
+import { useSelector } from 'react-redux';
+
 
 function Home() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
-    const user = useSelector((state: RootState) => state.user);
 
-    const shouldConnect = !!user.name 
+    //const state = useSelector((state: RootState) => state);
+ 
+    //const user_name = useSelector((state: RootState) => state.name);
+    //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    //const rehydrated = useSelector((state: RootState) => state._persist?.rehydrated); //
+    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    const shouldConnect = !!name
 
     const [isChatOpen, setIsChatOpen] = useState<boolean | null>(null);
 
@@ -52,7 +59,7 @@ function Home() {
     );
     */
     
-    const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${user.name}/`;
+    const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
     //console.log("Home: WebSocket URL:", wsUrl);
 
@@ -126,8 +133,9 @@ function Home() {
     }, [websocketRef]);
 */
 
-
+   
     useEffect(() => {
+        //console.log("Home component mounted, fetching levels...");
         getLevels();
     }, []);  // empty dependency array to run only once on mount
 
@@ -195,7 +203,7 @@ function Home() {
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
             <div className="mx-10">
-            <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{user.name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
+            <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
             <div className="flex flex-col bg-amber-200 py-2 px-10">
                 <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
                     <Navbar role="student" levels={levels} />
@@ -212,7 +220,7 @@ function Home() {
 
             </div>
 
-            {user.name === "teacher" ?
+            {name === "teacher" ?
                 <TeacherControlPanel />
                 :
                 <div >

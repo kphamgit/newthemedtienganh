@@ -22,7 +22,7 @@ import { WordsSelect } from "./questions/WordsSelect";
 import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
 import { useSelector } from 'react-redux';
-import type { RootState } from '../redux/store';
+//import type { RootState } from '../redux/store';
 import DOMPurify from 'dompurify';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
@@ -68,7 +68,7 @@ const TakeQuiz: React.FC = () => {
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const user = useSelector((state: RootState) => state.user);
+    const user_name = useSelector((state: { name: string }) => state.name);
 
     //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
     //const counterRef = useRef<CoundownTimerHandleProps>(null);
@@ -85,7 +85,7 @@ const TakeQuiz: React.FC = () => {
     useEffect(() => {
       const baseURL = import.meta.env.VITE_API_URL
       const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
-      api.post(url, { user_name: user.name })  // use a fixed user id for now
+      api.post(url, { user_name: user_name })  // use a fixed user id for now
         .then((response) => {
           //console.log("Fetched quiz attempt data:", response.data);
           setQuizAttemptData(response.data);

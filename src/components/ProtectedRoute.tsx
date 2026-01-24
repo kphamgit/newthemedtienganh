@@ -9,17 +9,19 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
     useEffect(() => {
-        console.log("ProtectedRoute: Checking authorization...");
+        //console.log("ProtectedRoute: Checking authorization...");
         auth().catch(() => setIsAuthorized(false))
     }, [])
 
     const refreshToken = async () => {
+        //const refreshToken = localStorage.getItem(REFRESH_TOKEN);
         const refreshToken = localStorage.getItem(REFRESH_TOKEN);
         try {
             const res = await api.post("/api/token/refresh/", {
                 refresh: refreshToken,
             });
             if (res.status === 200) {
+                //localStorage.setItem(ACCESS_TOKEN, res.data.access)
                 localStorage.setItem(ACCESS_TOKEN, res.data.access)
                 setIsAuthorized(true)
             } else {
@@ -32,6 +34,7 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
     };
 
     const auth = async () => {
+        //const token = localStorage.getItem(ACCESS_TOKEN);
         const token = localStorage.getItem(ACCESS_TOKEN);
         if (!token) {
             setIsAuthorized(false);
@@ -39,23 +42,23 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
         }
         const decoded = jwtDecode(token);
         // print decoded for debugging
-        console.log("Decoded token:", decoded);
+        //console.log("Decoded token:", decoded);
         const tokenExpiration = decoded.exp;
-        console.log("Token expiration time (epoch):", tokenExpiration);
+        //console.log("Token expiration time (epoch):", tokenExpiration);
         const now = Date.now() / 1000;
-        console.log("Current time (epoch):", now);
+        //console.log("Current time (epoch):", now);
         if (tokenExpiration === undefined) {
+            //console.log("Token expiration is undefined.");
             setIsAuthorized(false);
             return;
         }
-        else {
-            console.log("Token expiration time - now:", tokenExpiration - now);
-        }
+       
 
         if (tokenExpiration && tokenExpiration < now) {
-            alert("Session has expired. Do you want to continue?");
+            //console.log("Session has expired. Do you want to continue?");
             await refreshToken();
         } else {
+            //console.log("Token did not expire yet.");
             setIsAuthorized(!!tokenExpiration);
         }
     };

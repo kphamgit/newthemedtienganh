@@ -17,7 +17,7 @@ export const useQuiz = (quiz_id: string, enabled: boolean) => {
 
 /*
 const apiUrl = 'https://api.example.com/protected-resource'; // Replace with your API endpoint
-const userToken = 'your_actual_bearer_token'; // Retrieve this from storage (e.g., localStorage, sessionStorage)
+const userToken = 'your_actual_bearer_token'; // Retrieve this from storage (e.g., localStorage, localStorage)
 
 fetchWithBearerToken(apiUrl, userToken)
   .then(data => {

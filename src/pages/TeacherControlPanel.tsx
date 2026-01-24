@@ -1,13 +1,13 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
-import type { RootState } from "../redux/store";
+//import type { RootState } from "../redux/store";
 import { useEffect, useState } from "react";
 
 
 function TeacherControlPanel() {
      
     const {eventEmitter, websocketRef} = useWebSocket();
-    const user = useSelector((state: RootState) => state.user);
+    const user_name = useSelector((state: { name: string }) => state.name);
 
     const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
@@ -17,7 +17,7 @@ function TeacherControlPanel() {
     useEffect(() => {
       const handleMessage = (data: any) => {
         //if (data.message_type === "chat") {
-          console.log("TeacherControlPanel: Received  connection message from server:", data);
+          //console.log("TeacherControlPanel: Received  connection message from server:", data);
           if (data.message_type === "connection_change" && data.connected_users) {
             setConnectedUsers(data.connected_users);
         }
@@ -42,7 +42,7 @@ function TeacherControlPanel() {
         websocketRef.current.send(JSON.stringify({
             message_type: "quiz_id",
             message: quizId,
-            user_name: user.name,
+            user_name: user_name,
         }));
         // clear input field
         setQuizId("");
@@ -57,7 +57,7 @@ function TeacherControlPanel() {
         websocketRef.current.send(JSON.stringify({
             message_type: "disconnect_user",
             message: username,
-            user_name: user.name,
+            user_name: user_name,
         }));
         // clear input field
         //setQuizId("");
@@ -72,7 +72,7 @@ function TeacherControlPanel() {
         websocketRef.current.send(JSON.stringify({
             message_type: "question_number",
             message: questionNumber,
-            user_name: user.name,
+            user_name: user_name,
         }));
         // clear input field
         setQuestionNumber("");

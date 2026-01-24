@@ -2,11 +2,12 @@ import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
-import { useAppDispatch } from "../redux/hooks";
+//import { useAppDispatch } from "../redux/store";
 
 
 import LoadingIndicator from "./LoadingIndicator"
-import { setUser } from "../redux/user";
+import { setUser } from "../redux/userSlice";
+import { useDispatch } from "react-redux";
 
 interface FormProps {
     route: string;
@@ -27,20 +28,24 @@ function Form({ route, method }: FormProps) {
 
     const name = method === "login" ? "Login" : "Register";
 
-    const dispatch = useAppDispatch();
+    const dispatch = useDispatch();
 
     const handleSubmit = async (e: any) => {
+        //alert("Submitting form...");
         setLoading(true);
         e.preventDefault();
 
         try {
             const res = await api.post(route, { username, password })
             if (method === "login") {
-                //console.log("Login successful:", res.data);
+                console.log("Login successful:", res.data);
+                //localStorage.setItem(ACCESS_TOKEN, res.data.access);
+                //localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
                 localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
                 /* store user name in redux store */
-                dispatch(setUser({ name: username }));
+                console.log("********* Storing user in redux:********* ", username);
+                dispatch(setUser(username));
                 navigate("/")
             } else {
                 navigate("/login")
@@ -78,3 +83,30 @@ function Form({ route, method }: FormProps) {
 }
 
 export default Form
+
+/*
+How it redux-persist works with localStorage under the hood
+When you call dispatch(setUser(name)), the data travels through this cycle:
+
+Action Dispatched: Your component sends the name.
+
+Reducer Updates: The userSlice updates the state in memory.
+
+Persist Middleware: redux-persist notices the change in the user slice.
+
+Storage: It writes the new state to localStorage.
+
+On Refresh: When the page reloads, the PersistGate reads from localStorage and 
+pushes the data back into Redux before your app finishes loading.
+
+Verifying the Data
+You can check if this is working by opening your browser's Developer Tools:
+
+Go to the Application tab.
+
+Select Local Storage on the left.
+
+You should see a key named persist:root. If you look at the value, you'll see your user object serialized as a string.
+
+
+*/

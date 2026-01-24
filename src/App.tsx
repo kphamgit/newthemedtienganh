@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import Login from "./pages/Login"
 import Register from  "./pages/Register"
 import Home from "./pages/Home"
@@ -9,14 +9,12 @@ import TakeQuiz from "./components/TakeQuiz"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TakeQuizLive from "./components/TakeQuizLive"
+import Logout from "./pages/Logout"
+
+
 
 
 const queryClient = new QueryClient()
-
-function Logout() {
-  localStorage.clear()
-  return <Navigate to="/login" />
-}
 
 function RegisterAndLogout() {
   localStorage.clear()
