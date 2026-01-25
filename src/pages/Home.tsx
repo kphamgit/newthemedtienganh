@@ -147,19 +147,6 @@ function Home() {
         getLevels();
     }, []);  // empty dependency array to run only once on mount
 
-    const getLevels = async () => {
-        try {
-            await api.get("/api/levels/").then((res) => {
-                const data = res.data;
-                //console.log("levels", data);
-                setLevels(data);
-                //console.log("levels", data);
-            });
-        } catch (err) {
-            alert(err);
-        }
-    };
-    /*
     const getLevels = () => {
         //console.log("Fetching categories...");
         api
@@ -172,7 +159,7 @@ function Home() {
             })
             .catch((err) => alert(err));
     };
-*/
+
     // Listen for user logging out in other tabs. If that happends, reload this tab to reflect the logout state
     // which effectively logs out this tab as well and redirects to login page
 

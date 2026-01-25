@@ -68,14 +68,10 @@ const TakeQuiz: React.FC = () => {
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    //const user_name = useSelector((state: { name: string }) => state.name);
-    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    const user_name = useSelector((state: { name: string }) => state.name);
 
     //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
     //const counterRef = useRef<CoundownTimerHandleProps>(null);
-
-    const hasAttempted = useRef(false); // flag to prevent multiple attempts to create quiz attempt
-    // in development mode, React 18 StrictMode may cause useEffect to run twice
 
     /*
     const { data: quizAttemptData } = useQuizAttempt(
@@ -87,37 +83,18 @@ const TakeQuiz: React.FC = () => {
     */
 
     useEffect(() => {
-      const createQuizAttempt = async () => {
-      if (!quiz_id || !name) {
-        console.error("Quiz ID or user name is missing.");
-        return;
-      }
+      const baseURL = import.meta.env.VITE_API_URL
+      const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
+      api.post(url, { user_name: user_name })  // use a fixed user id for now
+        .then((response) => {
+          //console.log("Fetched quiz attempt data:", response.data);
+          setQuizAttemptData(response.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching quiz attempt data:", error);
+        });
 
-      if (hasAttempted.current) { // check flag to prevent multiple attempts
-        // in development mode, React 18 StrictMode may cause useEffect to run twice
-        console.log("Quiz attempt creation already attempted, skipping.");
-        return;
-      }
-      hasAttempted.current = true; // set flag to prevent further attempts
-
-      try {
-        const url = `/api/quiz_attempts/${quiz_id}/`;
-        console.log(`Submitting to ${url} with username: ${name}`);
-        //Submitting to /api/api/token/ with username: admin
-        const res = await api.post(url, { user_name: name })
-        console.log("Quiz attempt created: res = ", res);
-        setQuizAttemptData(res.data);
-     
-    } catch (error) {
-        //alert(error)
-        console.error("Error during form submission:", error);
-    } finally {
-        //setLoading(false)
-    }
-  }
-
-      createQuizAttempt();
-    },[quiz_id, name])
+    },[quiz_id])
 
 
  

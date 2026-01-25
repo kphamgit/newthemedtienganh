@@ -90,12 +90,6 @@ export interface ChatMessageProps {
       const handleMessage = (data: any) => {
         if (data.message_type === "chat") {
           console.log("ChatPage: Received chat message:", data.message);
-          // user_name is the sender
-          // only accept messages that are send by me or by "teacher"
-          if (data.user_name !== name && data.user_name !== "teacher") {
-            console.log("ChatPage: Ignoring chat message from other user:", data.user_name);
-            return;
-          }
           setIncomingMessages((prevMessages) => [
             ...prevMessages,
             { text: data.message, user_name: data.user_name },
@@ -123,8 +117,6 @@ export interface ChatMessageProps {
         user_name: name // You can replace this with the actual user name from your state
       };
       websocketRef.current.send(JSON.stringify(messageToSend));
-      // clear input field
-      setOutgoingMessage('');
       //console.log('ChatPage: Sent message to server:', messageToSend);
     };
 

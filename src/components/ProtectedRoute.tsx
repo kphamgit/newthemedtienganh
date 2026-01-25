@@ -1,23 +1,21 @@
 import { Navigate } from "react-router-dom";
-//import { jwtDecode } from "jwt-decode";
-//import api from "../api";
-//import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
-import {type JSX } from "react";
+import { jwtDecode } from "jwt-decode";
+import api from "../api";
+import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
+import { useState, useEffect, type JSX } from "react";
 import { useSelector } from "react-redux";
 
 
 function ProtectedRoute({ children: children }: { children: JSX.Element }) {
-    const { isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
-    //const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-    //const { isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    const { isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     // kpham: this component deals with ACCESS TOKEN expiration and refresh only,
     // it has nothing to do with login status which is handled by redux store
     // see explanation below in the first useEffect
 
 
-    /*
     useEffect(() => {
         // KPHAM: only check auth if user is logged in
         // ********* keep this logic, which works in conjunction with the one in HOME.tsx to make sure
@@ -38,9 +36,7 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
             return
         }
     }, [isLoggedIn])
-    */
 
-    /*
     const refreshToken = async () => {
         //const refreshToken = localStorage.getItem(REFRESH_TOKEN);
         const refreshToken = localStorage.getItem(REFRESH_TOKEN);
@@ -90,13 +86,12 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
             setIsAuthorized(!!tokenExpiration);
         }
     };
-    */
 
-    if (isLoggedIn === null) {
+    if (isAuthorized === null) {
         return <div>Loading...</div>;
     }
 
-    return isLoggedIn ? children : <Navigate to="/login" />;
+    return isAuthorized ? children : <Navigate to="/login" />;
 }
 
 export default ProtectedRoute;

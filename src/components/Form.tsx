@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 //import { useAppDispatch } from "../redux/store";
 
 
@@ -35,13 +36,13 @@ function Form({ route, method }: FormProps) {
         e.preventDefault();
 
         try {
-            console.log(`Submitting to ${route} with username: ${username}`);
-            //Submitting to /api/api/token/ with username: admin
             const res = await api.post(route, { username, password })
             if (method === "login") {
-                console.log("Login successful: res = ", res);
+                console.log("Login successful:", res.data);
                 //localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 //localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
+                localStorage.setItem(ACCESS_TOKEN, res.data.access);
+                localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
                 /* store user name in redux store */
                 console.log("********* Storing user in redux:********* ", username);
                 dispatch(setUser(username));
@@ -50,8 +51,7 @@ function Form({ route, method }: FormProps) {
                 navigate("/login")
             }
         } catch (error) {
-            //alert(error)
-            console.error("Error during form submission:", error);
+            alert(error)
         } finally {
             setLoading(false)
         }
@@ -83,28 +83,6 @@ function Form({ route, method }: FormProps) {
 }
 
 export default Form
-
-/*
-The ONLY way to truly "Eliminate" the XSS Threat
-To make your tokens invisible to XSS scripts, you must move the token out of the reach of the JavaScript engine entirely. This is done using HttpOnly Cookies.
-
-How HttpOnly Cookies work:
-The Handshake: Your React app sends the password to the backend.
-
-The Response: The backend sends a Set-Cookie header with the HttpOnly and Secure flags.
-
-The Wall: The browser stores this cookie in a "black box."
-
-The Security: If you try to type document.cookie in your console, the token will not appear. Because it’s not visible to JavaScript, an XSS script cannot steal it.
-
-The Request: Every time you use Axios or Fetch to call your API, the browser automatically attaches that cookie to the request.
-*/
-
-/*
-What should you do now?
-
-The Professional Standard (Best): Talk to your backend developer about moving the JWT into an HttpOnly cookie. Your Redux store would then only store "public" info like the user's name and isLoggedIn: true, but never the actual secret token.
-*/
 
 /*
 How it redux-persist works with localStorage under the hood
