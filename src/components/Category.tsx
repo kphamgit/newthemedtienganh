@@ -38,20 +38,19 @@ function Category() {
         }
     }, [id]);
 
-    const getUnits = () => {
-        //alert("Getting units for category id:");
-        
-        api
-            .get(`/api/categories/${id}/units/`)
-            .then((res) => res.data)
-            .then((data) => {
-                //console.log("************ units", data);
+    const getUnits = async () => {
+        try {
+            await api.get(`/api/categories/${id}/units/`).then((res) => {
+                const data = res.data;
+                //console.log("levels", data);
                 setUnits(data);
-               
-            })
-            .catch((err) => alert(err));
-            
+                //console.log("levels", data);
+            });
+        } catch (err) {
+            alert(err);
+        }
     };
+
 
     const take_quiz = (quiz: QuizProps) => {
         //console.log("Taking quiz:", quiz.id);
