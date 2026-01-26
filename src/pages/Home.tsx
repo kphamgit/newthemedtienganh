@@ -10,9 +10,8 @@ import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 import { WebSocketProvider } from "../components/context/WebSocketContext";
 import TeacherControlPanel from "./TeacherControlPanel";
 import TakeQuizLive from "../components/TakeQuizLive";
-import StudentControlPanel from "./StudentControlPanel";
-
 import { useSelector } from 'react-redux';
+import ConnectedUsersControl from "./ConnectedUsersControl";
 
 
 function Home() {
@@ -228,12 +227,11 @@ function Home() {
                 </div>
 
             </div>
-
+            <ConnectedUsersControl />
             {name === "teacher" ?
                 <TeacherControlPanel />
                 :
                 <div >
-                <StudentControlPanel />
                 <TakeQuizLive />
                 </div>
             }
