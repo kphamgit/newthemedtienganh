@@ -24,6 +24,7 @@ import { DropDowns } from "./questions/DropDowns";
 import { useSelector } from 'react-redux';
 //import type { RootState } from '../redux/store';
 import DOMPurify from 'dompurify';
+import type { RootState } from '../redux/store';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
@@ -68,7 +69,8 @@ const TakeQuiz: React.FC = () => {
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const user_name = useSelector((state: { name: string }) => state.name);
+    //const user_name = useSelector((state: { name: string }) => state.name);
+    const { name } = useSelector((state: RootState) => state.user);
 
     //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
     //const counterRef = useRef<CoundownTimerHandleProps>(null);
@@ -85,7 +87,7 @@ const TakeQuiz: React.FC = () => {
     useEffect(() => {
       const baseURL = import.meta.env.VITE_API_URL
       const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
-      api.post(url, { user_name: user_name })  // use a fixed user id for now
+      api.post(url, { user_name: name })  // use a fixed user id for now
         .then((response) => {
           //console.log("Fetched quiz attempt data:", response.data);
           setQuizAttemptData(response.data);
@@ -278,7 +280,7 @@ const TakeQuiz: React.FC = () => {
       }
 //<div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instruction ?? '' }}></div>
     return (
-    <div className="mx-20 my-5">
+    <div className="mx-20 my-5 bg-cyan-200">
      
       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <ModalForIncorrect 
@@ -293,7 +295,7 @@ const TakeQuiz: React.FC = () => {
    
       { quizStarted && (
         <div className='mb-1 text-center'>
-          <div>Total score: <span className='text-blue-500 font-bold'>{quizAttemptData.quiz_attempt.score}</span></div>
+          <div>Total score: <span className='text-blue-200 font-bold'>{quizAttemptData.quiz_attempt.score}</span></div>
           { endOfQuiz && 
               <div className='text-green-600 text-lg'>End Of Quiz</div>
           }
@@ -301,7 +303,7 @@ const TakeQuiz: React.FC = () => {
       )
       }
           {question && questionAttemptId && showQuestion && (
-            <div className="col-span-8 mx-10 my-5 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
+            <div className="col-span-8 mx-10 my-5 p-10 border-2 border-gray-400 rounded-md ">
               <div className="mb-3 text-lg font-bold">
                 Question: {question?.question_number}
               </div>
@@ -341,7 +343,7 @@ const TakeQuiz: React.FC = () => {
               }
               </div>
 
-              <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+              <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
                 onClick={() => handleSubmit()}
             >
                 Submit

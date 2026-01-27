@@ -11,7 +11,7 @@ import { WebSocketProvider } from "../components/context/WebSocketContext";
 import TeacherControlPanel from "./TeacherControlPanel";
 import TakeQuizLive from "../components/TakeQuizLive";
 import { useSelector } from 'react-redux';
-import ConnectedUsersControl from "./ConnectedUsersControl";
+import MessageControl from "./MessageControl";
 
 
 function Home() {
@@ -28,9 +28,10 @@ function Home() {
 
     const [isChatOpen, setIsChatOpen] = useState<boolean | null>(null);
 
-    //const [questionId, setQuestionId] = useState("");
+    //const [isLiveQuizOn, setIsLiveQuizOn] = useState(false);
 
-
+    const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
+    const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
 
     const chatPageRef = useRef<ChatPageRefProps>(null);
 
@@ -132,15 +133,6 @@ function Home() {
     }, [websocketRef]);
 */
 
-/*
-    useEffect(() => {
-        if (!name) {
-            // User is not logged in, redirect to login page
-            //console.log("User not logged in, redirecting to login page...");
-            //navigate("/login");
-        }
-    }, [name]); // Only run when 'name' changes
-   */
     useEffect(() => {
         //console.log("Home component mounted, fetching levels...");
         getLevels();
@@ -208,36 +200,76 @@ function Home() {
         setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
     }
 
+    const handle_callback = (value: any) => {
+        console.log("Home: Callback received from MessageControl:", value);
+        if ("quiz_id" in value && "question_number" in value) {
+            setLiveQuizId(value.quiz_id);
+            setLiveQuestionNumber(value.question_number);
+        }
+        else if ("quiz_id" in value) {
+            setLiveQuizId(value.quiz_id);
+        }
+        else if ("question_number" in value) {
+            console.log("Home: only question_number received in callback:", value.question_number);
+            setLiveQuestionNumber(value.question_number);
+        }
+        else {
+            console.log("Home: Invalid message received in callback:", value);
+            return;
+        }
+        /*
+        if (message_type === "quiz_id") {
+            // toggle isLiveQuizOn
+            //setIsLiveQuizOn((prev) => !prev);
+            setLiveQuizId(value.quiz_id);
+        }
+        else if (message_type === "question_number") {
+            setLiveQuestionNumber(value.question_number);
+        }
+            */
+    }
+
+    /*
+<div className="grid grid-cols-[2fr_1fr] bg-green-400">
+    <div>Column 1 (2x width)</div>
+    <div>Column 2 (1x width)</div>
+</div>
+    */
+
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
-            <div className="mx-10">
-            <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
-            <div className="flex flex-col bg-amber-200 py-2 px-10">
-                <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
-                    <Navbar role="student" levels={levels} />
-                </div>
-            </div>
+            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
+                <div>
+                    <div className="text-red-800 mx-10 my-4">Welcome <span className="font-bold">{name}</span> to <span className="text-blue-600">tienganhphuyen.com</span></div>
+                    <div className="flex flex-col bg-amber-200 py-2 px-10">
+                        <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+                            <Navbar role="student" levels={levels} />
+                        </div>
+                    </div>
 
-            <div className="fixed bottom-20 right-10 w-80 space-y-2 z-50">
-                <div className="bg-cyan-200 rounded-md p-0">
-                    <ChatPage ref={chatPageRef} />
+                    {name === "teacher" &&
+                        <TeacherControlPanel />
+                    }
+                    {name !== "teacher" && liveQuizId &&
+                        <TakeQuizLive quiz_id={liveQuizId} question_number={liveQuestionNumber} />
+                    }
+                    <Outlet />
                 </div>
-                <div className='flex justify-center bg-white rounded-md p-2'>
-                    <button className='bg-blue-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Open Chat' : 'Close Chat'}</button>
-                </div>
+                <div className="flex flex-col">
+                    <div className="bg-blue-200">
+                        <MessageControl parent_callback={handle_callback} />
 
-            </div>
-            <ConnectedUsersControl />
-            {name === "teacher" ?
-                <TeacherControlPanel />
-                :
-                <div >
-                <TakeQuizLive />
-                </div>
-            }
-          
+                    </div>
+                    <div>
 
-            <Outlet />
+                        <div className="bg-cyan-300 rounded-md p-0">
+                            <ChatPage ref={chatPageRef} />
+                        </div>
+                        <div className='flex justify-center bg-white rounded-md p-2'>
+                            <button className='bg-blue-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Open Chat' : 'Close Chat'}</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </WebSocketProvider>
     );

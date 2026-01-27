@@ -89,7 +89,20 @@ export interface ChatMessageProps {
     useEffect(() => {
       const handleMessage = (data: any) => {
         if (data.message_type === "chat") {
-          console.log("ChatPage: Received chat message:", data.message);
+          //console.log("ChatPage: Received chat message:", data);
+          // if name is not "teacher", only accept messages from teacher
+          // don't accept message from myself. See sendChatMessage function.
+          //console.log("ChatPage: Current user name:", name, "Message user name:", data.user_name);
+          if (name === data.user_name) { // ignore messages from myself
+            //console.log("ChatPage: Ignoring chat message from myself:", data.user_name);
+            return;
+          }
+          if (name !== "teacher" && data.user_name !== "teacher") {
+            // students only accept messages from teacher, not from other students
+            //console.log("ChatPage: Ignoring chat message from non-teacher user:", data.user_name);
+            return;
+          }
+
           setIncomingMessages((prevMessages) => [
             ...prevMessages,
             { text: data.message, user_name: data.user_name },
@@ -117,6 +130,12 @@ export interface ChatMessageProps {
         user_name: name // You can replace this with the actual user name from your state
       };
       websocketRef.current.send(JSON.stringify(messageToSend));
+      // add the sent message to incomingMessages so it shows up in chat body
+      setIncomingMessages((prevMessages) => [
+        ...prevMessages,
+        { text: outgoingMessage, user_name: name },
+      ]);
+      setOutgoingMessage(''); // Clear the input field after sending
       //console.log('ChatPage: Sent message to server:', messageToSend);
     };
 
