@@ -8,7 +8,6 @@ import Category from "./components/Category"
 import TakeQuiz from "./components/TakeQuiz"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import TakeQuizLive from "./components/TakeQuizLive"
 import Logout from "./pages/Logout"
 
 
@@ -33,7 +32,6 @@ function App() {
         >
           <Route path="categories/:category_id" element={<Category />} />
           <Route path="categories/:category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />
-          <Route path="take_quiz_live/:quiz_id" element={<TakeQuizLive />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
