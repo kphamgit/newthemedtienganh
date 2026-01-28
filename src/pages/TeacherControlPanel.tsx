@@ -2,22 +2,30 @@ import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useState } from "react";
 import api from "../api";
+import type { RootState } from "../redux/store";
+
+interface TeacherControlPanelProps {
+    live_quiz_id: string;
+}
 
 
-
-
-function TeacherControlPanel() {
+function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
      
     const {websocketRef} = useWebSocket();
     //const user_name = useSelector((state: { name: string }) => state.name);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     
+    const [keyForCacheQuery, setKeyForCacheQuery] = useState("quiz_id");
 
         const [quizId, setQuizId] = useState("");
-        const [liveQuizIsOn, setLiveQuizIsOn] = useState(false);
+
         const [questionNumber, setQuestionNumber] = useState("");
 
         const [targetUserName, setTargetUserName] = useState("");
+
+        const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list); 
+        
+        const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
     const sendQuizId = () => {
        //console.log("Sendingggg Quiz id: ");
@@ -47,7 +55,7 @@ function TeacherControlPanel() {
                         user_name: name,   // identify sender
                     }));
                     // clear input field
-                    setLiveQuizIsOn(true);
+         
                     setQuizId("");
                 } else {
                     //console.log("Quiz id NOT found on server.");
@@ -89,6 +97,21 @@ function TeacherControlPanel() {
         setQuestionNumber("");
     };
 
+    const sendCacheQuery = () => {
+         console.log("sendCacheQuery: ");
+         if (!websocketRef.current) {
+             alert("WebSocket is not connected.");
+             return;
+         }
+
+         websocketRef.current.send(JSON.stringify({
+             message_type: "cache_query",
+             message: keyForCacheQuery,  // query key
+             user_name: name,    // identify sender, which is teacher
+         }));
+         
+     };
+
     const terminateLiveQuiz = () => {
        //console.log("terminateLiveQuiz: ");
         if (!websocketRef.current) {
@@ -102,21 +125,44 @@ function TeacherControlPanel() {
         }));
     };
       
+    const handleNameClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        const selectedName = e.currentTarget.innerText;
+        setTargetUserName(selectedName);
+    }
+
+    const handleNameClickForCacheQuery = (e: React.MouseEvent<HTMLButtonElement>) => {
+        const selectedName = e.currentTarget.innerText;
+        console.log(keyForCacheQuery);  //should be "_live_question_number"
+        //setTargetUserNameForCacheQuery(selectedName);
+        setKeyForCacheQuery(selectedName + "_live_question_number");
+    }
+
+    const handleSelectCacheQuery = (value: string) => {
+        // if selected value is "live_question_number", show panel for select student for cache query  
+        if (value === "live_question_number") {
+            setKeyForCacheQuery("_live_question_number");
+            setShowStudentSelectForCacheQuery(true);
+        } else {
+            setShowStudentSelectForCacheQuery(false);
+            setKeyForCacheQuery(value);
+        }
+    }
+
   return (
     <div className="m-10">
   
     <div>TeacherControlPanel
-        <span>
-            
-            liveQuiz : {liveQuizIsOn ? "ON" : "OFF"}
-            
-        { liveQuizIsOn && quizId !== "" &&
-           <span> current Quiz id: {quizId} </span>
-        }
-        { liveQuizIsOn  &&
-        <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={terminateLiveQuiz}>Terminate Live Quiz</button>
-        }
+        <span className="ml-10">
+            { live_quiz_id !== "" &&
+            <span className="text-red-700"> Live Quiz ID : {live_quiz_id} 
+            <span>
+                <button className="text-white bg-red-700 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={terminateLiveQuiz}>Terminate Live Quiz</button>   
+            </span>
+            </span>
+            }
         </span>
+
+      
     </div>
     <div className="mt-2 bg-gray-200">
         <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
@@ -133,14 +179,68 @@ function TeacherControlPanel() {
             onChange={e => setTargetUserName(e.target.value)} value={targetUserName} 
             />
         </span>
+
+        <div className='flex flex-row justify-end gap-2 mt-2'>
+        {connectedUsersInReduxStore &&
+            connectedUsersInReduxStore.map((user, index) => (
+                <div key={index} >
+                <button className='bg-bgColor2 text-textColor1 p-1 rounded-md' onClick={handleNameClick}>{user.name}</button>
+                </div>
+            ))
+        }
+        <button className='bg-blue-600 text-white p-1 rounded-md' onClick={handleNameClick}>everybody</button>
+    </div>
+        
    
    </div>
-   
+   <div className="mt-2 bg-amber-200 p-2">
+   <div>Key for cache query: {keyForCacheQuery}</div>
+            <button className="text-white bg-blue-600 mb-2 p-1 rounded-md hover:bg-blue-400" onClick={sendCacheQuery}>Query Cache</button>
+            <div className="ml-10">
+                    <select className="bg-gray-300 text-black p-2 rounded-md" onChange={(e) => {handleSelectCacheQuery(e.target.value) }}>
+                        <option value="quiz_id">quiz_id</option>
+                        <option value="live_question_number">live_question_number</option>
+                        <option value="students_room_users">students in room</option>
+                    </select>
+                   
+            </div>
+           
+            { showStudentSelectForCacheQuery &&
+            <>
+            <span>Select user name:</span>
+              <div className="flex flex-row justify-start ml-10 text text-gray-600">
+                  {connectedUsersInReduxStore &&
+                      connectedUsersInReduxStore.map((user, index) => (
+                          <div key={index} >
+                              <button className='bg-green-500 text-white p-1 m-1 rounded-md' onClick={handleNameClickForCacheQuery}>{user.name}</button>
+                          </div>
+                      ))
+                  }
+              </div>
+
+
+          
+              </>
+}
+   </div>
+      
     </div>
   )
 }
 
 export default TeacherControlPanel
+
+/*
+  <span>
+            
+            liveQuiz : {liveQuizIsOn ? "ON" : "OFF"}
+            
+   
+        { liveQuizIsOn  &&
+     <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={terminateLiveQuiz}>Terminate Live Quiz</button>
+        }
+        </span>
+*/
 
 /*
 return (

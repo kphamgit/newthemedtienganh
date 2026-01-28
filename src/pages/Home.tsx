@@ -138,7 +138,10 @@ function Home() {
             console.log("Home: Invalid server message in callback:", server_message);
             return;
         }
-        const { message_type, message, user_name } = server_message;
+        // destructure message_type and message
+        const { message_type, message, user_name, queried_value } = server_message;
+        // note : queried value is only used for cache_query_response message type
+
         if (message_type === 'chat') {
             // pass on to ChatPage component
            //console.log("Home: Passing chat message to ChatPage:", message);
@@ -179,6 +182,30 @@ function Home() {
             }
             return;
         }
+        else if (message_type === 'cache_query_response') {
+              console.log("Home: Received cache_query_response from server:", message);
+              // only do this for teacher, for now
+              if (name !== "teacher") {
+                return;
+              }
+              alert("Cache query response from server: " + message_type + " " +  message + " = " + queried_value);
+                /*
+               
+{
+    "message_type": "cache_query_response",
+    "message": "1",
+    "queried_value": "1"
+}
+      */
+                
+                // You can handle the cache query response here if needed
+        }
+        else if (message_type === 'terminate_live_quiz') {
+           //console.log("Home: Received terminate_live_quiz message from server.");
+            // reset live quiz state
+            setLiveQuizId(null);
+            setLiveQuestionNumber(undefined);
+        }
      
     }
 
@@ -200,7 +227,7 @@ function Home() {
                     </div>
 
                     {name === "teacher" &&
-                        <TeacherControlPanel />
+                        <TeacherControlPanel live_quiz_id={liveQuizId || ''}/>
                     }
                     {name !== "teacher" && liveQuizId &&
                         <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} question_number={liveQuestionNumber} />

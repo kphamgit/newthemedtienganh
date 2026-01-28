@@ -33,7 +33,7 @@ message: "Question 1 for Quiz 1", user_name: "kpham"} (MessageControl.tsx, line 
 
 useEffect(() => {
   const handleMessage = (data: WebSocketMessageProps) => {
-   //console.log("MessageControl: handleMessage called with data:", data);
+    console.log("MessageControl: handleMessage called with data:", data);
     //if (data.message_type === "chat") {
    //console.log("*********** MessageControl: Received data from server:", data); 
     if (data.message_type === "chat") {
@@ -103,7 +103,7 @@ useEffect(() => {
       dispatch(removeUser(disconnection_message.user_name));
     }
     else if (data.message_type === "disconnect_user") {
-     //console.log("MessageControl: Received disconnect_user message:", data);
+       console.log("MessageControl: Received disconnect_user message:", data);
       // is this message for me?
       // data.message contains the username to be disconnected
       const username_to_disconnect = data.message;
@@ -121,19 +121,32 @@ useEffect(() => {
     }
     else if (data.message_type === "live_score") {
         const live_score = parseInt(data.message);
-       //console.log("MessageControl: Received live_score message:", data);
         // update live score in redux store
         //console.log("MessageControl: Updating live score for user:", live_score_message.user, "to", live_score);
         // don't update score for me because I update it myself when I submit answer to the question
         // see onSubmit in TakeQuizLive.tsx
         if (data.user_name === name) {
-           //console.log("MessageControl: live_score message is for self, not updating redux store.");
             return;
         }
         dispatch(updateLiveScore({name: data.user_name, live_score: live_score}));
         
     }
+    else if (data.message_type === "cache_query_response") {
+     //console.log("MessageControl: Received error message from server:", data.message);
+      //console.log("Cache query response from server: " + data);
+      parent_callback(data);
+      /*
+  "message_type": "cache_query_response",
+                "message": message,  // this is the queried key
+                "queried_value": queried_value,
+            }))
+      */
+    }
+    else if (data.message_type === "terminate_live_quiz") {
+      parent_callback(data);
+    }
   }
+
   // Subscribe to the "message" event
   eventEmitter?.on("message", handleMessage);
   // Cleanup the event listener on unmount

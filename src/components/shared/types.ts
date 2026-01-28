@@ -33,13 +33,16 @@ export interface WebSocketMessageProps {
   "question_number" | 
   "live_quiz_id_and_live_question_number" |
   "live_question_attempt_started" |
-  "disconnect_user"
+  "disconnect_user" |
+  "cache_query_response" | 
+  "terminate_live_quiz";
  
   message: string;
   user_name: string;  // identify sender, except for questin_number message where user_name is target user
   other_connected_users?: string[];
   live_quiz_id?: string;   // when user logs in with live quiz ongoing
   live_question_number?: string; // when user logs in with live quiz ongoing and didn't finish current question
+  queried_value?: string; // only for cache_query_response message type
 }
 
 export interface QuestionProps {
