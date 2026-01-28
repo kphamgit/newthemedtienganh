@@ -17,6 +17,8 @@ function TeacherControlPanel() {
         const [liveQuizIsOn, setLiveQuizIsOn] = useState(false);
         const [questionNumber, setQuestionNumber] = useState("");
 
+        const [targetUserName, setTargetUserName] = useState("");
+
     const sendQuizId = () => {
        //console.log("Sendingggg Quiz id: ");
         if (!websocketRef.current) {
@@ -30,7 +32,7 @@ function TeacherControlPanel() {
         api.get(url)
             .then((response) => {
                 if (response) {
-                    console.log("Quiz id found on server:", response.data.id);
+                   //console.log("Quiz id found on server:", response.data.id);
                     /*
                      – {id: 1, unit_id: 1, name: "Quiz 1", …} (
                     */
@@ -68,10 +70,20 @@ function TeacherControlPanel() {
             alert("WebSocket is not connected.");
             return;
         }
+        // if question number is empty, alert and return
+        if (questionNumber === "") {
+            alert("Please enter question number.");
+            return;
+        }
+        // if target user is empty, alert and return
+        if (targetUserName === "") {
+            alert("Please enter target user name.");
+            return;
+        }
         websocketRef.current.send(JSON.stringify({
             message_type: "question_number",
             message: questionNumber,
-            user_name: name,    // identify sender, which is teacher
+            user_name: targetUserName,    // identify sender, which is teacher
         }));
         // clear input field
         setQuestionNumber("");
@@ -113,9 +125,16 @@ function TeacherControlPanel() {
         }
         </div>
     <div className="mt-2 bg-gray-200">
-        <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question id..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
-        <button className="text-red bg-green-300 mb-2 hover:bg-green-400" onClick={sendQuestionNumber}>Send Question Number</button>
-    </div>
+        <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
+        <button className="text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-400" onClick={sendQuestionNumber}>Send Question Number</button>
+   
+        <span>
+            <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="target user name..."
+            onChange={e => setTargetUserName(e.target.value)} value={targetUserName} 
+            />
+        </span>
+   
+   </div>
    
     </div>
   )

@@ -1,16 +1,19 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import Login from "./pages/Login"
 import Register from  "./pages/Register"
-import Home from "./pages/Home"
+//import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "../src/components/ProtectedRoute"
 import Category from "./components/Category"
-import TakeQuiz from "./components/TakeQuiz"
+//import TakeQuiz from "./components/TakeQuiz"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Logout from "./pages/Logout"
+import { lazy, Suspense } from "react"
 
 
+const Home = lazy(() => import("./pages/Home"))
+const TakeQuiz = lazy(() => import("./components/TakeQuiz"))
 
 
 const queryClient = new QueryClient()
@@ -22,6 +25,7 @@ function RegisterAndLogout() {
 
 function App() {
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Routes>
@@ -40,6 +44,7 @@ function App() {
       </Routes>
     </BrowserRouter>
     </QueryClientProvider>
+    </Suspense>
   )
 }
 

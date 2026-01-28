@@ -17,7 +17,7 @@ export interface QuestionAttemptAssesmentResultsProps {
 }
 
 type ClozeAnswerResultsProps = {
-  user_answer: string,
+  user_answer: string,   
   answer_key: string,
   score: number,
   error_flag: boolean,
@@ -36,7 +36,7 @@ export interface WebSocketMessageProps {
   "disconnect_user"
  
   message: string;
-  user_name: string;
+  user_name: string;  // identify sender, except for questin_number message where user_name is target user
   other_connected_users?: string[];
   live_quiz_id?: string;   // when user logs in with live quiz ongoing
   live_question_number?: string; // when user logs in with live quiz ongoing and didn't finish current question

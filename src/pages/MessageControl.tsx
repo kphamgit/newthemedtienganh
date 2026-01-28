@@ -33,8 +33,9 @@ message: "Question 1 for Quiz 1", user_name: "kpham"} (MessageControl.tsx, line 
 
 useEffect(() => {
   const handleMessage = (data: WebSocketMessageProps) => {
+   //console.log("MessageControl: handleMessage called with data:", data);
     //if (data.message_type === "chat") {
-    //console.log("*********** MessageControl: Received data from server:", data); 
+   //console.log("*********** MessageControl: Received data from server:", data); 
     if (data.message_type === "chat") {
         parent_callback(data);
     }
@@ -52,8 +53,22 @@ useEffect(() => {
     }
     else if (data.message_type === "question_number") {
        //console.log("MessageControl: Received question_number message from server.");
+
         //parent_callback({question_number: data.message});
-        parent_callback(data);
+        const user_name_target = data.user_name; // target user is in user_name field for question_number message
+       //console.log("MessageControl: question_number target user is:", user_name_target, " current user is:", name);
+        // is it for everybody? then accept it
+        if (user_name_target === "all") {
+           //console.log("MessageControl: question_number message is for all users, accepting.");
+            parent_callback(data);
+            return;
+        }
+        else if (user_name_target.trim() === name) { // is it for me?
+           //console.log("MessageControl: question_number message is for self, accepting.");
+              parent_callback(data);
+              return;
+        }
+      
     }
     else if (data.message_type === "connection_established") {
       //const conn_message: connectionChangeProps = data;
@@ -74,7 +89,7 @@ useEffect(() => {
       });
       // is there live_quiz_id and live_question_number in the connection established message?
       if (data.live_quiz_id && data.live_question_number) {
-         //console.log("MessageControl:  LIVE quiz_id and live question number found in connection_established message data:", data);
+        //console.log("MessageControl:  LIVE quiz_id and live question number found in connection_established message data:", data);
           parent_callback({message_type: "live_quiz_id_and_live_question_number", message: data.live_quiz_id + '/' + data.live_question_number, user_name: data.user_name} );
       }
       else if (data.live_quiz_id) {
