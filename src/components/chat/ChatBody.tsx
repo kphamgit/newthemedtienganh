@@ -1,10 +1,10 @@
 import { useRef, useEffect } from 'react';
 //import { MessageProps } from './ChatPage';
 import { v4 as uuidv4 } from "uuid";
-import { type ChatMessageProps } from './ChatPage';
+import { type ChatProps } from './ChatPage';
 
 
-const ChatBody = (props: {messages: ChatMessageProps[]}) => {
+const ChatBody = (props: {messages: ChatProps[]}) => {
 
     const messagesEndRef = useRef<null | HTMLDivElement>(null); 
     const scrollToBottom = () => {

@@ -18,7 +18,7 @@ function TeacherControlPanel() {
         const [questionNumber, setQuestionNumber] = useState("");
 
     const sendQuizId = () => {
-        console.log("Sendingggg Quiz id: ");
+       //console.log("Sendingggg Quiz id: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
             return;
@@ -26,33 +26,44 @@ function TeacherControlPanel() {
         // verify from server that there's a quiz with that id?
         // english/quizzes/retrieve/<int:pk>/
         const url = `/english/quizzes/retrieve/${quizId}/`;
-        console.log("Verifying quiz id from server with url:", url);
+       //console.log("Verifying quiz id from server with url:", url);
         api.get(url)
-        .then((response) => {
-            if (response) {
-                console.log("Quiz id found on server:", response.data);
-                console.log("Quiz id verified from server:", response.data);
-            }
-            // proceed to send quiz id via websocket
-        })
+            .then((response) => {
+                if (response) {
+                    console.log("Quiz id found on server:", response.data.id);
+                    /*
+                     – {id: 1, unit_id: 1, name: "Quiz 1", …} (
+                    */
+
+                    //console.log("Quiz id verified from server:", response.data);
+
+                    // proceed to send quiz id via websocket
+                    //console.log("sendQuizId:-------->>> ");
+                    websocketRef.current?.send(JSON.stringify({
+                        message_type: "quiz_id",
+                        message: quizId,
+                        user_name: name,   // identify sender
+                    }));
+                    // clear input field
+                    setLiveQuizIsOn(true);
+                    setQuizId("");
+                } else {
+                    //console.log("Quiz id NOT found on server.");
+                    alert("Quiz id NOT found on server.");
+                    return;
+                }
+            })
         .catch((error) => {
             console.error("Error verifying quiz id from server:", error);
             alert("Error verifying quiz id from server.");
             return;
         });
 
-        websocketRef.current.send(JSON.stringify({
-            message_type: "quiz_id",
-            message: quizId,
-            user_name: name,   // identify sender
-        }));
-        // clear input field
-        setLiveQuizIsOn(true);
-        setQuizId("");
+     
     };
 
     const sendQuestionNumber = () => {
-        console.log("sendQuestionNumber: ");
+       //console.log("sendQuestionNumber: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
             return;
@@ -67,7 +78,7 @@ function TeacherControlPanel() {
     };
 
     const terminateLiveQuiz = () => {
-        console.log("terminateLiveQuiz: ");
+       //console.log("terminateLiveQuiz: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
             return;

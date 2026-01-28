@@ -16,17 +16,19 @@ export interface ChatPageRefProps {
 export interface ChatPageProps {
     
     //chat_message?: ChatMessageProps,
+    chat: ChatProps | null;
     ref: React.Ref<ChatPageRefProps>;
+   
   }
 
-export interface ChatMessageProps {
+export interface ChatProps {
     text?: string;
     user_name: string;
   }
   
-    export const ChatPage = ({ ref }: ChatPageProps) => {
+    export const ChatPage = ({ chat, ref }: ChatPageProps) => {
 
-    const [incomingMessages, setIncomingMessages] = useState<ChatMessageProps[]>([]);
+    const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
 
     //get user from redux store using useAppSelector
     //const user_name = useSelector((state: RootState) => state.name);
@@ -37,7 +39,7 @@ export interface ChatMessageProps {
 
     //const user = useAppSelector(state => state.user.value)
 
-    const {websocketRef, eventEmitter} = useWebSocket();
+    const {websocketRef} = useWebSocket();
     
     //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
@@ -48,16 +50,7 @@ export interface ChatMessageProps {
       toggle_chat: () => setIsChatOpen(!isChatOpen)
     }));
 
-    /*
-    useEffect(() => {
-        console.log('ChatPage: New Chat Message received: ' + chat_message?.text);
-        if (chat_message && chat_message.text) {
-            setMessages((prevMessages) => {
-              return [...prevMessages, chat_message]
-            });
-        }
-    }, [chat_message]);
-*/
+    
 
     /*
     useEffect(() => {
@@ -87,38 +80,25 @@ export interface ChatMessageProps {
     */
 
     useEffect(() => {
-      const handleMessage = (data: any) => {
-        if (data.message_type === "chat") {
-          //console.log("ChatPage: Received chat message:", data);
-          // if name is not "teacher", only accept messages from teacher
-          // don't accept message from myself. See sendChatMessage function.
-          //console.log("ChatPage: Current user name:", name, "Message user name:", data.user_name);
-          if (name === data.user_name) { // ignore messages from myself
-            //console.log("ChatPage: Ignoring chat message from myself:", data.user_name);
+       if (chat && chat.text) {
+       // don't accept message from myself. See sendChatMessage function.
+          console.log("ChatPage: Current user name:", name, "Sender user name:", chat.user_name);
+
+          if (name === chat.user_name) { // ignore messages from myself. See sendChatMessage function.
+            console.log("ChatPage: Ignoring chat message from myself:", chat.user_name);
             return;
           }
-          if (name !== "teacher" && data.user_name !== "teacher") {
+          if (name !== "teacher" && chat.user_name !== "teacher") {
             // students only accept messages from teacher, not from other students
-            //console.log("ChatPage: Ignoring chat message from non-teacher user:", data.user_name);
             return;
           }
-
-          setIncomingMessages((prevMessages) => [
-            ...prevMessages,
-            { text: data.message, user_name: data.user_name },
-          ]);
-        }
-      };
-  
-      // Subscribe to the "message" event
-      eventEmitter?.on("message", handleMessage);
-  
-      // Cleanup the event listener on unmount
-      return () => {
-        eventEmitter?.off("message", handleMessage);
-      };
-    }, [eventEmitter]); // Only include eventEmitter in the dependency array
-
+          console.log('ChatPage: adding chat message: ' + chat.text);
+        setIncomingMessages((prevMessages) => {
+          return [...prevMessages, chat]
+        });
+       }
+    }, [chat]);
+    
     const sendChatMessage = () => {
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
         alert('ChatPage: WebSocket is not connected');

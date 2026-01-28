@@ -24,9 +24,22 @@ type ClozeAnswerResultsProps = {
 }
 
 export interface WebSocketMessageProps {
-  message_type: "chat" | "quiz_id" | "question_number";
+  message_type: 
+  "connection_established" |
+  "connection_dropped" |
+  "chat" | 
+  "live_score" |
+  "quiz_id" | 
+  "question_number" | 
+  "live_quiz_id_and_live_question_number" |
+  "live_question_attempt_started" |
+  "disconnect_user"
+ 
   message: string;
   user_name: string;
+  other_connected_users?: string[];
+  live_quiz_id?: string;   // when user logs in with live quiz ongoing
+  live_question_number?: string; // when user logs in with live quiz ongoing and didn't finish current question
 }
 
 export interface QuestionProps {

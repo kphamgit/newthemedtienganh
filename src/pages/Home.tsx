@@ -12,6 +12,7 @@ import TeacherControlPanel from "./TeacherControlPanel";
 import TakeQuizLive from "../components/TakeQuizLive";
 import { useSelector } from 'react-redux';
 import MessageControl from "./MessageControl";
+import type { WebSocketMessageProps } from "../components/shared/types";
 
 
 function Home() {
@@ -33,7 +34,10 @@ function Home() {
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
     const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
 
+    const liveQuestionNumberRef = useRef<string | undefined>(undefined);
+
     const chatPageRef = useRef<ChatPageRefProps>(null);
+    const [chat, setChat] = useState<{ text: string; user_name: string }>({ text: "", user_name: "" });
 
     //const {websocketRef} = useWebSocket();
 
@@ -42,13 +46,7 @@ function Home() {
 
     //const { websocketRef } = useWebSocket();
 
-    //const channelId = Math.floor(Math.random() * 10000);
-    //console.log('Connecting to WebSocket at ws://'+ws_url+'/ws/bar/'+channelId+'/low/');
-    /*
-    const websocket = new WebSocket(
-        `ws://${ws_url}/ws/bar/${channelId}/low/`
-    );
-    */
+   
 // WebSocket reference
     //let websocket: WebSocket | null = null;
     //const websocketRef = useRef<WebSocket | null>(null);
@@ -58,81 +56,14 @@ function Home() {
         `ws://${ws_url}/ws/socket-server/`
     );
     */
+
+    useEffect(() => {
+        liveQuestionNumberRef.current = liveQuestionNumber;
+    }, [liveQuestionNumber]);
     
     const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
     //console.log("Home: WebSocket URL:", wsUrl);
-
-/*
-    useEffect(() => {
-        websocketRef.current = new WebSocket(
-            `${ws_protocol}://${ws_url}/ws/socket-server/${user.name}/`
-        );
-        websocketRef.current.onopen = () => {
-            console.log('WebSocket connection opened');
-        };
-
-        websocketRef.current.onmessage = (e) => {
-            let data = JSON.parse(e.data);
-            console.log('Received message from server:', data);
-            
-            if (data.message_type === 'chat') {
-                console.log('Home: Chat Message from server: ' + data.message);
-                setReceivedChatMessage({
-                    text: data.message,
-                    user_name: data.user_name,
-                });
-            } else if (data.message_type === 'question_id') {
-                console.log('Home: Question ID from server: ' + data.message);
-              
-
-                //handle question id message
-                const api_url = `/take_quiz_live?question_id=${data.message}`
-                //console.log("Navigating to:", api_url);
-                navigate(api_url)
-            }
-            
-             if (data.message_type === 'quiz_id') {
-                console.log('Home: Quiz ID received from server: ' + data.message)
-                // message is quiz id
-                const api_url = `/take_quiz_live/${data.message}`
-                console.log("HOME Navigating to:", api_url);
-                navigate(api_url)
-            }
-           };
-
-        //clean up the WebSocket connection when the component unmounts
-        // kpham: make sure you clean up upon logout as well
-
-        return () => {
-            if (websocketRef.current) {
-                websocketRef.current.close();
-                console.log('WebSocket connection closed');
-            }
-        };
-
-    }, []);
-
-*/
-
-/*
-    useEffect(() => {
-        if (websocketRef.current) {
-            websocketRef.current.onmessage = (e) => {
-                const data = JSON.parse(e.data);
-                console.log("Received message from server:", data);
-
-                if (data.message_type === "quiz_id") {
-                    console.log("Home: Quiz ID received from server: " + data.message);
-                    const api_url = `/take_quiz_live/${data.message}`;
-                    console.log("HOME Navigating to:", api_url);
-                    navigate(api_url);
-                }
-            };
-        }
-    }, [websocketRef]);
-*/
-
     useEffect(() => {
         //console.log("Home component mounted, fetching levels...");
         getLevels();
@@ -159,11 +90,11 @@ function Home() {
     // attempting to authorize access to protected routes
 
     useEffect(() => {
-        console.log("Home: Setting up storage event listener for logout detection across tabs...");
+       //console.log("Home: Setting up storage event listener for logout detection across tabs...");
         const handleStorageChange = (event: StorageEvent) => {
-            console.log("Storage event detected:", event);
+           //console.log("Storage event detected:", event);
             if (event.key === "persist:root") {
-                console.log("LocalStorage &&&&&& changed by redux-persist:", event.newValue);
+               //console.log("LocalStorage &&&&&& changed by redux-persist:", event.newValue);
                 // this is what you see in localStorage when redux-persist saves the state
                 //persist:root = `{"user":"{\"name\":null,\"isLoggedIn\":false}","_persist":"{\"version\":-1,\"rehydrated\":true}"}`;
                 // Parse the new value of persist:root
@@ -175,7 +106,7 @@ function Home() {
                     // check isLoggedIn value, if false, meaning user logged out from another tab,
                     // then reload this tab to reflect the logout state
                     if (userState.isLoggedIn === false) {
-                        console.log("User logged out in another tab, reloading this tab...");
+                       //console.log("User logged out in another tab, reloading this tab...");
                         // reload the page which will redirect to login page
                         window.location.reload();
                     }
@@ -190,7 +121,7 @@ function Home() {
         window.addEventListener("storage", handleStorageChange);
         // Cleanup the event listener on component unmount
         return () => {
-            console.log("Home: Cleaning up storage event listener...");
+           //console.log("Home: Cleaning up storage event listener...");
             window.removeEventListener("storage", handleStorageChange);
         };
     }, []);
@@ -200,41 +131,62 @@ function Home() {
         setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
     }
 
-    const handle_callback = (value: any) => {
-        console.log("Home: Callback received from MessageControl:", value);
-        if ("quiz_id" in value && "question_number" in value) {
-            setLiveQuizId(value.quiz_id);
-            setLiveQuestionNumber(value.question_number);
-        }
-        else if ("quiz_id" in value) {
-            setLiveQuizId(value.quiz_id);
-        }
-        else if ("question_number" in value) {
-            console.log("Home: only question_number received in callback:", value.question_number);
-            setLiveQuestionNumber(value.question_number);
-        }
-        else {
-            console.log("Home: Invalid message received in callback:", value);
+    const handle_callback = (server_message: WebSocketMessageProps) => {
+        
+       //console.log("Home: Callback received from MessageControl:", server_message);
+        if (!server_message) {
+            console.log("Home: Invalid server message in callback:", server_message);
             return;
         }
-        /*
-        if (message_type === "quiz_id") {
-            // toggle isLiveQuizOn
-            //setIsLiveQuizOn((prev) => !prev);
-            setLiveQuizId(value.quiz_id);
+        const { message_type, message, user_name } = server_message;
+        if (message_type === 'chat') {
+            // pass on to ChatPage component
+           //console.log("Home: Passing chat message to ChatPage:", message);
+            setChat({ text: message, user_name: user_name });
         }
-        else if (message_type === "question_number") {
-            setLiveQuestionNumber(value.question_number);
+        else if (message_type === 'quiz_id') {
+           //console.log("Home: Setting liveQuizId to:", message);
+            setLiveQuizId(message);
         }
-            */
+        else if (message_type === 'question_number') {
+           //console.log("Home: Receiving liveQuestionNumber:", message);
+            // only set question number if liveQuestionNumber is undefined
+            // otherwise, it means a question is already active
+           //console.log("Home: Current liveQuestionNumber STATE is:", liveQuestionNumber);
+            if (liveQuestionNumberRef.current === undefined) { // have to use ref
+            //  to get latest value, because of CLOSURE property of functions in JS
+            // ask copilot about this KPHAM
+                setLiveQuestionNumber(message);
+                return;
+            }
+            else {
+                console.log("Home: liveQuestionNumber is already set to:", liveQuestionNumberRef.current, "ignoring new question_number message:", message);
+            }
+            
+        }
+        else if (message_type === 'live_quiz_id_and_live_question_number') {
+           //console.log("Home: Setting liveQuizId and liveQuestionNumber to:", message);
+            // message: "quizId/questionNumber"
+            // split message by "/", first part is quiz id and second part is question number
+            const parts = message.split("/");
+           //console.log("Home: Parsed live_quiz_id_and_live_question_number parts:", parts);
+            if (parts.length === 2) {
+                setLiveQuizId(parts[0]);
+                setLiveQuestionNumber(parts[1]);
+            }
+            else {
+                console.log("Home: Invalid live_quiz_id_and_live_question_number message format:", message);
+            }
+            return;
+        }
+     
     }
 
-    /*
-<div className="grid grid-cols-[2fr_1fr] bg-green-400">
-    <div>Column 1 (2x width)</div>
-    <div>Column 2 (1x width)</div>
-</div>
-    */
+    const live_question_attempt_finished = () => {
+       //console.log("Home: ****************** live_question_attempt_finished called, clearing liveQuestionNumber");
+        setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
+        // the liveQuestionNumber prop will be refreshed and TakeQuizLive) will be rendered with new question
+    }
 
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
@@ -251,7 +203,7 @@ function Home() {
                         <TeacherControlPanel />
                     }
                     {name !== "teacher" && liveQuizId &&
-                        <TakeQuizLive quiz_id={liveQuizId} question_number={liveQuestionNumber} />
+                        <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} question_number={liveQuestionNumber} />
                     }
                     <Outlet />
                 </div>
@@ -263,7 +215,7 @@ function Home() {
                     <div>
 
                         <div className="bg-cyan-300 rounded-md p-0">
-                            <ChatPage ref={chatPageRef} />
+                            <ChatPage chat={chat} ref={chatPageRef} />
                         </div>
                         <div className='flex justify-center bg-white rounded-md p-2'>
                             <button className='bg-blue-300 p-2 rounded-md' onClick={() => toggleChatBox()}> {isChatOpen ? 'Open Chat' : 'Close Chat'}</button>
