@@ -8,18 +8,6 @@ import { clear } from '../redux/connectedUsersSlice';
 import type { WebSocketMessageProps } from "../components/shared/types";
 
 
-interface connectionChangeProps {
-    message_type: string;
-    user: string;
-    other_connected_users?: string[];
-}
-
-interface messageProps {
-  message_type: string;
-  message: string;
-  user_name: string;
-}
-
 //type messageValueProps = {
   //quiz_id?: string;
   //question_number?: string;
