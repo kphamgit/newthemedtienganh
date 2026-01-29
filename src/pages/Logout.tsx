@@ -4,6 +4,7 @@ import { type AppDispatch } from "../redux/store";
 import { logout } from "../redux/userSlice";
 import { Navigate } from "react-router-dom";
 import { clear } from '../redux/connectedUsersSlice';
+import { reset } from "../redux/liveQuizIdSlice";
 
 function Logout() {
     const dispatch = useDispatch<AppDispatch>();
@@ -18,6 +19,7 @@ function Logout() {
             hasLoggedOut.current = true; // Ensure logout is only dispatched once
             // clear access and refresh tokens from localStorage
             dispatch(clear()); // clear list of connected users in redux store
+            dispatch(reset()); // reset liveQuizId in redux store
    
         }
     }, [dispatch]);

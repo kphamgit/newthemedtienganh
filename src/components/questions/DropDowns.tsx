@@ -104,32 +104,30 @@ interface Props {
     getAnswer,
   }));
 
-  return (
-    <>
-    <div className='flex flex-row flex-wrap gap-2'>
-      {inputFields?.map((field) => (
-        <div key={field.id}>
-          { field.type === 'input' ?
-      <select className='bg-blue-200 cloze_answer' defaultValue="">
-      <option className='bg-amber-100' value="" disabled>
-        &nbsp;
-      </option>
-      {(field.value as string[]).map((choice, index) => {
-        return (
-          <option key={index} id={index.toString()} value={choice}>
-            {choice}
-          </option>
-        );
-      })}
-    </select>
-          :
-          <span className='bg-amber-100'>{field.value}</span>
-          }
+    return (
+      <>
+        <div className='flex flex-row flex-wrap gap-2'>
+          {inputFields?.map((field) => (
+            <div key={field.id}>
+              {field.type === 'input' ?
+                <select className='bg-blue-200 cloze_answer' defaultValue="">
+                  <option value="" disabled>
+                    &nbsp;
+                  </option>
+                  {(field.value as string[]).map((choice, index) => {
+                    return (
+                      <option key={index} id={index.toString()} value={choice}>
+                        {choice}
+                      </option>
+                    );
+                  })}
+                </select>
+                :
+                <span>{field.value}</span>
+              }
+            </div>
+          ))}
         </div>
-      ))}
-     
-    </div>
-    
-    </>
-  );
+      </>
+    );
 });

@@ -1,0 +1,183 @@
+import { useState, useEffect, useRef } from "react";
+import "../styles/Home.css"
+
+import { Outlet } from "react-router-dom";
+
+import TeacherControlPanel from "./TeacherControlPanel";
+import type { WebSocketMessageProps } from "../components/shared/types";
+import MessageControlTeacher from "./MessageControlTeacher";
+import { type TeacherControlRefProps } from "./TeacherControlPanel";
+import ScoreBoard from "./ScoreBoard";
+import { useDispatch, useSelector } from "react-redux";
+import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
+import type { AppDispatch } from "../redux/store";
+
+function HomeTeacher() {
+
+    //const [levels, setLevels] = useState<LevelProps[]>([]);
+
+    //const state = useSelector((state: RootState) => state);
+ 
+    //const user_name = useSelector((state: RootState) => state.name);
+    //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    //const rehydrated = useSelector((state: RootState) => state._persist?.rehydrated); //
+    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+  
+
+    const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
+
+
+    //const chatPageRef = useRef<ChatPageRefProps>(null);
+    //const [chat, setChat] = useState<{ text: string; user_name: string }>({ text: "", user_name: "" });
+
+    const teacherControlPanelRef = useRef<TeacherControlRefProps>(null);
+
+    //const {websocketRef} = useWebSocket();
+    //const liveQuizInReduxStore = useSelector((state: RootState) => state.liveQuizId.value);
+
+    const dispatch = useDispatch<AppDispatch>();
+
+    //const navigate = useNavigate();
+
+
+    //const { websocketRef } = useWebSocket();
+
+   
+// WebSocket reference
+    //let websocket: WebSocket | null = null;
+    //const websocketRef = useRef<WebSocket | null>(null);
+
+    /*
+    const websocket = new WebSocket(
+        `ws://${ws_url}/ws/socket-server/`
+    );
+    */
+
+    //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
+
+   
+    // Listen for user logging out in other tabs. If that happends, reload this tab to reflect the logout state
+    // which effectively logs out this tab as well and redirects to login page
+
+    // KPHAM: this logic works in conjunction with ProtecedRoute component
+    // in which, upon component mount, the loggedin state of the use is checked before 
+    // attempting to authorize access to protected routes
+
+    useEffect(() => {
+       //console.log("Home: Setting up storage event listener for logout detection across tabs...");
+        const handleStorageChange = (event: StorageEvent) => {
+           //console.log("Storage event detected:", event);
+            if (event.key === "persist:root") {
+               //console.log("LocalStorage &&&&&& changed by redux-persist:", event.newValue);
+                // this is what you see in localStorage when redux-persist saves the state
+                //persist:root = `{"user":"{\"name\":null,\"isLoggedIn\":false}","_persist":"{\"version\":-1,\"rehydrated\":true}"}`;
+                // Parse the new value of persist:root
+                if (event.newValue) {
+                    const persistedState = JSON.parse(event.newValue);
+                    //console.log("Parsed persisted state:", persistedState);
+                    const userState = JSON.parse(persistedState.user || "{}");
+                    //console.log("Updated user state from localStorage:", userState);
+                    // check isLoggedIn value, if false, meaning user logged out from another tab,
+                    // then reload this tab to reflect the logout state
+                    if (userState.isLoggedIn === false) {
+                       //console.log("User logged out in another tab, reloading this tab...");
+                        // reload the page which will redirect to login page
+                        window.location.reload();
+                    }
+                }
+
+            }
+        };
+        // Add the event listener
+        window.addEventListener("storage", handleStorageChange);
+        // Cleanup the event listener on component unmount
+        return () => {
+           //console.log("Home: Cleaning up storage event listener...");
+            window.removeEventListener("storage", handleStorageChange);
+        };
+    }, []);
+
+    //const toggleChatBox = () => {
+      //  chatPageRef.current?.toggle_chat();
+     //   setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
+   // }
+
+    const handle_callback = (server_message: WebSocketMessageProps) => {
+        console.log("Home: Callback received from MessageControl:", server_message);
+        if (!server_message) {
+            console.log("Home: Invalid server message in callback:", server_message);
+            return;
+        }
+        // destructure message_type and message
+        const { message_type, message, queried_value } = server_message;
+        // note : queried value is only used for cache_query_response message type
+
+        if (message_type === 'quiz_id') {
+            // pass on to ChatPage component
+            console.log("HomeTeacher:  Received ACK of quiz_id message from server.", message);
+            // set live quiz id in redux store
+            setLiveQuizId(message);
+            //dispatch(setValue(message));
+        }
+        else if (message_type === 'cache_query_response') {
+              console.log("Home: Received cache_query_response from server:", message);
+              // only do this for teacher, for now
+              if (name !== "teacher") {
+                return;
+              }
+              alert("Cache query response from server: " + message_type + " " +  message + " = " + queried_value);
+                /*
+               
+{
+    "message_type": "cache_query_response",
+    "message": "1",
+    "queried_value": "1"
+}
+      */
+                
+                // You can handle the cache query response here if needed
+        }
+        else if (message_type === 'terminate_live_quiz') {
+           //console.log("Home: Received terminate_live_quiz message from server.");
+            // reset live quiz state
+            setLiveQuizId(null);
+            
+        }
+     
+    }
+
+    const terminate_live_quiz = () => {
+        teacherControlPanelRef.current?.terminate_live_quiz();
+        dispatch(clearLiveQuestionInfo());
+    }
+    return (
+   
+            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
+                
+                  
+               
+                <div>
+                {liveQuizId && 
+                <>
+                        <span className="text-red-700">Live Quiz ID: {liveQuizId}</span>
+                        <span><button className="bg-amber-600 text-white p-1 m-2 rounded-md "
+                            onClick={terminate_live_quiz}
+                        >Terminate Quiz</button></span>
+                        </>
+                    }
+                    <TeacherControlPanel ref = {teacherControlPanelRef}/>
+                    <Outlet />
+                </div>
+                <div className="flex flex-col">
+                    <div className="bg-blue-200">
+                        <ScoreBoard />
+                        <MessageControlTeacher parent_callback={handle_callback} />
+                    </div>
+           
+                </div>
+            </div>
+ 
+    );
+}
+
+export default HomeTeacher;

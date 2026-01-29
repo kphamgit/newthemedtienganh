@@ -39,7 +39,7 @@ const connectedUsersSlice = createSlice({
         //onsole.log('Updated state after removal:', JSON.parse(JSON.stringify(state)));
     },
     updateLiveScore: (state, action: PayloadAction<{name: string, live_score: number}>) => {
-       //console.log("connectedUsersSlice: Updating live score for user:", action.payload);
+        console.log("connectedUsersSlice: Updating live score for user:", action.payload);
         const { name, live_score } = action.payload;
         const user = state.list.find(user => user.name === name);
         if (user) {
@@ -61,19 +61,27 @@ const connectedUsersSlice = createSlice({
         if (user) {
            //console.log("connectedUsersSlice: Found user. Updating question number to:", question_number);
             user.live_question_number = question_number;
-            // also reset live score when question number is updated
-            user.live_score = 0;
+            // set live score to undefined when new question starts
+            user.live_score = undefined;
+            user.total_score = undefined;
         }
     },
     clear: (state) => {
         state.list = [];
     },
-   
+    clearLiveQuestionInfo : (state) => {
+      console.log("connectedUsersSlice: Clearing live question info for all users.");
+      state.list.forEach(user => {
+        user.live_question_number = undefined;
+        user.live_score = undefined;
+        user.total_score = undefined;
+      });
+    }
   },
 });
 
 // Export the actions
-export const { addUser, removeUser , updateLiveScore, updateLiveQuestionNumber, clear} = connectedUsersSlice.actions;
+export const { addUser, removeUser , updateLiveScore, updateLiveQuestionNumber, clearLiveQuestionInfo, clear} = connectedUsersSlice.actions;
 
 // Export the reducer
 export default connectedUsersSlice.reducer;

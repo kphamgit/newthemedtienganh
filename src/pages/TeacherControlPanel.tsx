@@ -1,23 +1,27 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
-import { useState } from "react";
+import { useImperativeHandle, useState } from "react";
 import api from "../api";
 import type { RootState } from "../redux/store";
 
-interface TeacherControlPanelProps {
-    live_quiz_id: string;
+
+
+export interface TeacherControlRefProps {
+    terminate_live_quiz: () => void;
 }
 
+interface Props {
+    ref: React.Ref<TeacherControlRefProps>;
+}
 
-function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
+export const TeacherControlPanel = ({ref }: Props) => {
+//function TeacherControlPanel() {
      
     const {websocketRef} = useWebSocket();
     //const user_name = useSelector((state: { name: string }) => state.name);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     
     const [keyForCacheQuery, setKeyForCacheQuery] = useState("quiz_id");
-
-        const [quizId, setQuizId] = useState("");
 
         const [questionNumber, setQuestionNumber] = useState("");
 
@@ -27,6 +31,24 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
         
         const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
+        //const liveQuizId = useSelector((state: RootState) => state.liveQuizId.value);
+        const [liveQuizId, setLiveQuizId] = useState("");
+
+    useImperativeHandle(ref, () => ({
+        terminate_live_quiz: () => {
+            //console.log("terminateLiveQuiz: ");
+            if (!websocketRef.current) {
+                alert("WebSocket is not connected.");
+                return;
+            }
+            websocketRef.current.send(JSON.stringify({
+                message_type: "terminate_live_quiz",
+                message: "terminate",
+                user_name: name,    // identify sender, which is teacher
+            }));
+        }
+    }));
+
     const sendQuizId = () => {
        //console.log("Sendingggg Quiz id: ");
         if (!websocketRef.current) {
@@ -35,28 +57,24 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
         }
         // verify from server that there's a quiz with that id?
         // english/quizzes/retrieve/<int:pk>/
-        const url = `/english/quizzes/retrieve/${quizId}/`;
-       //console.log("Verifying quiz id from server with url:", url);
+        const url = `/english/quizzes/retrieve/${liveQuizId}/`;
+        console.log("Verifying quiz id from server with url:", url);
+        
         api.get(url)
             .then((response) => {
                 if (response) {
-                   //console.log("Quiz id found on server:", response.data.id);
-                    /*
-                     – {id: 1, unit_id: 1, name: "Quiz 1", …} (
-                    */
-
-                    //console.log("Quiz id verified from server:", response.data);
-
-                    // proceed to send quiz id via websocket
-                    //console.log("sendQuizId:-------->>> ");
                     websocketRef.current?.send(JSON.stringify({
                         message_type: "quiz_id",
-                        message: quizId,
+                        message: liveQuizId,
                         user_name: name,   // identify sender
                     }));
+                    
+
                     // clear input field
-         
-                    setQuizId("");
+                    // disable input field after sending quiz id
+                    // clear input field
+                    setLiveQuizId("");
+                    //setQuizId("");
                 } else {
                     //console.log("Quiz id NOT found on server.");
                     alert("Quiz id NOT found on server.");
@@ -68,8 +86,7 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
             alert("Error verifying quiz id from server.");
             return;
         });
-
-     
+        
     };
 
     const sendQuestionNumber = () => {
@@ -78,6 +95,8 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
             alert("WebSocket is not connected.");
             return;
         }
+        // if there's no quiz id passed in from props, alert and return
+      
         // if question number is empty, alert and return
         if (questionNumber === "") {
             alert("Please enter question number.");
@@ -112,19 +131,6 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
          
      };
 
-    const terminateLiveQuiz = () => {
-       //console.log("terminateLiveQuiz: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "terminate_live_quiz",
-            message: "terminate",
-            user_name: name,    // identify sender, which is teacher
-        }));
-    };
-      
     const handleNameClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         const selectedName = e.currentTarget.innerText;
         setTargetUserName(selectedName);
@@ -147,26 +153,20 @@ function TeacherControlPanel({ live_quiz_id }: TeacherControlPanelProps) {
             setKeyForCacheQuery(value);
         }
     }
-
+    
+//  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
     <div className="m-10">
   
     <div>TeacherControlPanel
-        <span className="ml-10">
-            { live_quiz_id !== "" &&
-            <span className="text-red-700"> Live Quiz ID : {live_quiz_id} 
-            <span>
-                <button className="text-white bg-red-700 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={terminateLiveQuiz}>Terminate Live Quiz</button>   
-            </span>
-            </span>
-            }
-        </span>
-
       
     </div>
     <div className="mt-2 bg-gray-200">
-        <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
-        { quizId !== "" &&
+        <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 
+        value={liveQuizId || ""} 
+        onChange={e => {setLiveQuizId(e.target.value)}} 
+        />
+        { liveQuizId !== "" &&
         <button className="text-red bg-green-300 mb-2 p-2 rounded-md hover:bg-green-400" onClick={sendQuizId}>Send Quiz id</button>
         }
         </div>

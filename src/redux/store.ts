@@ -2,11 +2,13 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
 import userReducer from './userSlice';
+import liveQuizIdReducer from './liveQuizIdSlice';
 import connectedUsersReducer from './connectedUsersSlice';
 
 // 1. Combine your reducers
 const rootReducer = combineReducers({
   user: userReducer,
+  liveQuizId: liveQuizIdReducer,
   connectedUsers: connectedUsersReducer,
 });
 
@@ -14,7 +16,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['user',], // Only 'user' will be persisted
+  whitelist: ['user','liveQuizId'], // Only 'user' and liveQuizId will be persisted
   //whitelist: ['user', 'connectedUsers'], // Only 'user' will be persisted///
 };
 

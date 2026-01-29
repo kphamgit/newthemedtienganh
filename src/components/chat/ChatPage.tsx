@@ -119,27 +119,38 @@ export interface ChatProps {
       //console.log('ChatPage: Sent message to server:', messageToSend);
     };
 
-    const displayChatBox = () => {
-      if (isChatOpen) {
-        return (
-          <>
-          <ChatBody messages={incomingMessages} />
-          <div><input className="bg-gray-200 text-black w-80 p-2" placeholder="chat message" value={outgoingMessage} onChange={(e) => setOutgoingMessage(e.target.value)} /></div>
-          <div><button className=" bg-amber-300 p-2 m-2" onClick={sendChatMessage}>Send Message</button></div>
-          </>
-        );
-        
-      }
-      return null;
-    }
-
+  
     return (
-      <>
-        <div className='grid grid-cols-1'  >
-        {displayChatBox()}
+      <div
+        className="fixed bottom-15 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-72 flex flex-col z-50"
+      >
+       
+          <>
+            <div className="flex flex-col h-full">
+              {/* Chat Body */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <ChatBody messages={incomingMessages} />
+              </div>
     
-        </div>
-        </>
+              {/* Input and Send Button */}
+              <div className="p-2 border-t border-gray-300 bg-gray-100">
+                <input
+                  className="bg-gray-200 text-black w-full p-2 rounded-md mb-2"
+                  placeholder="Type your message..."
+                  value={outgoingMessage}
+                  onChange={(e) => setOutgoingMessage(e.target.value)}
+                />
+                <button
+                  className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                  onClick={sendChatMessage}
+                >
+                  Send Message
+                </button>
+              </div>
+            </div>
+          </>
+        
+      </div>
     );
   };
   

@@ -193,13 +193,10 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
       const displayShowQuestionStattus = () => {
         // only display status if quiz_id is set
         if (quiz_id) {
-            if (showQuestion) {
-                return <div>Question number: {question?.question_number}</div>
+            if (!showQuestion) {
+              return "Waiting for question ...";
+                //return <div>Question number: {question?.question_number}</div>
             }
-            else {
-                return "Waiting for question ...";
-            }
-            
         }
       }
 
@@ -219,14 +216,7 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
       };
 
   return (
-    <div className=' bg-cyan-100  h-full w-full'>
-    
-    <div>
-                  Question finished: 
-                  { finishedLiveQuestion.status ? " Yes" : " No" }
-                  </div>
-           
- 
+    <div className=' bg-cyan-50  h-full w-full'>
         { 
         <div className='flex flex-row bg-amber-100 justify-center p-2 m-2 border-2 border-gray-300 rounded-md'>
         {displayHeading() }
@@ -247,10 +237,9 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
         />
       }
       
-        
         {question  && showQuestion && (
-            <div className="col-span-8 mx-10 my-5 p-10 border-2 border-gray-200 rounded-md bg-grat-100">
-              <div className="mb-3 text-lg font-bold">
+            <div className="col-span-8 mx-15 my-5 p-10 border-2 border-gray-200 rounded-md bg-cyan-100">
+              <div className="mb-3 text-lg text-blue-600 font-bold">
                 Question: {question?.question_number}
               </div>
 
@@ -285,8 +274,6 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
                 <SentenceScramble content={question.content} ref={childRef} />
               }
               </div>
-              
-         
               <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
                 onClick={() => handleSubmit()}
             >
@@ -294,12 +281,6 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
                 </button>
             </div>
           )}
-
-
-
-
-
-
     </div>
   )
 }

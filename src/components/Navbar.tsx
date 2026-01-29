@@ -79,10 +79,7 @@ type NavItem = {
                 )}
               </div>
             ))}
-              <div className='text-md bg-amber-400 text-sm p-2'>
-                <Link to="/logout">Log out</Link>
-              </div>
-              
+   
           </div>
           {/* navitems */}
         </section>
