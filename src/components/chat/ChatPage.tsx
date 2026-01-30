@@ -156,23 +156,3 @@ export interface ChatProps {
   
   export default ChatPage;
 
-  /*
- <>
-        <div className='grid grid-cols-1'  >
-        {isChatOpen && messages && messages.length > 0 &&
-        (
-          messages.map((message, index) => (
-            <div key={index}><span>{message.user_name}</span>: <span>{message.text}</span></div>
-          ))
-           
-        )}
-   
-        <div><button className="text-red bg-green-300 mb-2" onClick={sendChatMessage}>Send Message</button></div>
-  
-        <div className='flex justify-center bg-white rounded-md p-2'>
-          <button className='bg-green-300 p-2 rounded-md'  onClick={() => setChatOpen(!isChatOpen)}> {isChatOpen ? 'Close Chat' : 'Open Chat'}</button>
-          </div>
-        </div>
-        </>
-  */
-

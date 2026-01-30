@@ -63,7 +63,7 @@ const connectedUsersSlice = createSlice({
             user.live_question_number = question_number;
             // set live score to undefined when new question starts
             user.live_score = undefined;
-            user.total_score = undefined;
+            //user.total_score = undefined;
         }
     },
     clear: (state) => {

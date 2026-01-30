@@ -68,7 +68,7 @@ function ScoreBoard() {
             <div className="flex flex-col space-x-4">
                 {connectedUsersInReduxStore.map((user, index) => (
                     <div className="flex flex-row justify-start items-center mt-1 gap-2" key={index}>
-                    <div key={index}>{user.name}</div>
+                    <div>{user.name}</div>
                     { displayUserRow(user, index) }
                     { name === "teacher" &&
                         <button 

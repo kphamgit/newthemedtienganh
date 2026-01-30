@@ -24,7 +24,7 @@ function Home() {
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     const shouldConnect = !!name
 
-    const [isChatOpen, setIsChatOpen] = useState<boolean | null>(null);
+    const [isChatOpen, setIsChatOpen] = useState<boolean | null>(true);
 
     //const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
 
@@ -96,6 +96,9 @@ function Home() {
                 // destructure message_type and message
         const { message_type, message, user_name } = server_message;
         if (message_type === 'chat') {
+            // enable chat box if it's closed
+            console.log("Home: Received CHAT message from server:", server_message, "isChatOpen:", isChatOpen);
+            setIsChatOpen(true);
             setChat({ text: message, user_name: user_name });
         }
     }
