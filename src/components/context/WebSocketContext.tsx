@@ -20,6 +20,8 @@ export const WebSocketProvider: React.FC<{
     if (!shouldConnect) {
       return;
     }
+
+    console.log("WebSocketProvider: Establishing WebSocket connection to:", wsUrl);
     websocketRef.current = new WebSocket(wsUrl);  // make a connection to the wsUrl RIGHT HERE
 
     websocketRef.current.onopen = () => {
