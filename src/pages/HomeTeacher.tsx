@@ -11,6 +11,7 @@ import ScoreBoard from "./ScoreBoard";
 import { useDispatch, useSelector } from "react-redux";
 import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
 import type { AppDispatch } from "../redux/store";
+import { useWebSocket } from "../components/context/WebSocketContext";
 
 function HomeTeacher() {
 
@@ -32,26 +33,10 @@ function HomeTeacher() {
 
     const teacherControlPanelRef = useRef<TeacherControlRefProps>(null);
 
-    //const {websocketRef} = useWebSocket();
+    //const {eventEmitter} = useWebSocket();
     //const liveQuizInReduxStore = useSelector((state: RootState) => state.liveQuizId.value);
 
     const dispatch = useDispatch<AppDispatch>();
-
-    //const navigate = useNavigate();
-
-
-    //const { websocketRef } = useWebSocket();
-
-   
-// WebSocket reference
-    //let websocket: WebSocket | null = null;
-    //const websocketRef = useRef<WebSocket | null>(null);
-
-    /*
-    const websocket = new WebSocket(
-        `ws://${ws_url}/ws/socket-server/`
-    );
-    */
 
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
@@ -112,32 +97,7 @@ function HomeTeacher() {
         const { message_type, message, queried_value } = server_message;
         // note : queried value is only used for cache_query_response message type
 
-        if (message_type === 'quiz_id') {
-            // pass on to ChatPage component
-            console.log("HomeTeacher:  Received ACK of quiz_id message from server.", message);
-            // set live quiz id in redux store
-            setLiveQuizId(message);
-            //dispatch(setValue(message));
-        }
-        else if (message_type === 'cache_query_response') {
-              console.log("Home: Received cache_query_response from server:", message);
-              // only do this for teacher, for now
-              if (name !== "teacher") {
-                return;
-              }
-              alert("Cache query response from server: " + message_type + " " +  message + " = " + queried_value);
-                /*
-               
-{
-    "message_type": "cache_query_response",
-    "message": "1",
-    "queried_value": "1"
-}
-      */
-                
-                // You can handle the cache query response here if needed
-        }
-        else if (message_type === 'terminate_live_quiz') {
+        if (message_type === 'terminate_live_quiz') {
            //console.log("Home: Received terminate_live_quiz message from server.");
             // reset live quiz state
             setLiveQuizId(null);
@@ -171,7 +131,6 @@ function HomeTeacher() {
                 <div className="flex flex-col">
                     <div className="bg-blue-200">
                         <ScoreBoard />
-                        <MessageControlTeacher parent_callback={handle_callback} />
                     </div>
            
                 </div>
@@ -181,3 +140,14 @@ function HomeTeacher() {
 }
 
 export default HomeTeacher;
+
+/*
+  <div className="flex flex-col">
+                    <div className="bg-blue-200">
+                        <ScoreBoard />
+                        <MessageControlTeacher parent_callback={handle_callback} />
+                    </div>
+           
+                </div>
+*/
+

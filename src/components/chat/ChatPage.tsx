@@ -3,6 +3,7 @@ import { useEffect, useImperativeHandle, useState } from 'react';
 import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
+import type { WebSocketMessageProps } from '../shared/types';
 //import type { RootState } from '../../redux/store';
 //import type { WebSocketMessageProps } from '../shared/types';
 
@@ -14,9 +15,6 @@ export interface ChatPageRefProps {
 }
 
 export interface ChatPageProps {
-    
-    //chat_message?: ChatMessageProps,
-    chat: ChatProps | null;
     ref: React.Ref<ChatPageRefProps>;
    
   }
@@ -26,7 +24,7 @@ export interface ChatProps {
     user_name: string;
   }
   
-    export const ChatPage = ({ chat, ref }: ChatPageProps) => {
+    export const ChatPage = ({ ref }: ChatPageProps) => {
 
     const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
 
@@ -37,9 +35,7 @@ export interface ChatProps {
 
     const [outgoingMessage, setOutgoingMessage] = useState<string>('');
 
-    //const user = useAppSelector(state => state.user.value)
-
-    const {websocketRef} = useWebSocket();
+    const {eventEmitter, websocketRef} = useWebSocket();
     
     //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
@@ -49,40 +45,16 @@ export interface ChatProps {
       get_isChatOpen: () => isChatOpen,
       toggle_chat: () => setIsChatOpen(!isChatOpen)
     }));
-
-    
-
-    /*
+  
     useEffect(() => {
-      if (!websocketRef.current) {
-        //alert('ChatPage: WebSocket is not connected');
-        return;
-      }
-      console.log('ChatPage: Setting up WebSocket onmessage handler');
-      websocketRef.current.onmessage = (e) => {
-        let data : WebSocketMessageProps = JSON.parse(e.data);
-        console.log('ChatPage: Received message from server:', data);
-       
-        if (data.message_type === 'chat') {
-          console.log('Received CHAT message from server:', data, "isChatOpen:", isChatOpen);
-          // if chatbox is closed, open it
-          if (isChatOpen === false) {
-            //alert('New chat message received, opening chat box.');
-            setIsChatOpen(true);
-          }
-            setIncomingMessages((prevMessages) => {
+      const handleMessage = (data: WebSocketMessageProps) => {
+        //console.log("MessageControl: handleMessage called with data:", data);
+        //if (data.message_type === "chat") {
+       //console.log("*********** MessageControl: Received data from server:", data); 
+        if (data.message_type === "chat") {
+           console.log('ChatPage: Received CHAT message from server:', data, "isChatOpen:", isChatOpen);
 
-              return [...prevMessages, {text: data.message, user_name: data.user_name}]
-            });
-        }
-       };
-    }, [websocketRef.current]);
-    */
-
-    useEffect(() => {
-       if (chat && chat.text) {
-       // don't accept message from myself. See sendChatMessage function.
-          console.log("ChatPage: Current user name:", name, "Sender user name:", chat.user_name);
+          const chat: ChatProps = { text: data.message, user_name: data.user_name };
 
           if (name === chat.user_name) { // ignore messages from myself. See sendChatMessage function.
             console.log("ChatPage: Ignoring chat message from myself:", chat.user_name);
@@ -93,11 +65,21 @@ export interface ChatProps {
             return;
           }
           console.log('ChatPage: adding chat message: ' + chat.text);
-        setIncomingMessages((prevMessages) => {
+          setIncomingMessages((prevMessages) => {
           return [...prevMessages, chat]
-        });
-       }
-    }, [chat]);
+          });
+
+          }
+      }
+    
+      // Subscribe to the "message" event
+      eventEmitter?.on("message", handleMessage);
+      // Cleanup the event listener on unmount
+      return () => {
+        eventEmitter?.off("message", handleMessage);
+      };
+    }, [eventEmitter]); // Only include eventEmitter in the dependency array
+    
     
     const sendChatMessage = () => {
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {

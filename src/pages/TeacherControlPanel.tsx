@@ -1,8 +1,9 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
-import { useImperativeHandle, useState } from "react";
+import { useEffect, useImperativeHandle, useState } from "react";
 import api from "../api";
 import type { RootState } from "../redux/store";
+import type { WebSocketMessageProps } from "../components/shared/types";
 
 
 
@@ -17,7 +18,6 @@ interface Props {
 export const TeacherControlPanel = ({ref }: Props) => {
 //function TeacherControlPanel() {
      
-    const {websocketRef} = useWebSocket();
     //const user_name = useSelector((state: { name: string }) => state.name);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     
@@ -27,12 +27,60 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
         const [targetUserName, setTargetUserName] = useState("");
 
-        const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list); 
+        //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list); 
         
         const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
+        const [connectedUsers, setConnectedUsers] =  useState<string[]>([]);
+        const {websocketRef, eventEmitter} = useWebSocket();
+
         //const liveQuizId = useSelector((state: RootState) => state.liveQuizId.value);
         const [liveQuizId, setLiveQuizId] = useState("");
+
+        const [cacheQueryResult, setCacheQueryResult] = useState<string>("");
+
+    useEffect(() => {
+          const handleMessage = (data: WebSocketMessageProps) => {
+            console.log("TeacherControl: handleMessage called with data:", data);
+            if (data.message_type === "connection_established") {
+              console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
+              const others = data.other_connected_users || [];
+              const all_connected = [data.user_name, ...others];
+              setConnectedUsers(all_connected);
+            }
+            else if (data.message_type === "connection_dropped") {
+                console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
+                const dropped_user = data.user_name;
+                setConnectedUsers((prevUsers) => prevUsers.filter((user) => user !== dropped_user));
+            }
+            else if (data.message_type === "cache_query_response") {
+                console.log("TeacherControl: Received cache_query_responsefrom server for user, data = :", data);
+                console.log(`Cache Query Response for key "${data.message_type}": ${data.message}`);
+                if (name !== "teacher") {
+                    return;
+                  }
+                console.log("Queried value:", data.queried_value);
+                setCacheQueryResult(JSON.stringify(data.queried_value));
+                  //alert("Cache query response from server: " + data.message_type + " " +  data.message + " = " + data.queried_value);
+/*
+{
+    "message_type": "cache_query_response",
+    "message": "students_room_users",
+    "queried_value": [
+        "teacher"
+    ]
+}
+*/
+            }
+          }
+          // Subscribe to the "message" event
+          eventEmitter?.on("message", handleMessage);
+          // Cleanup the event listener on unmount
+          return () => {
+            eventEmitter?.off("message", handleMessage);
+          };
+        }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
 
     useImperativeHandle(ref, () => ({
         terminate_live_quiz: () => {
@@ -181,10 +229,10 @@ export const TeacherControlPanel = ({ref }: Props) => {
         </span>
 
         <div className='flex flex-row justify-end gap-2 mt-2'>
-        {connectedUsersInReduxStore &&
-            connectedUsersInReduxStore.map((user, index) => (
+        {connectedUsers &&
+            connectedUsers.map((user, index) => (
                 <div key={index} >
-                <button className='bg-bgColor2 text-textColor1 p-1 rounded-md' onClick={handleNameClick}>{user.name}</button>
+                <button className='bg-bgColor2 text-textColor1 p-1 rounded-md' onClick={handleNameClick}>{user}</button>
                 </div>
             ))
         }
@@ -209,19 +257,20 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <>
             <span>Select user name:</span>
               <div className="flex flex-row justify-start ml-10 text text-gray-600">
-                  {connectedUsersInReduxStore &&
-                      connectedUsersInReduxStore.map((user, index) => (
+                  {connectedUsers &&
+                      connectedUsers.map((name, index) => (
                           <div key={index} >
-                              <button className='bg-green-500 text-white p-1 m-1 rounded-md' onClick={handleNameClickForCacheQuery}>{user.name}</button>
+                              <button className='bg-green-500 text-white p-1 m-1 rounded-md' onClick={handleNameClickForCacheQuery}>{name}</button>
                           </div>
                       ))
                   }
-              </div>
-
-
+              </div>          
+              </>   
+            }
+            { cacheQueryResult &&
+                    <div className="mt-4">{cacheQueryResult}</div>
+            }
           
-              </>
-}
    </div>
       
     </div>

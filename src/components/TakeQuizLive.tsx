@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 //import {  useParams } from 'react-router-dom';
 import { useWebSocket } from './context/WebSocketContext';
-import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps } from './shared/types';
+import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, WebSocketMessageProps } from './shared/types';
 import api from '../api';
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
 import { ButtonSelect } from './questions/ButtonSelect';
@@ -24,18 +24,22 @@ import { WordsSelect } from './questions/WordsSelect';
 
 interface TakeQuizLiveProps {
     quiz_id: string;
-    question_number?: string;
+    //question_number?: string;
     parent_callback: () => void;   // to notify parent component when a question is finished ( or the quiz is finished??)
 }
 
-function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiveProps) {
+function TakeQuizLive({ quiz_id , parent_callback}: TakeQuizLiveProps) {
     //const { quiz_id } = useParams<{  quiz_id: string }>();
     //const [quiz_id, setReceivedQuizId] = useState<string | null>(null);
 
     const [question, setQuestion] = useState<QuestionProps | null>(null);
+
+    const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | null>(null);
+
     const childRef = useRef<ChildRef>(null);
-    const {websocketRef} = useWebSocket();
+    const {eventEmitter, websocketRef} = useWebSocket();
     const [showQuestion, setShowQuestion] = useState<boolean>(false); // work in conjunction with questionAttemptData 
+
 
     const [showCorrectModal, setShowCorrectModal] = useState(false);
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
@@ -52,6 +56,27 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
 
     const dispatch = useDispatch<AppDispatch>();
         
+useEffect(() => {
+      const handleMessage = (data: WebSocketMessageProps) => {
+        console.log("MessageControl: handleMessage called with data:", data);
+        //if (data.message_type === "chat") {
+       //console.log("*********** MessageControl: Received data from server:", data); 
+        if (data.message_type === "question_number") {
+           //console.log("HomeStudent: Setting liveQuizId to:", data.message);
+            setLiveQuestionNumber(data.message);
+        } //student_acknowleged_live_quiz_id
+     
+          
+      }
+    
+      // Subscribe to the "message" event
+      eventEmitter?.on("message", handleMessage);
+      // Cleanup the event listener on unmount
+      return () => {
+        eventEmitter?.off("message", handleMessage);
+      };
+    }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
       useEffect(() => {
         // clear users Total Live Score in redux store when component mounts
         dispatch(updateLiveScore({name: name || '', live_score: 0}));
@@ -65,34 +90,34 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
                //console.log("TakeQuizLive: quiz_id is not set.");
                 return;
             }
-            if (quiz_id === "" || question_number === "") {
+            if (quiz_id === "" || liveQuestionNumber === "") {
                 return;
             }
             // if there's a current question being shown, do not fetch new question
-            if (finishedLiveQuestion.question_number === question_number && finishedLiveQuestion.status === false) {
+            if (finishedLiveQuestion.question_number === liveQuestionNumber && finishedLiveQuestion.status === false) {
                //console.log("TakeQuizLive: Ignoring new question fetch because user is still working on current question.");
                 return;
             }
             // if question_number is not set, do not fetch question
-            if (!question_number ) {
+            if (!liveQuestionNumber ) {
                //console.log("TakeQuizLive: question_number is not set.");
                 return;
             }
 
-         api.get(`/api/quizzes/${quiz_id}/questions/${question_number}/`)
+         api.get(`/api/quizzes/${quiz_id}/questions/${liveQuestionNumber}/`)
             .then((res) => res.data)
             .then((data) => {
                //console.log("TakeQuizLive: Quiz Question Data:", data);
                 // you can set state here to store question data
                 setQuestion(data);
                 setShowQuestion(true);
-                setFinishedLiveQuestion({status: false, question_number: question_number}); // user is now working on this question
+                setFinishedLiveQuestion({status: false, question_number: liveQuestionNumber}); // user is now working on this question
                 // send event to server to indicate question has been received and 
                 // I am working on it
                 if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
                     const messageToSend = {
-                        message_type: 'live_question_attempt_started',
-                        message: `${question_number}`,
+                        message_type: 'student_acknowleged_live_question_number',
+                        message: `${liveQuestionNumber}`,
                         user_name: name // sender
                       };
                      //console.log("TakeQuizLive: &&&&&&&&& Sending live_question_attempt_started message to server for question number:", question_number);
@@ -102,7 +127,7 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
             })
             .catch((err) => console.log("TakeQuizLive: Error fetching quiz question data:", err));
 
-      }, [quiz_id, question_number]);
+      }, [quiz_id, liveQuestionNumber]);
     
     function SafeHTML({ content }: { content: string }) {
         const sanitizedContent = DOMPurify.sanitize(content, {
@@ -169,14 +194,14 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
       const handleCorrectModalTimeout = () => {
         //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
         setShowCorrectModal(false);
-        setFinishedLiveQuestion({status: true, question_number: question_number || ''});
+        setFinishedLiveQuestion({status: true, question_number: liveQuestionNumber || ''});
         parent_callback(); // notify parent component that question is finished
       };
 
       const handleInCorrectModalClose = () => {
        //console.log("***** handleInCorrectModalClose called.");
         setShowIncorrectModal(false);
-        setFinishedLiveQuestion({status: true, question_number: question_number || ''});
+        setFinishedLiveQuestion({status: true, question_number: liveQuestionNumber || ''});
         parent_callback(); // notify parent component that question is finished
         //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
       };
@@ -211,7 +236,7 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
           message_type: 'live_score',
           message: value,
           user_name: name, // sender
-          live_question_number: question_number,
+          live_question_number: liveQuestionNumber || '' // include question number for teacher to know which question this score is for,
         };
         websocketRef.current.send(JSON.stringify(messageToSend));
       };

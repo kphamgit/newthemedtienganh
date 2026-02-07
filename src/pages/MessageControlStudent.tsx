@@ -39,70 +39,7 @@ useEffect(() => {
     //if (data.message_type === "chat") {
       //  parent_callback(data);
     //}
-    if (data.message_type === "live_question_attempt_started") {
-       //console.log("MessageControl: ************ Received live_question_attempt_started message from server.");
-        //parent_callback("live_question_attempt_started", {question_number: data.message});
-        const sender = data.user_name;
-        // update question number in redux store for that user
-        dispatch(updateLiveQuestionNumber({name: sender, question_number: data.message}));
-    }
-    else if (data.message_type === "quiz_id") {
-     //console.log("MessageControl: Received quiz_id message from server.");
-        //parent_callback({quiz_id: data.message});
-        parent_callback(data);
-    }
-    else if (data.message_type === "question_number") {
-       //console.log("MessageControl: Received question_number message from server.");
-
-        //parent_callback({question_number: data.message});
-        const user_name_target = data.user_name; // target user is in user_name field for question_number message
-       //console.log("MessageControl: question_number target user is:", user_name_target, " current user is:", name);
-        // is it for everybody? then accept it
-        if (user_name_target === "everybody") {
-           //console.log("MessageControl: question_number message is for all users, accepting.");
-            parent_callback(data);
-            return;
-        }
-        else if (user_name_target.trim() === name) { // is it for me?
-           //console.log("MessageControl: question_number message is for self, accepting.");
-              parent_callback(data);
-              return;
-        }
-      
-    }
-    else if (data.message_type === "connection_established") {
-      //const conn_message: connectionChangeProps = data;
-     //console.log("MessageControl:******* Received connection establish message from server for user:", data.user_name);
-      // add user to redux store
-      dispatch(addUser({id: 1, name: data.user_name}));
-      const other_connected_users = data.other_connected_users || [];
-     //console.log("MessageControl: Other connected users received from server:", other_connected_users);
-     //console.log("MessageControl: Connected users in redux store before adding others:", connectedUsersInReduxStore);
-      // go through connected users and add the one who are not in there
-      // note: other_connected_users does not include self
-      other_connected_users.forEach((user_name) => {
-          const user_exists = connectedUsersInReduxStore.some((user) => user.name === user_name);
-          if (!user_exists) {
-             //console.log("MessageControl: Adding other connected user to redux store:", user_name);
-              dispatch(addUser({id: 1, name: user_name}));
-          }
-      });
-      // is there live_quiz_id and live_question_number in the connection established message?
-      if (data.live_quiz_id && data.live_question_number) {
-        //console.log("MessageControl:  LIVE quiz_id and live question number found in connection_established message data:", data);
-          parent_callback({message_type: "live_quiz_id_and_live_question_number", message: data.live_quiz_id + '/' + data.live_question_number, user_name: data.user_name} );
-      }
-      else if (data.live_quiz_id) {
-         //console.log("MessageControl: !!!!!! LIVE quiz_id found in connection_established message data:", data);
-          parent_callback({message_type: "quiz_id", message: data.live_quiz_id, user_name: data.user_name} );
-      }
-    }
-    else if (data.message_type === "connection_dropped") {
-      const disconnection_message = data;
-     //console.log("MessageControl: Received connection_dropped message:", disconnection_message);
-      dispatch(removeUser(disconnection_message.user_name));
-    }
-    else if (data.message_type === "disconnect_user") {
+  if (data.message_type === "disconnect_user") {
        console.log("MessageControl: Received disconnect_user message:", data);
       // is this message for me?
       // data.message contains the username to be disconnected
@@ -118,18 +55,6 @@ useEffect(() => {
           dispatch(clear()); // clear list of connected users in redux store
       }
       //dispatch(removeUser(disconnect_message.message)); // message contains the username to be disconnected
-    }
-    else if (data.message_type === "live_score") {
-        const live_score = parseInt(data.message);
-        // update live score in redux store
-        //console.log("MessageControl: Updating live score for user:", live_score_message.user, "to", live_score);
-        // don't update score for me because I update it myself when I submit answer to the question
-        // see onSubmit in TakeQuizLive.tsx
-        if (data.user_name === name) {
-            return;
-        }
-        dispatch(updateLiveScore({name: data.user_name, live_score: live_score}));
-        
     }
     else if (data.message_type === "terminate_live_quiz") {
       parent_callback(data);

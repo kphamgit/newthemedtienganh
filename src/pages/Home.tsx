@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 import ChatPage, { type ChatPageRefProps } from "../components/chat/ChatPage";
 import { WebSocketProvider } from "../components/context/WebSocketContext";
 import { useSelector } from 'react-redux';
-import MessageControl from "./MessageControl";
-import type { WebSocketMessageProps } from "../components/shared/types";
+//import MessageControl from "./MessageControl";
+//import type { WebSocketMessageProps } from "../components/shared/types";
 import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
 
@@ -31,7 +31,7 @@ function Home() {
    
 
     const chatPageRef = useRef<ChatPageRefProps>(null);
-    const [chat, setChat] = useState<{ text: string; user_name: string }>({ text: "", user_name: "" });
+
     //useEffect(() => {
       //  liveQuestionNumberRef.current = liveQuestionNumber;
     //}, [liveQuestionNumber]);
@@ -91,19 +91,6 @@ function Home() {
         setIsChatOpen(prev => prev === false ? true : false);
     }
 
-    const handle_callback = (server_message: WebSocketMessageProps) => {
-            console.log("Home: Callback received from MessageControl:", server_message);
-                // destructure message_type and message
-        const { message_type, message, user_name } = server_message;
-        if (message_type === 'chat') {
-            // enable chat box if it's closed
-            console.log("Home: Received CHAT message from server:", server_message, "isChatOpen:", isChatOpen);
-            setIsChatOpen(true);
-            setChat({ text: message, user_name: user_name });
-        }
-    }
-
-
     return (
         <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
             <div className="fixed bottom-4 right-4">
@@ -123,16 +110,13 @@ function Home() {
                 </span>
             </div>
 
-            <MessageControl parent_callback={handle_callback} />
-
-            {name === "teacher" ?
+            { name === "teacher" ?
                 <HomeTeacher />
                 :
                 <HomeStudent />
             }
-
             {isChatOpen !== false &&
-                <ChatPage chat={chat} ref={chatPageRef} />
+                <ChatPage ref={chatPageRef} />
             }
         </WebSocketProvider>
     );

@@ -6,18 +6,17 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 import TakeQuizLive from "../components/TakeQuizLive";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import type { WebSocketMessageProps } from "../components/shared/types";
 import MessageControlStudent from "./MessageControlStudent";
 import ScoreBoard from "./ScoreBoard";
 import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
 import type { AppDispatch } from "../redux/store";
-import { useWebSocket } from "../components/context/WebSocketContext";
 
 
 
 
-function HomeStudent() {
+function HomeStudentSave() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
@@ -25,76 +24,28 @@ function HomeStudent() {
 
     const liveQuestionNumberRef = useRef<string | undefined>(undefined);
 
-    const {eventEmitter, websocketRef} = useWebSocket();
+    //const chatPageRef = useRef<ChatPageRefProps>(null);
+    // const [setChat] = useState<{ text: string; user_name: string }>({ text: "", user_name: "" });
 
-    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+    //const {websocketRef} = useWebSocket();
+
+    //const navigate = useNavigate();
 
     const dispatch = useDispatch<AppDispatch>();
 
- useEffect(() => {
-      const handleMessage = (data: WebSocketMessageProps) => {
-        console.log("MessageControl: handleMessage called with data:", data);
-        //if (data.message_type === "chat") {
-       //console.log("*********** MessageControl: Received data from server:", data); 
-        if (data.message_type === "quiz_id") {
-           //console.log("HomeStudent: Setting liveQuizId to:", data.message);
-            setLiveQuizId(data.message);
-            // send acknowledgement back to server that student received the quiz id
-            if (!websocketRef.current) {
-                alert("WebSocket is not connected.");
-                return;
-            }
-            // if there's no quiz id passed in from props, alert and return
-            websocketRef.current.send(JSON.stringify({
-                message_type: "student_acknowleged_live_quiz_id",
-                message: data.message,  // should contain quiz id
-                user_name: name,    // identify sender, which is teacher
-            }));
-          }
-          else if (data.message_type === "terminate_live_quiz") {
-            //console.log("HomeStudent: Received terminate_live_quiz message from server.");
-             // reset live quiz state
-             setLiveQuizId(null);
-             setLiveQuestionNumber(undefined);
-          }
-      }
-    
-      // Subscribe to the "message" event
-      eventEmitter?.on("message", handleMessage);
-      // Cleanup the event listener on unmount
-      return () => {
-        eventEmitter?.off("message", handleMessage);
-      };
-    }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
+    //const { websocketRef } = useWebSocket();
+
    
-/*
-  const sendQuestionNumber = () => {
-       //console.log("sendQuestionNumber: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        // if there's no quiz id passed in from props, alert and return
-      
-        // if question number is empty, alert and return
-        if (questionNumber === "") {
-            alert("Please enter question number.");
-            return;
-        }
-        // if target user is empty, alert and return
-        if (targetUserName === "") {
-            alert("Please enter target user name.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "question_number",
-            message: questionNumber,
-            user_name: targetUserName,    // identify sender, which is teacher
-        }));
-        // clear input field
-        setQuestionNumber("");
-    };
-*/
+// WebSocket reference
+    //let websocket: WebSocket | null = null;
+    //const websocketRef = useRef<WebSocket | null>(null);
+
+    /*
+    const websocket = new WebSocket(
+        `ws://${ws_url}/ws/socket-server/`
+    );
+    */
 
     useEffect(() => {
         liveQuestionNumberRef.current = liveQuestionNumber;
@@ -186,7 +137,11 @@ function HomeStudent() {
            //console.log("HomeStudent: Passing chat message to ChatPage:", message);
            // setChat({ text: message, user_name: user_name });
         //}
-        if (message_type === 'question_number') {
+        if (message_type === 'quiz_id') {
+           //console.log("HomeStudent: Setting liveQuizId to:", message);
+            setLiveQuizId(message);
+        }
+        else if (message_type === 'question_number') {
            //console.log("HomeStudent: Receiving liveQuestionNumber:", message);
             // only set question number if liveQuestionNumber is undefined
             // otherwise, it means a question is already active
@@ -245,13 +200,14 @@ function HomeStudent() {
                     </div>
                    
                     {liveQuizId &&
-                        <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} />
+                        <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId}  />
                     }
                     <Outlet />
                 </div>
                 <div className="flex flex-col">
                     <div className="bg-blue-200">
                         <ScoreBoard  />
+                        <MessageControlStudent parent_callback={handle_callback} />
 
                     </div>
      
@@ -261,7 +217,7 @@ function HomeStudent() {
     );
 }
 
-export default HomeStudent;
+export default HomeStudentSave;
 
 /*
 return (
