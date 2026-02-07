@@ -21,6 +21,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/table-core": "^8.21.3",
     "@types/uuid": "^10.0.0",
+    "@vidstack/react": "^1.12.13",
     "axios": "^1.13.2",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
@@ -40,7 +41,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.4",
-    "@types/react": "^19.2.2",
+    "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.2",
     "@types/react-speech-recognition": "^3.9.6",
     "@vitejs/plugin-react": "^5.1.0",

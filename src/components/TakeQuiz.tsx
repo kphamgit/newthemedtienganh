@@ -41,7 +41,6 @@ const TakeQuiz: React.FC = () => {
     const [question, setQuestion] = useState<QuestionProps | null>(null);
     const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
-    //const [nextQuestionId, setNextQuestionId] = useState<number | null>(null);
     const nextQuestionId = useRef<number | null>(null);
 
     const [showCorrectModal, setShowCorrectModal] = useState(false);
@@ -69,7 +68,6 @@ const TakeQuiz: React.FC = () => {
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    //const user_name = useSelector((state: { name: string }) => state.name);
     const { name } = useSelector((state: RootState) => state.user);
 
     //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
@@ -86,7 +84,8 @@ const TakeQuiz: React.FC = () => {
 
     useEffect(() => {
       const baseURL = import.meta.env.VITE_API_URL
-      const url = `${baseURL}/api/quiz_attempts/${quiz_id}/`;
+      const url = `${baseURL}/api/quiz_attempts/get_or_create/${quiz_id}/`;
+      //console.log("Fetching quiz attempt data from url =", url);
       api.post(url, { user_name: name })  // use a fixed user id for now
         .then((response) => {
           //console.log("Fetched quiz attempt data:", response.data);
@@ -183,7 +182,6 @@ const TakeQuiz: React.FC = () => {
 
     const handleInCorrectModalClose = () => {
         setShowIncorrectModal(false);
-        //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
         if (nextQuestionId.current !== null) {
             createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
         }
@@ -195,7 +193,6 @@ const TakeQuiz: React.FC = () => {
       };
 
     const handleCorrectModalTimeout = () => {
-        //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
         setShowCorrectModal(false);
         if (nextQuestionId.current !== null) {
             createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
@@ -227,6 +224,7 @@ const TakeQuiz: React.FC = () => {
         
         api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
           .then((res) => {     
+            // server returns the next question id (if any), together with assessment results 
             const { assessment_results, next_question_id } = res.data;
             // update quizAttemptData.quiz_attempt
             setQuizAttemptData((prevData) => ({

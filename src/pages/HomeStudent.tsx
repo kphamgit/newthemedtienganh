@@ -14,6 +14,8 @@ import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
 import type { AppDispatch } from "../redux/store";
 
 
+
+
 function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
@@ -185,7 +187,7 @@ function HomeStudent() {
         setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
         // the liveQuestionNumber prop will be refreshed and TakeQuizLive) will be rendered with new question
     }
-
+//https://www.youtube.com/watch?v=ivg_Yc-YDYo
     return (
        
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
@@ -196,7 +198,7 @@ function HomeStudent() {
                             <Navbar role="student" levels={levels} />
                         </div>
                     </div>
-                 
+                   
                     {liveQuizId &&
                         <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} question_number={liveQuestionNumber} />
                     }
@@ -218,15 +220,33 @@ function HomeStudent() {
 export default HomeStudent;
 
 /*
-          <div><button className="text-red bg-green-300 mb-2" onClick={sendChatMessage}>Send Message</button></div>
-            <div><button className="text-red bg-green-300 mb-2" onClick={sendQuizId}>Send Quiz Id</button></div>
-            <div><button className="text-red bg-green-300 mb-2" onClick={sendQuestionId}>Send Question Id</button></div>
-*/
+return (
+       
+            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
+                <div>
+   
+                    <div className="flex flex-col bg-amber-200 py-2 px-10">
+                        <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+                            <Navbar role="student" levels={levels} />
+                        </div>
+                    </div>
+                    <VidStack />
 
-/*
-            { user.name === "teacher" ?
-            <TeacherControlPanel />
-            :
-            <TakeQuizLive />
-}
+            
+                    {liveQuizId &&
+                        <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} question_number={liveQuestionNumber} />
+                    }
+                    <Outlet />
+                </div>
+                <div className="flex flex-col">
+                    <div className="bg-blue-200">
+                        <ScoreBoard  />
+                        <MessageControlStudent parent_callback={handle_callback} />
+
+                    </div>
+     
+                </div>
+            </div>
+
+    );
 */

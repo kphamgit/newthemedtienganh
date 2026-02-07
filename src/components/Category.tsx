@@ -14,7 +14,9 @@ interface UnitProps {
 interface QuizProps {
     id: number,
     name: string,
-    quiz_number: number
+    quiz_number: number,
+    video_url?: string,
+    video_segments? : any[]
 }
  
 
@@ -45,7 +47,7 @@ function Category() {
             .get(`/api/categories/${id}/units/`)
             .then((res) => res.data)
             .then((data) => {
-                //console.log("************ units", data);
+                console.log("************ units", data);
                 setUnits(data);
                
             })
@@ -60,6 +62,12 @@ function Category() {
         navigate(api_url)
     }
 
+    const take_video_quiz = (quiz: QuizProps) => {
+        console.log("Taking video quiz:", quiz);
+        const api_url = `/categories/${id}/take_video_quiz/${quiz.id}`
+        navigate(api_url, {state: {quiz_id: quiz.id, video_url : quiz.video_url, video_segments: quiz.video_segments}})
+    }
+
     return (
         <div className="flex flex-col bg-amber-100 p-10">
             {
@@ -72,7 +80,16 @@ function Category() {
                                 <div key={quiz.id} className="px-6 my-1">
                                     <span>{quiz.quiz_number}.</span>
                                     <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
-                                        {quiz.name} </button>
+                                        {quiz.name} 
+                                    </button>
+                                    { quiz.video_url && 
+                                    <>
+                                        <span className="text-sm text-gray-500"> (video available) url = {quiz.video_url}</span>
+                                        <button className=' px-2 rounded-md hover:underline' onClick={() => take_video_quiz(quiz)}>
+                                        {quiz.name} 
+                                    </button>
+                                    </>
+                                    }
                                 </div>
                             ))
                         }

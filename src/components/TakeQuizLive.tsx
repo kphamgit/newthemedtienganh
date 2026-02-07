@@ -20,6 +20,7 @@ import ModalForIncorrect from './ModalForIncorrect';
 import { updateLiveScore } from '../redux/connectedUsersSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '../redux/store';
+import { WordsSelect } from './questions/WordsSelect';
 
 interface TakeQuizLiveProps {
     quiz_id: string;
@@ -266,6 +267,9 @@ function TakeQuizLive({ quiz_id, question_number , parent_callback}: TakeQuizLiv
               }
               { question?.format === 6 &&
                 <DragDrop content={question.content} ref={childRef} />
+              }
+              { question?.format === 8 &&
+                <WordsSelect content={question.content} ref={childRef} />
               }
               { question?.format === 10 &&
                 <DropDowns content={question.content} ref={childRef} />
