@@ -1,17 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import "../styles/Home.css"
 
 import { Outlet } from "react-router-dom";
 
 import TeacherControlPanel from "./TeacherControlPanel";
-import type { WebSocketMessageProps } from "../components/shared/types";
-import MessageControlTeacher from "./MessageControlTeacher";
+//import type { WebSocketMessageProps } from "../components/shared/types";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
 import ScoreBoard from "./ScoreBoard";
-import { useDispatch, useSelector } from "react-redux";
-import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
-import type { AppDispatch } from "../redux/store";
-import { useWebSocket } from "../components/context/WebSocketContext";
+//import { useDispatch } from "react-redux";
+//import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
+//import type { AppDispatch } from "../redux/store";
+
 
 function HomeTeacher() {
 
@@ -22,10 +21,10 @@ function HomeTeacher() {
     //const user_name = useSelector((state: RootState) => state.name);
     //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     //const rehydrated = useSelector((state: RootState) => state._persist?.rehydrated); //
-    const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+   // const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
   
 
-    const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
+    //const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
 
 
     //const chatPageRef = useRef<ChatPageRefProps>(null);
@@ -36,7 +35,7 @@ function HomeTeacher() {
     //const {eventEmitter} = useWebSocket();
     //const liveQuizInReduxStore = useSelector((state: RootState) => state.liveQuizId.value);
 
-    const dispatch = useDispatch<AppDispatch>();
+    //const dispatch = useDispatch<AppDispatch>();
 
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
@@ -82,34 +81,6 @@ function HomeTeacher() {
         };
     }, []);
 
-    //const toggleChatBox = () => {
-      //  chatPageRef.current?.toggle_chat();
-     //   setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
-   // }
-
-    const handle_callback = (server_message: WebSocketMessageProps) => {
-        console.log("Home: Callback received from MessageControl:", server_message);
-        if (!server_message) {
-            console.log("Home: Invalid server message in callback:", server_message);
-            return;
-        }
-        // destructure message_type and message
-        const { message_type, message, queried_value } = server_message;
-        // note : queried value is only used for cache_query_response message type
-
-        if (message_type === 'terminate_live_quiz') {
-           //console.log("Home: Received terminate_live_quiz message from server.");
-            // reset live quiz state
-            setLiveQuizId(null);
-            
-        }
-     
-    }
-
-    const terminate_live_quiz = () => {
-        teacherControlPanelRef.current?.terminate_live_quiz();
-        dispatch(clearLiveQuestionInfo());
-    }
     return (
    
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
@@ -117,14 +88,6 @@ function HomeTeacher() {
                   
                
                 <div>
-                {liveQuizId && 
-                <>
-                        <span className="text-red-700">Live Quiz ID: {liveQuizId}</span>
-                        <span><button className="bg-amber-600 text-white p-1 m-2 rounded-md "
-                            onClick={terminate_live_quiz}
-                        >Terminate Quiz</button></span>
-                        </>
-                    }
                     <TeacherControlPanel ref = {teacherControlPanelRef}/>
                     <Outlet />
                 </div>

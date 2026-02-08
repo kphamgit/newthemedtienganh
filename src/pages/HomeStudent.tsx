@@ -6,15 +6,12 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 import TakeQuizLive from "../components/TakeQuizLive";
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import type { WebSocketMessageProps } from "../components/shared/types";
-import MessageControlStudent from "./MessageControlStudent";
 import ScoreBoard from "./ScoreBoard";
-import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
-import type { AppDispatch } from "../redux/store";
+//import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
+//import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
-
-
 
 
 function HomeStudent() {
@@ -29,14 +26,22 @@ function HomeStudent() {
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
-    const dispatch = useDispatch<AppDispatch>();
+    //const dispatch = useDispatch<AppDispatch>();
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        console.log("MessageControl: handleMessage called with data:", data);
+        //console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data); 
-        if (data.message_type === "quiz_id") {
+        if (data.message_type === "connection_established") {
+           //console.log("HomeStudent: Received connection_established message from server:", data);
+            // no action needed for student for now
+            if (data.live_quiz_id) {
+                setLiveQuizId(data.live_quiz_id);
+            }
+
+        }
+        else if (data.message_type === "live_quiz_id") {
            //console.log("HomeStudent: Setting liveQuizId to:", data.message);
             setLiveQuizId(data.message);
             // send acknowledgement back to server that student received the quiz id
@@ -51,7 +56,7 @@ function HomeStudent() {
                 user_name: name,    // identify sender, which is teacher
             }));
           }
-          else if (data.message_type === "terminate_live_quiz") {
+          else if (data.message_type === "live_quiz_terminated") {
             //console.log("HomeStudent: Received terminate_live_quiz message from server.");
              // reset live quiz state
              setLiveQuizId(null);
@@ -67,35 +72,6 @@ function HomeStudent() {
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
    
-/*
-  const sendQuestionNumber = () => {
-       //console.log("sendQuestionNumber: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        // if there's no quiz id passed in from props, alert and return
-      
-        // if question number is empty, alert and return
-        if (questionNumber === "") {
-            alert("Please enter question number.");
-            return;
-        }
-        // if target user is empty, alert and return
-        if (targetUserName === "") {
-            alert("Please enter target user name.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "question_number",
-            message: questionNumber,
-            user_name: targetUserName,    // identify sender, which is teacher
-        }));
-        // clear input field
-        setQuestionNumber("");
-    };
-*/
-
     useEffect(() => {
         liveQuestionNumberRef.current = liveQuestionNumber;
     }, [liveQuestionNumber]);
@@ -169,64 +145,6 @@ function HomeStudent() {
      //   chatPageRef.current?.toggle_chat();
         //setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
    // }
-
-    const handle_callback = (server_message: WebSocketMessageProps) => {
-        
-        console.log("HomeStudent: Callback received from MessageControl:", server_message);
-        if (!server_message) {
-            console.log("HomeStudent: Invalid server message in callback:", server_message);
-            return;
-        }
-        // destructure message_type and message
-        const { message_type, message } = server_message;
-        // note : queried value is only used for cache_query_response message type
-
-        //if (message_type === 'chat') {
-            // pass on to ChatPage component
-           //console.log("HomeStudent: Passing chat message to ChatPage:", message);
-           // setChat({ text: message, user_name: user_name });
-        //}
-        if (message_type === 'question_number') {
-           //console.log("HomeStudent: Receiving liveQuestionNumber:", message);
-            // only set question number if liveQuestionNumber is undefined
-            // otherwise, it means a question is already active
-           //console.log("HomeStudent: Current liveQuestionNumber STATE is:", liveQuestionNumber);
-            if (liveQuestionNumberRef.current === undefined) { // have to use ref
-            //  to get latest value, because of CLOSURE property of functions in JS
-            // ask copilot about this KPHAM
-                setLiveQuestionNumber(message);
-                return;
-            }
-            else {
-                console.log("HomeStudent: liveQuestionNumber is already set to:", liveQuestionNumberRef.current, "ignoring new question_number message:", message);
-            }
-            
-        }
-        else if (message_type === 'live_quiz_id_and_live_question_number') {
-           //console.log("HomeStudent: Setting liveQuizId and liveQuestionNumber to:", message);
-            // message: "quizId/questionNumber"
-            // split message by "/", first part is quiz id and second part is question number
-            const parts = message.split("/");
-           //console.log("HomeStudent: Parsed live_quiz_id_and_live_question_number parts:", parts);
-            if (parts.length === 2) {
-                setLiveQuizId(parts[0]);
-                setLiveQuestionNumber(parts[1]);
-            }
-            else {
-                console.log("HomeStudent: Invalid live_quiz_id_and_live_question_number message format:", message);
-            }
-            return;
-        }
-        else if (message_type === 'terminate_live_quiz') {
-            //console.log("Home: Received terminate_live_quiz message from server.");
-             // reset live quiz state
-             setLiveQuizId(null);
-             setLiveQuestionNumber(undefined);
-             // clear scores for connectedUsers in Redux store
-                dispatch(clearLiveQuestionInfo());
-         }
-    }
-
     const live_question_attempt_finished = () => {
        //console.log("HomeStudent: ****************** live_question_attempt_finished called, clearing liveQuestionNumber");
         setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 

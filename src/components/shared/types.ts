@@ -29,13 +29,14 @@ export interface WebSocketMessageProps {
   "connection_dropped" |
   "chat" | 
   "live_score" |
-  "quiz_id" | 
+  "live_quiz_id" | 
   "question_number" | 
   "live_quiz_id_and_live_question_number" |
   "student_acknowleged_live_question_number" |
   "student_acknowleged_live_quiz_id" |
   "disconnect_user" |
   "cache_query_response" | 
+  "live_quiz_terminated" |
   "terminate_live_quiz";
  
   message: string;

@@ -39,7 +39,7 @@ const connectedUsersSlice = createSlice({
         //onsole.log('Updated state after removal:', JSON.parse(JSON.stringify(state)));
     },
     updateLiveScore: (state, action: PayloadAction<{name: string, live_score: number}>) => {
-        console.log("connectedUsersSlice: Updating live score for user:", action.payload);
+        //console.log("connectedUsersSlice: Updating live score for user:", action.payload);
         const { name, live_score } = action.payload;
         const user = state.list.find(user => user.name === name);
         if (user) {

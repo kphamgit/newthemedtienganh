@@ -2,7 +2,7 @@ import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useEffect, useImperativeHandle, useState } from "react";
 import api from "../api";
-import type { RootState } from "../redux/store";
+//import type { RootState } from "../redux/store";
 import type { WebSocketMessageProps } from "../components/shared/types";
 
 
@@ -37,29 +37,35 @@ export const TeacherControlPanel = ({ref }: Props) => {
         //const liveQuizId = useSelector((state: RootState) => state.liveQuizId.value);
         const [liveQuizId, setLiveQuizId] = useState("");
 
+        const [activeLiveQuizId, setActiveLiveQuizId] = useState<string | null>(null); 
+        // track active live quiz id . Set after a live_quiz_id message is received from server,
+        //  which indicates that the live quiz has been saved in the cache.
+
         const [cacheQueryResult, setCacheQueryResult] = useState<string>("");
+
+        const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
-            console.log("TeacherControl: handleMessage called with data:", data);
+            //console.log("TeacherControl: handleMessage called with data:", data);
             if (data.message_type === "connection_established") {
-              console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
+              //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [data.user_name, ...others];
               setConnectedUsers(all_connected);
             }
             else if (data.message_type === "connection_dropped") {
-                console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
+                //console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
                 const dropped_user = data.user_name;
                 setConnectedUsers((prevUsers) => prevUsers.filter((user) => user !== dropped_user));
             }
             else if (data.message_type === "cache_query_response") {
-                console.log("TeacherControl: Received cache_query_responsefrom server for user, data = :", data);
-                console.log(`Cache Query Response for key "${data.message_type}": ${data.message}`);
+                //console.log("TeacherControl: Received cache_query_responsefrom server for user, data = :", data);
+                //console.log(`Cache Query Response for key "${data.message_type}": ${data.message}`);
                 if (name !== "teacher") {
                     return;
                   }
-                console.log("Queried value:", data.queried_value);
+                //console.log("Queried value:", data.queried_value);
                 setCacheQueryResult(JSON.stringify(data.queried_value));
                   //alert("Cache query response from server: " + data.message_type + " " +  data.message + " = " + data.queried_value);
 /*
@@ -72,6 +78,34 @@ export const TeacherControlPanel = ({ref }: Props) => {
 }
 */
             }
+            else if (data.message_type === "live_quiz_id") {
+                //console.log("TeacherControl: Received live_quiz_id message from server, data = :", data);
+                setActiveLiveQuizId(data.message);
+            }
+            else if (data.message_type === "live_quiz_terminated") {
+                //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
+                setActiveLiveQuizId(null);
+                setShowTerminateLiveQuizButton(false);
+            }
+            if (data.message_type === "connection_established") {
+                //console.log("TeacherControl: Received connection_established message from server for user:", data);
+                /*
+{
+    "message_type": "connection_established",
+    "user_name": "teacher",
+    "other_connected_users": [
+        "admin"
+    ],
+    "live_quiz_id": "1",
+    "live_question_number": null
+}
+                */
+                if (data.live_quiz_id) {
+                    setActiveLiveQuizId(data.live_quiz_id);
+                    setShowTerminateLiveQuizButton(true);
+                }
+            
+              }
           }
           // Subscribe to the "message" event
           eventEmitter?.on("message", handleMessage);
@@ -106,13 +140,13 @@ export const TeacherControlPanel = ({ref }: Props) => {
         // verify from server that there's a quiz with that id?
         // english/quizzes/retrieve/<int:pk>/
         const url = `/english/quizzes/retrieve/${liveQuizId}/`;
-        console.log("Verifying quiz id from server with url:", url);
+        //console.log("Verifying quiz id from server with url:", url);
         
         api.get(url)
             .then((response) => {
                 if (response) {
                     websocketRef.current?.send(JSON.stringify({
-                        message_type: "quiz_id",
+                        message_type: "live_quiz_id",
                         message: liveQuizId,
                         user_name: name,   // identify sender
                     }));
@@ -122,7 +156,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
                     // disable input field after sending quiz id
                     // clear input field
                     setLiveQuizId("");
-                    //setQuizId("");
+                    setShowTerminateLiveQuizButton(true);
                 } else {
                     //console.log("Quiz id NOT found on server.");
                     alert("Quiz id NOT found on server.");
@@ -165,12 +199,12 @@ export const TeacherControlPanel = ({ref }: Props) => {
     };
 
     const sendCacheQuery = () => {
-         console.log("sendCacheQuery: ");
+         //console.log("sendCacheQuery: ");
          if (!websocketRef.current) {
              alert("WebSocket is not connected.");
              return;
          }
-
+         //console.log("Key for cache query:", keyForCacheQuery);
          websocketRef.current.send(JSON.stringify({
              message_type: "cache_query",
              message: keyForCacheQuery,  // query key
@@ -186,7 +220,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
     const handleNameClickForCacheQuery = (e: React.MouseEvent<HTMLButtonElement>) => {
         const selectedName = e.currentTarget.innerText;
-        console.log(keyForCacheQuery);  //should be "_live_question_number"
+        //console.log(keyForCacheQuery);  //should be "_live_question_number"
         //setTargetUserNameForCacheQuery(selectedName);
         setKeyForCacheQuery(selectedName + "_live_question_number");
     }
@@ -210,13 +244,27 @@ export const TeacherControlPanel = ({ref }: Props) => {
       
     </div>
     <div className="mt-2 bg-gray-200">
+        <div>
+            Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
+            { showTerminateLiveQuizButton &&
+            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={() => {
+                websocketRef.current?.send(JSON.stringify({
+                    message_type: "terminate_live_quiz",
+                    message: liveQuizId,
+                    user_name: name,    // identify sender, which is teacher
+                }));
+            }}>Terminate Live Quiz</button>
+        }
+        </div>
         <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 
         value={liveQuizId || ""} 
         onChange={e => {setLiveQuizId(e.target.value)}} 
+        readOnly={activeLiveQuizId !== null}
         />
         { liveQuizId !== "" &&
         <button className="text-red bg-green-300 mb-2 p-2 rounded-md hover:bg-green-400" onClick={sendQuizId}>Send Quiz id</button>
         }
+    
         </div>
     <div className="mt-2 bg-gray-200">
         <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
@@ -246,7 +294,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <button className="text-white bg-blue-600 mb-2 p-1 rounded-md hover:bg-blue-400" onClick={sendCacheQuery}>Query Cache</button>
             <div className="ml-10">
                     <select className="bg-gray-300 text-black p-2 rounded-md" onChange={(e) => {handleSelectCacheQuery(e.target.value) }}>
-                        <option value="quiz_id">quiz_id</option>
+                        <option value="live_quiz_id">live_quiz_id</option>
                         <option value="live_question_number">live_question_number</option>
                         <option value="students_room_users">students in room</option>
                     </select>

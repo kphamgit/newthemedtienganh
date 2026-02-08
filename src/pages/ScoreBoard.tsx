@@ -25,19 +25,19 @@ function ScoreBoard() {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "connection_established") {
-          console.log("ScoreBoard: Received connection_established message from server for user:", data.user_name);
+          //console.log("ScoreBoard: Received connection_established message from server for user:", data.user_name);
           const others = data.other_connected_users || [];
           const all_connected = [data.user_name, ...others];
           setUserRows(all_connected.map((user_name) => ({name: user_name})));
       
         }
         else if (data.message_type === "connection_dropped") {
-            console.log("ScoreBoard: Received connection_dropped message from server for user:", data.user_name);
+            //console.log("ScoreBoard: Received connection_dropped message from server for user:", data.user_name);
             const dropped_user = data.user_name;
             setUserRows((prevRows) => prevRows.filter((row) => row.name !== dropped_user));
         }
         else if (data.message_type === "student_acknowleged_live_question_number") {
-            console.log("ScoreBoard: Received student_acknowleged_live_question_number message from server for user:", data.user_name, " question number:", data.message);
+            //console.log("ScoreBoard: Received student_acknowleged_live_question_number message from server for user:", data.user_name, " question number:", data.message);
             // update question number in redux store for that user
             const sender = data.user_name;
             setUserRows((prevRows) => prevRows.map((row) => {
@@ -49,7 +49,7 @@ function ScoreBoard() {
             //dispatch(updateLiveQuestionNumber({name: sender, question_number: data.message}));
         }
         else if (data.message_type === "student_acknowleged_live_quiz_id") {
-            console.log("Take Quiz Live: received acknowledge quiz id :", data.message);
+            //console.log("Take Quiz Live: received acknowledge quiz id :", data.message);
              //setLiveQuizId(data.message);
              // only accept the message if you are a teacher
              if (name !== "teacher") {
@@ -64,12 +64,12 @@ function ScoreBoard() {
             }));
          }
          else if (data.message_type === "live_score") {
-            console.log("ScoreBoard: Received live_score message from server for user:", data.user_name, " score:", data.message);
+            //console.log("ScoreBoard: Received live_score message from server for user:", data.user_name, " score:", data.message);
             // update live score in redux store for that user
             const sender = data.user_name;
             // first, get the total score for that user
             const user_total_score = userRows.find((row) => row.name === sender)?.total_score || 0;
-            console.log("ScoreBoard: User:", sender, " total score is:", user_total_score);
+            //console.log("ScoreBoard: User:", sender, " total score is:", user_total_score);
             // add live score to total score, convert to number first
             const new_total_score = user_total_score + Number(data.message);
             setUserRows((prevRows) => prevRows.map((row) => {
@@ -78,6 +78,17 @@ function ScoreBoard() {
                 }
                 return row;
             }));
+        }
+        else if (data.message_type === "live_quiz_terminated") {
+            //console.log("ScoreBoard: Received live_quiz_terminated message from server.");
+            // reset all user rows
+            setUserRows((prevRows) => prevRows.map((row) => ({
+                ...row,
+                live_quiz_id: undefined,
+                live_score: undefined,
+                total_score: undefined,
+                live_question_number: undefined,
+            })));
         }
         /*
 {
@@ -118,42 +129,6 @@ function ScoreBoard() {
      
      };
 
-     const displayUserRow = (user: any, index: number) => {
-        console.log("ScoreBoard: displayUserRow called for user:", user);
-        if (user.live_question_number !== undefined ) {
-            
-            return (
-                <div className='flex flex-row justify-start items-center bg-green-100 px-2' key={index}>
-
-                    <div className="bg-amber-400 p-0.5 ml-1 px-2 rounded-full">{user.live_question_number}</div>
-                    <div className='flex flex-row justify-center items-center ml-2'>
-                        <div className='mx-2'>Score:</div>
-                        <div>
-                            {user.live_score === undefined ?
-
-                                <FaSpinner className="animate-spin text-blue-500" size={17} />
-                                :
-                                <span className="ml-2">{user.live_score}</span>
-                            }
-                        </div>
-                    </div>
-                    <div className='flex flex-row justify-center items-center ml-2'>
-                        <div className='p-1 mx-2'>Total:</div>
-                        <div>
-                            {user.total_score === undefined ?
-
-                                <FaSpinner className="animate-spin text-blue-500" size={15} />
-                                :
-                                <span className="ml-2">{user.total_score}</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-            );
-          
-        }
-     }
-
     return (
         <>
         
@@ -161,14 +136,16 @@ function ScoreBoard() {
             <div>Users online:</div>
             { userRows && userRows.length > 0 &&
                 userRows.map((user, index) => (
-                    <div className='flex flex-row justify-start items-center bg-green-100 px-2' key={index}>
+                    <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
                     <div>
                             { name === "teacher" && user.live_quiz_id !== undefined &&
                             <span>Quiz Id: {user.live_quiz_id}</span>
                     }
                             - {user.name}
                     </div>
-                    <div className="bg-amber-400 p-0.5 ml-1 px-2 rounded-full">{user.live_question_number}</div>
+                    { user.live_question_number !== undefined &&
+                        <>
+                    <div className="bg-amber-400 text-md text-blue-600 py-0 ml-1 px-2 rounded-full">{user.live_question_number}</div>
                     <div className='flex flex-row justify-center items-center ml-2'>
                         <div className='mx-2'>Score:</div>
                         <div>
@@ -180,6 +157,7 @@ function ScoreBoard() {
                             }
                         </div>
                     </div>
+                  
                     <div className='flex flex-row justify-center items-center ml-2'>
                         <div className='p-1 mx-2'>Total:</div>
                         <div>
@@ -191,6 +169,8 @@ function ScoreBoard() {
                             }
                         </div>
                     </div>
+                    </>
+                    }
                 </div>
                 ))
             }

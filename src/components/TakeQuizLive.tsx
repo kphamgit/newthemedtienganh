@@ -29,9 +29,6 @@ interface TakeQuizLiveProps {
 }
 
 function TakeQuizLive({ quiz_id , parent_callback}: TakeQuizLiveProps) {
-    //const { quiz_id } = useParams<{  quiz_id: string }>();
-    //const [quiz_id, setReceivedQuizId] = useState<string | null>(null);
-
     const [question, setQuestion] = useState<QuestionProps | null>(null);
 
     const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | null>(null);
@@ -58,11 +55,11 @@ function TakeQuizLive({ quiz_id , parent_callback}: TakeQuizLiveProps) {
         
 useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        console.log("MessageControl: handleMessage called with data:", data);
+        //console.log("TakeQuizLive: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
-       //console.log("*********** MessageControl: Received data from server:", data); 
+       //console.log("*********** TakeQuizLive: Received data from server:", data); 
         if (data.message_type === "question_number") {
-           //console.log("HomeStudent: Setting liveQuizId to:", data.message);
+            //console.log("TakeQuizLive: Setting live question_number to:", data.message);
             setLiveQuestionNumber(data.message);
         } //student_acknowleged_live_quiz_id
      
@@ -170,7 +167,7 @@ useEffect(() => {
                   correctModalTimerRef.current = setTimeout(() => {
                     setShowCorrectModal(false);
                     // show next question if available by checking next_question_data
-                    handleCorrectModalTimeout();
+                    handleModalClose();
                     // handle end of quiz scenario here
                   }, 2000); // Close modal after 2 seconds
                 }
@@ -191,30 +188,15 @@ useEffect(() => {
               });
       }
 
-      const handleCorrectModalTimeout = () => {
+      const handleModalClose = () => {
         //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
         setShowCorrectModal(false);
-        setFinishedLiveQuestion({status: true, question_number: liveQuestionNumber || ''});
-        parent_callback(); // notify parent component that question is finished
-      };
-
-      const handleInCorrectModalClose = () => {
-       //console.log("***** handleInCorrectModalClose called.");
         setShowIncorrectModal(false);
         setFinishedLiveQuestion({status: true, question_number: liveQuestionNumber || ''});
+        // clear liveQuestionNumber to prepare for next question
+        setLiveQuestionNumber(null);
         parent_callback(); // notify parent component that question is finished
-        //console.log("handleCorrectModalTimeout called. nextQuestionId =", nextQuestionId.current);
       };
-
-      const displayHeading = () => {
-        if (quiz_id && question) {
-            return `Quiz ID: ${quiz_id}`;
-        }
-        else if (quiz_id) {
-            return `Live Quiz. Quiz Id: ${quiz_id}`;
-        }
-     
-      }
 
       const displayShowQuestionStattus = () => {
         // only display status if quiz_id is set
@@ -243,18 +225,17 @@ useEffect(() => {
 
   return (
     <div className=' bg-cyan-50  h-full w-full'>
-        { 
-        <div className='flex flex-row bg-amber-100 justify-center p-2 m-2 border-2 border-gray-300 rounded-md'>
-        {displayHeading() }
-        </div>
-        }
+       <div className='flex flex-row justify-center items-center mt-5 mb-3'>
+        <span className='mx-3'>Quiz ID:</span>
+        <span className={`text-red-700 text-md font-bold border-2 border-red-400 rounded-full px-2 py-0 inline-block`}>{quiz_id} </span>
+       </div>
   
         { displayShowQuestionStattus() }
 
         {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
 
       {showIncorrectModal && <ModalForIncorrect 
-        parentCallback={handleInCorrectModalClose} 
+        parentCallback={handleModalClose} 
         format={question?.format ?? 1}
         content={question?.content ?? ""}
         answer_key={question?.answer_key ?? ""}
