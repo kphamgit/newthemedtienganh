@@ -23,12 +23,25 @@ import { type AppDispatch, type RootState } from '../redux/store';
 import { WordsSelect } from './questions/WordsSelect';
 
 interface TakeQuizLiveProps {
-    quiz_id: string;
-    //question_number?: string;
+    live_quiz_id: string;
+    live_question_number?: string;
+    //live_total_score?: string;
     parent_callback: () => void;   // to notify parent component when a question is finished ( or the quiz is finished??)
 }
 
-function TakeQuizLive({ quiz_id , parent_callback}: TakeQuizLiveProps) {
+function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_callback}: TakeQuizLiveProps) {
+    // scenarios:
+    /*
+     1) if live quiz id is set, then it can be either the student receives a enable live quiz message for the teacher
+     or the student is logged in while a live quiz is already in progress and there has been no questions to do yet. 
+     In this case, the student should receive the current live quiz id from the server upon logging in.
+
+    2) if both live quiz id and live question number are set, then that means the student is logged while a live quiz is in progress
+    with a question being unfinished This can happens if user's connection is dropped while doing a live question.
+    In this scenario, the student should receive both live quiz id and live question number from the server upon login.
+    (see backend logic for handling connection_established message in consumers.py)
+    */
+
     const [question, setQuestion] = useState<QuestionProps | null>(null);
 
     const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | null>(null);
@@ -53,7 +66,7 @@ function TakeQuizLive({ quiz_id , parent_callback}: TakeQuizLiveProps) {
 
     const dispatch = useDispatch<AppDispatch>();
         
-useEffect(() => {
+    useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("TakeQuizLive: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
@@ -61,11 +74,8 @@ useEffect(() => {
         if (data.message_type === "question_number") {
             //console.log("TakeQuizLive: Setting live question_number to:", data.message);
             setLiveQuestionNumber(data.message);
-        } //student_acknowleged_live_quiz_id
-     
-          
+        } 
       }
-    
       // Subscribe to the "message" event
       eventEmitter?.on("message", handleMessage);
       // Cleanup the event listener on unmount
@@ -74,13 +84,13 @@ useEffect(() => {
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
-      useEffect(() => {
+    //  useEffect(() => {
         // clear users Total Live Score in redux store when component mounts
-        dispatch(updateLiveScore({name: name || '', live_score: 0}));
-      }, []);
+      //  dispatch(updateLiveScore({name: name || '', live_score: 0}));
+     // }, []);
 
       useEffect(() => {
-       //console.log("TakeQuizLive: quiz_id or question_number changed. quiz_id =", quiz_id, " question_number =", question_number);
+       
          // call api to get quiz question data for quizId and questionId
          // only if both quizId and questionNumber are set
             if (!quiz_id ) {
@@ -126,6 +136,55 @@ useEffect(() => {
 
       }, [quiz_id, liveQuestionNumber]);
     
+
+      useEffect(() => {
+             if (!live_question_number ) {
+                console.log("TakeQuizLive: question_number from Props is not set.");
+                return;
+              }
+              /*
+              only get here if live_question_number (from props) has a value, which means that quiz_id also has value.
+              this scenario happens when student logs in while a live quiz is in progress and there's a pending question to do.
+              */
+
+              /*
+              also, when a user finishes a question and notifies the server, it will reset the live_question_number value for
+              this user to NULL,
+              */
+
+          api.get(`/api/quizzes/${quiz_id}/questions/${live_question_number}/`)
+             .then((res) => res.data)
+             .then((data) => {
+                //console.log("TakeQuizLive: Quiz Question Data:", data);
+                 // you can set state here to store question data
+                 setQuestion(data);
+                 setShowQuestion(true);
+                 setFinishedLiveQuestion({status: false, question_number: live_question_number || ''}); // user is now working on this question
+                 // send event to server to indicate question has been received and 
+                 // I am working on it
+                 if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+                     const messageToSend = {
+                         message_type: 'student_acknowleged_live_question_number',
+                         message: `${live_question_number}`,
+                         user_name: name // sender
+                       };
+                      //console.log("TakeQuizLive: &&&&&&&&& Sending live_question_attempt_started message to server for question number:", question_number);
+                       websocketRef.current.send(JSON.stringify(messageToSend));
+                 }
+ 
+             })
+             .catch((err) => console.log("TakeQuizLive: Error fetching quiz question data:", err));
+ 
+       }, [live_question_number]);
+/*
+    useEffect(() => {
+      if (live_total_score === undefined) {
+        return;
+      }
+       console.log("TakeQuizLive: live_total_score changed. live_total_score =", live_total_score); 
+    }, [live_total_score]);
+*/
+
     function SafeHTML({ content }: { content: string }) {
         const sanitizedContent = DOMPurify.sanitize(content, {
           USE_PROFILES: { html: true },

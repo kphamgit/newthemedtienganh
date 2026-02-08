@@ -247,7 +247,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         <div>
             Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
             { showTerminateLiveQuizButton &&
-            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-400" onClick={() => {
+            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={() => {
                 websocketRef.current?.send(JSON.stringify({
                     message_type: "terminate_live_quiz",
                     message: liveQuizId,
@@ -268,7 +268,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         </div>
     <div className="mt-2 bg-gray-200">
         <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
-        <button className="text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-400" onClick={sendQuestionNumber}>Send Question Number</button>
+        <button className="text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-800" onClick={sendQuestionNumber}>Send Question Number</button>
    
         <span>
             <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="target user name..."

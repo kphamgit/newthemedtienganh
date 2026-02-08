@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import api from "../api";
 import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
@@ -19,8 +19,8 @@ function HomeStudent() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
     const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
-
-    const liveQuestionNumberRef = useRef<string | undefined>(undefined);
+    //const [liveTotalScore, setLiveTotalScore] = useState<string | null>(null);
+    //const liveQuestionNumberRef = useRef<string | undefined>(undefined);
 
     const {eventEmitter, websocketRef} = useWebSocket();
 
@@ -34,12 +34,30 @@ function HomeStudent() {
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data); 
         if (data.message_type === "connection_established") {
-           //console.log("HomeStudent: Received connection_established message from server:", data);
-            // no action needed for student for now
+            //console.log("HomeStudent: Received ** connection_established message** from server:", data);
+            // user is logged in while a live quiz is in progress. Hasn't received any live question yet
             if (data.live_quiz_id) {
                 setLiveQuizId(data.live_quiz_id);
             }
-
+            // user is logged while a live question (and a live quiz) is in progress
+            if (data.live_question_number) {
+                if (!data.live_quiz_id) {
+                    // should never happen
+                    console.error("HomeStudent: Error: live_question_number received without live_quiz_id");
+                    return;
+                }
+                setLiveQuestionNumber(data.live_question_number);
+            }
+            //if(data.live_total_score){
+               // setLiveTotalScore(data.live_total_score);
+           // }
+        }
+        else if (data.message_type === "disconnect_user") {
+            //console.log("HomeStudent: Received disconnect_user message from server for user:", data.user_name);
+            if (data.user_name === name) {
+                // will log out this user in this tab, which will trigger the storage event listener to log out user in other tabs as well
+                //dispatch(clearUser());
+            }
         }
         else if (data.message_type === "live_quiz_id") {
            //console.log("HomeStudent: Setting liveQuizId to:", data.message);
@@ -60,7 +78,8 @@ function HomeStudent() {
             //console.log("HomeStudent: Received terminate_live_quiz message from server.");
              // reset live quiz state
              setLiveQuizId(null);
-             setLiveQuestionNumber(undefined);
+             
+             //setLiveQuestionNumber(undefined);
           }
       }
     
@@ -72,9 +91,9 @@ function HomeStudent() {
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
    
-    useEffect(() => {
-        liveQuestionNumberRef.current = liveQuestionNumber;
-    }, [liveQuestionNumber]);
+    //useEffect(() => {
+      //  liveQuestionNumberRef.current = liveQuestionNumber;
+   // }, [liveQuestionNumber]);
     
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
@@ -163,7 +182,12 @@ function HomeStudent() {
                     </div>
                    
                     {liveQuizId &&
-                        <TakeQuizLive parent_callback={live_question_attempt_finished} quiz_id={liveQuizId} />
+                        <TakeQuizLive 
+                            parent_callback={live_question_attempt_finished} 
+                            live_quiz_id={liveQuizId} 
+                            live_question_number = {liveQuestionNumber} 
+                            //live_total_score={liveTotalScore ?? undefined}
+                        />
                     }
                     <Outlet />
                 </div>

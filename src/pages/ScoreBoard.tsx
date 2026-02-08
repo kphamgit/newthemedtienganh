@@ -25,10 +25,23 @@ function ScoreBoard() {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "connection_established") {
-          //console.log("ScoreBoard: Received connection_established message from server for user:", data.user_name);
+          console.log("ScoreBoard: Received connection_established message from server for user:", data);
           const others = data.other_connected_users || [];
           const all_connected = [data.user_name, ...others];
-          setUserRows(all_connected.map((user_name) => ({name: user_name})));
+          if (data.live_total_score) {
+            console.log("ScoreBoard: connection_established message contains live_total_score for user:", data.user_name, " score:", data.live_total_score);
+            // if live_total_score is present, set live total score for each this user
+           
+            setUserRows(all_connected.map((user_name) => ({
+              name: user_name,
+              //live_quiz_id: data.live_quiz_id || undefined,
+              live_question_number: data.live_question_number ? Number(data.live_question_number) : undefined,
+              total_score: user_name === data.user_name ? Number(data.live_total_score) : undefined, // only set total score for the user who just connected, since other users might have different total scores
+            })));
+            
+          } else {
+            setUserRows(all_connected.map((user_name) => ({name: user_name})));
+          }
       
         }
         else if (data.message_type === "connection_dropped") {
@@ -42,7 +55,7 @@ function ScoreBoard() {
             const sender = data.user_name;
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
-                    return { ...row, live_question_number: Number(data.message) };
+                    return { ...row, live_question_number: Number(data.message), live_score: undefined }; // reset live score and total score when question number is updated
                 }
                 return row;
             }));
@@ -65,16 +78,20 @@ function ScoreBoard() {
          }
          else if (data.message_type === "live_score") {
             //console.log("ScoreBoard: Received live_score message from server for user:", data.user_name, " score:", data.message);
+            // score should be in the form of : "5:10" where 5 is the live score for the current question 
+            // and 10 is the total score for the quiz so far. We will split it and only update the live score, and add the live score to total score.
             // update live score in redux store for that user
             const sender = data.user_name;
+            const score = Number(data.message.split(":")[0]); // get live score
+            const total_score = Number(data.message.split(":")[1]); // get total score
             // first, get the total score for that user
-            const user_total_score = userRows.find((row) => row.name === sender)?.total_score || 0;
+            //const user_total_score = userRows.find((row) => row.name === sender)?.total_score || 0;
             //console.log("ScoreBoard: User:", sender, " total score is:", user_total_score);
             // add live score to total score, convert to number first
-            const new_total_score = user_total_score + Number(data.message);
+            //const new_total_score = user_total_score + Number(data.message);
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
-                    return { ...row, live_score: Number(data.message), total_score: new_total_score };
+                    return { ...row, live_score: score, total_score: total_score };
                 }
                 return row;
             }));
@@ -90,22 +107,6 @@ function ScoreBoard() {
                 live_question_number: undefined,
             })));
         }
-        /*
-{
-  "message_type": "connection_established",
-  "user_name": "teacher",
-  "other_connected_users": [
-    "admin"
-  ],
-  "live_quiz_id": null,
-  "live_question_number": null
-}
-  {
-    "message_type": "student_acknowleged_live_question_number",
-    "message": "1",
-    "user_name": "admin"
-}
-        */
       }
       // Subscribe to the "message" event
       eventEmitter?.on("message", handleMessage);
@@ -116,7 +117,7 @@ function ScoreBoard() {
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
     const sendDisconnect = (username: string) => {
-        //console.log("sendDisconnect Quiz id: ");
+         console.log("sendDisconnect username:", username);
          if (!websocketRef.current) {
              alert("WebSocket is not connected.");
              return;
@@ -131,121 +132,63 @@ function ScoreBoard() {
 
     return (
         <>
-        
-        <div className="bg-green-300 p-2 mb-2">
-            <div>Users online:</div>
-            { userRows && userRows.length > 0 &&
-                userRows.map((user, index) => (
-                    <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
-                     <div>
-                        { name === "teacher" &&
-                            <button 
-                                className="bg-red-700 text-white rounded-full text-md p-1 ml-2"
-                                onClick={() => sendDisconnect(user.name)}
-                            >
-                                X
-                            </button>
-                        }     
-                        </div>       
-                    <div>
+            <div className="bg-green-300 p-2 mb-2">
+                <div>Users online:</div>
+                {userRows && userRows.length > 0 &&
+                    userRows.map((user, index) => (
+                        <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
+                            <div>
+                                <span>
+                                    <button
+                                        className="bg-red-500 text-white px-1 py-0 rounded mr-2"
+                                        onClick={() => sendDisconnect(user.name)}   
+                                    >X
+                                    </button>
+                                </span>
                             { name === "teacher" && user.live_quiz_id !== undefined &&
-                            <span>Quiz Id: {user.live_quiz_id}</span>
-                    }
-                            - {user.name}
-                    </div>
-                    { user.live_question_number !== undefined &&
-                        <>
-                    <div className="bg-amber-400 text-md text-blue-600 py-0 ml-1 px-2 rounded-full">{user.live_question_number}</div>
-                    <div className='flex flex-row justify-center items-center ml-2'>
-                        <div className='mx-2'>Score:</div>
-                        <div>
-                            {user.live_score === undefined ?
+                            <span>Quiz id: {user.live_quiz_id} </span>
+                            }
+                                 - {user.name}
+                               
+                            </div>
+                            {user.live_question_number !== undefined && user.name !== "teacher" &&
+                                <>
+                                    <div
+                                        className={`${user.live_score === undefined ? "bg-amber-600" : "bg-green-600"
+                                            } py-0 ml-1 px-2 rounded-full text-md text-white`}
+                                    >{user.live_question_number}</div>
 
-                                <FaSpinner className="animate-spin text-blue-500" size={17} />
-                                :
-                                <span className="ml-2">{user.live_score}</span>
+                                    <div className='flex flex-row justify-center items-center ml-2'>
+                                        <div className='mx-2'>Score:</div>
+                                        <div>
+                                            {user.live_score === undefined ?
+
+                                                <FaSpinner className="animate-spin text-blue-500" size={17} />
+                                                :
+                                                <span className="ml-2">{user.live_score}</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </>
+                            }
+                            {user.name !== "teacher" && user.total_score !== undefined &&
+                                <div className='flex flex-row justify-center items-center ml-2'>
+                                    
+                                    <div className='p-1 mx-2'>Total:</div>
+                                    <div>
+                                        <span className="ml-2">{user.total_score}</span>
+
+                                    </div>
+
+                                </div>
                             }
                         </div>
-                    </div>
-                  
-                    <div className='flex flex-row justify-center items-center ml-2'>
-                        <div className='p-1 mx-2'>Total:</div>
-                        <div>
-                            {user.total_score === undefined ?
-
-                                <FaSpinner className="animate-spin text-blue-500" size={15} />
-                                :
-                                <span className="ml-2">{user.total_score}</span>
-                            }
-                        </div>
-                    </div>
-                            
-                    </>
-                    }
-                </div>
-                ))
-            }
- 
-        </div>
-        
-        
+                    ))
+                }
+            </div>
         </>
-      )
+    )
 }
 
 export default ScoreBoard
-
-/*
-           { connectedUser && connectedUser.length > 0 &&
-            <div className="flex flex-col space-x-4">
-                {connectedUser.map((user, index) => (
-                    <div className="flex flex-row justify-start items-center mt-1 gap-2" key={index}>
-                    <div>{user.name}</div>
-                    { displayUserRow(user, index) }
-                    { name === "teacher" &&
-                        <button 
-                            className="bg-red-500 text-white p-1 ml-2 rounded-md"
-                            onClick={() => sendDisconnect(user.name)}
-                        >
-                            Disconnect
-                        </button>
-                    }
-                   
-                    </div>
-                    
-                ))}
-            </div>
-    }
-*/
-
-/*
-      { userRows && userRows.length > 0 &&
-                userRows.map((user, index) => (
-                    <div className="flex flex-row justify-start items-center mt-1 gap-2" key={index}>
-                         <div>
-                            { name === "teacher" && user.live_quiz_id !== undefined &&
-                            <span>Quiz Id: {user.live_quiz_id}</span>
-                    }
-                            - {user.name}
-                         </div>
-                    </div>
-                ))
-            }
-*/
-
-
-/*
-      <div className="bg-green-300 p-2 mb-2">
-            <div>Users online:</div>
-            { connectedUsers && connectedUsers.length > 0 &&
-                connectedUsers.map((user_name, index) => (
-                    <div className="flex flex-row justify-start items-center mt-1 gap-2" key={index}>
-                        <div>{user_name}</div>
-                    </div>
-                    
-                ))  
-            }
- 
-        </div>
-*/
 

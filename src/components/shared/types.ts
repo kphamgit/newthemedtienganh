@@ -44,6 +44,7 @@ export interface WebSocketMessageProps {
   other_connected_users?: string[];
   live_quiz_id?: string;   // when user logs in with live quiz ongoing
   live_question_number?: string; // when user logs in with live quiz ongoing and didn't finish current question
+  live_total_score?: string; // only for live_total_score message type
   queried_value?: string; // only for cache_query_response message type
 }
 
