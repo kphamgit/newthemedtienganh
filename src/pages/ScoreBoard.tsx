@@ -137,6 +137,16 @@ function ScoreBoard() {
             { userRows && userRows.length > 0 &&
                 userRows.map((user, index) => (
                     <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
+                     <div>
+                        { name === "teacher" &&
+                            <button 
+                                className="bg-red-700 text-white rounded-full text-md p-1 ml-2"
+                                onClick={() => sendDisconnect(user.name)}
+                            >
+                                X
+                            </button>
+                        }     
+                        </div>       
                     <div>
                             { name === "teacher" && user.live_quiz_id !== undefined &&
                             <span>Quiz Id: {user.live_quiz_id}</span>
@@ -169,6 +179,7 @@ function ScoreBoard() {
                             }
                         </div>
                     </div>
+                            
                     </>
                     }
                 </div>
