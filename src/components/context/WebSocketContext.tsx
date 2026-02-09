@@ -30,7 +30,7 @@ export const WebSocketProvider: React.FC<{
 
     websocketRef.current.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      //console.log("Received data:", data);
+      console.log("Received data:", data);
       eventEmitter?.emit("message", data);
     };
 

@@ -27,6 +27,7 @@ function HomeStudent() {
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     //const dispatch = useDispatch<AppDispatch>();
+    const [message, setMessage] = useState("");
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
@@ -170,11 +171,40 @@ function HomeStudent() {
         // the liveQuestionNumber prop will be refreshed and TakeQuizLive) will be rendered with new question
     }
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
+
+const sendNotification = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/send-notification/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (response.ok) {
+        console.log("Notification sent successfully!");
+      } else {
+        console.error("Failed to send notification:", await response.json());
+      }
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+  };
+
+
     return (
        
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
                 <div>
    
+                <div>Enter message:
+                        <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} />
+                    </div>
+                    <div>
+                        <button className="bg-green-300" onClick={sendNotification}>Send Notification</button>
+                    </div>
+
                     <div className="flex flex-col bg-amber-200 py-2 px-10">
                         <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
                             <Navbar role="student" levels={levels} />
