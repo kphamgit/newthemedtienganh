@@ -171,10 +171,15 @@ function HomeStudent() {
         // the liveQuestionNumber prop will be refreshed and TakeQuizLive) will be rendered with new question
     }
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
+// const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/`;
 
 const sendNotification = async () => {
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/send-notification/", {
+      const baseURL = import.meta.env.VITE_API_URL
+      const url = `${baseURL}/api/send-notification/`
+      console.log("Sending notification to:", url);
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
