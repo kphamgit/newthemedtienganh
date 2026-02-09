@@ -29,6 +29,35 @@ function HomeStudent() {
     //const dispatch = useDispatch<AppDispatch>();
     const [message, setMessage] = useState("");
 
+// send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
+// Heroku has a 55 seconds timeout for idle connections, so sending a ping every 30 seconds is a common strategy to keep the connection alive without overwhelming the server with too many pings. This way, even if there's no activity from the user, the WebSocket connection will remain open and responsive. 
+useEffect(() => {
+        //const socket = new WebSocket(SOCKET_URL);
+    
+        const pingInterval = setInterval(() => {
+            if (!websocketRef.current) {
+                alert("WebSocket is not connected.");
+                return;
+            }
+            // if there's no quiz id passed in from props, alert and return
+            console.log("HomeStudent: Sending ping to server to keep WebSocket connection alive...");
+            websocketRef.current.send(JSON.stringify({
+                type: "ping",
+            }));
+
+
+
+            /*
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'ping' }));
+            }
+                */
+
+        }, 30000); // 30 seconds is the "sweet spot" for Heroku
+    
+        return () => clearInterval(pingInterval);
+    }, []);
+
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("HomeStudent: handleMessage called with data:", data);
