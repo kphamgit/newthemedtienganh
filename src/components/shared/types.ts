@@ -25,7 +25,6 @@ type ClozeAnswerResultsProps = {
 
 export interface WebSocketMessageProps {
   message_type: 
-  "connection_established" |
   "connection_dropped" |
   "chat" | 
   "live_score" |
@@ -37,9 +36,11 @@ export interface WebSocketMessageProps {
   "disconnect_user" |
   "cache_query_response" | 
   "live_quiz_terminated" |
+  "welcome_message" |
+  "another_user_joined" |
   "terminate_live_quiz";
  
-  message: string;
+  content: string;
   user_name: string;  // identify sender, except for questin_number message where user_name is target user
   other_connected_users?: string[];
   live_quiz_id?: string;   // when user logs in with live quiz ongoing

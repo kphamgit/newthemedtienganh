@@ -23,9 +23,41 @@ function ScoreBoard() {
 
   useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        //console.log("ScoreBoard: handleMessage called with data:", data);
-        if (data.message_type === "connection_established") {
-          console.log("ScoreBoard: Received connection_established message from server for user:", data);
+        console.log("ScoreBoard: handleMessage called with data:", data);
+        if (data.message_type === "welcome_message") {
+          console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
+          const other_connected_users = data.other_connected_users || [];
+            const all_connected = [data.user_name, ...other_connected_users];
+            setUserRows(all_connected.map((user_name) => ({
+              name: user_name,
+              //live_quiz_id: data.live_quiz_id || undefined,
+        
+            })));
+          /*
+           //setUserRows([{ name: data.user_name }]);
+           //add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
+           console.log("ScoreBoard: Adding user to userRows:", data.user_name);  
+           setUserRows((prevRows) => {
+                if (prevRows.some((row) => row.name === data.user_name)) {
+                    console.log("ScoreBoard: ********* THIS SHOULD NOT HAPPEND User already in the list, not adding again:", data.user_name);
+                  return prevRows; // user already in the list, do not add again
+                }
+                return [...prevRows, { name: data.user_name }]; // add new user to the list 
+              });
+              */
+        }
+        else if (data.message_type === "another_user_joined") {
+          console.log("ScoreBoard: Received another_user_joined message from server for user:", data);
+            // add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
+            setUserRows((prevRows) => {
+                if (prevRows.some((row) => row.name === data.user_name)) {
+                    console.log("ScoreBoard: ********* THIS SHOULD NOT HAPPEND User already in the list, not adding again:", data.user_name);
+                  return prevRows; // user already in the list, do not add again
+                }
+                return [...prevRows, { name: data.user_name }]; // add new user to the list 
+              });
+          
+            /*
           const others = data.other_connected_users || [];
           const all_connected = [data.user_name, ...others];
           if (data.live_total_score) {
@@ -42,7 +74,7 @@ function ScoreBoard() {
           } else {
             setUserRows(all_connected.map((user_name) => ({name: user_name})));
           }
-      
+            */
         }
         else if (data.message_type === "connection_dropped") {
             //console.log("ScoreBoard: Received connection_dropped message from server for user:", data.user_name);
@@ -55,15 +87,15 @@ function ScoreBoard() {
             const sender = data.user_name;
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
-                    return { ...row, live_question_number: Number(data.message), live_score: undefined }; // reset live score and total score when question number is updated
+                    return { ...row, live_question_number: Number(data.content), live_score: undefined }; // reset live score and total score when question number is updated
                 }
                 return row;
             }));
-            //dispatch(updateLiveQuestionNumber({name: sender, question_number: data.message}));
+            //dispatch(updateLiveQuestionNumber({name: sender, question_number: data.content}));
         }
         else if (data.message_type === "student_acknowleged_live_quiz_id") {
-            //console.log("Take Quiz Live: received acknowledge quiz id :", data.message);
-             //setLiveQuizId(data.message);
+            //console.log("Take Quiz Live: received acknowledge quiz id :", data.content);
+             //setLiveQuizId(data.content);
              // only accept the message if you are a teacher
              if (name !== "teacher") {
                  console.log("Take Quiz Live: Ignoring quiz id acknowledge message since not a teacher.");
@@ -71,7 +103,7 @@ function ScoreBoard() {
              }
              setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === data.user_name) {
-                    return { ...row, live_quiz_id: data.message };
+                    return { ...row, live_quiz_id: data.content };
                 }
                 return row;
             }));
@@ -82,13 +114,13 @@ function ScoreBoard() {
             // and 10 is the total score for the quiz so far. We will split it and only update the live score, and add the live score to total score.
             // update live score in redux store for that user
             const sender = data.user_name;
-            const score = Number(data.message.split(":")[0]); // get live score
-            const total_score = Number(data.message.split(":")[1]); // get total score
+            const score = Number(data.content.split(":")[0]); // get live score
+            const total_score = Number(data.content.split(":")[1]); // get total score
             // first, get the total score for that user
             //const user_total_score = userRows.find((row) => row.name === sender)?.total_score || 0;
             //console.log("ScoreBoard: User:", sender, " total score is:", user_total_score);
             // add live score to total score, convert to number first
-            //const new_total_score = user_total_score + Number(data.message);
+          
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
                     return { ...row, live_score: score, total_score: total_score };

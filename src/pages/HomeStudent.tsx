@@ -27,8 +27,8 @@ function HomeStudent() {
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
     //const dispatch = useDispatch<AppDispatch>();
-    const [message, setMessage] = useState("");
-
+    //const [message, setMessage] = useState<{message_type: "chat", message: string}>({message_type: "chat", message: ""});
+    //const [messageText, setMessageText] = useState<string>("");
 // send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
 // Heroku has a 55 seconds timeout for idle connections, so sending a ping every 30 seconds is a common strategy to keep the connection alive without overwhelming the server with too many pings. This way, even if there's no activity from the user, the WebSocket connection will remain open and responsive. 
 useEffect(() => {
@@ -40,12 +40,10 @@ useEffect(() => {
                 return;
             }
             // if there's no quiz id passed in from props, alert and return
-            console.log("HomeStudent: Sending ping to server to keep WebSocket connection alive...");
+            console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
             websocketRef.current.send(JSON.stringify({
-                type: "ping",
+                message_type: "ping",
             }));
-
-
 
             /*
             if (socket.readyState === WebSocket.OPEN) {
@@ -62,8 +60,8 @@ useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
-       //console.log("*********** MessageControl: Received data from server:", data); 
-        if (data.message_type === "connection_established") {
+       //console.log("*********** MessageControl: Received data from server:", data);
+        if (data.message_type === "another_user_joined") {
             //console.log("HomeStudent: Received ** connection_established message** from server:", data);
             // user is logged in while a live quiz is in progress. Hasn't received any live question yet
             if (data.live_quiz_id) {
@@ -91,7 +89,7 @@ useEffect(() => {
         }
         else if (data.message_type === "live_quiz_id") {
            //console.log("HomeStudent: Setting liveQuizId to:", data.message);
-            setLiveQuizId(data.message);
+            setLiveQuizId(data.content);
             // send acknowledgement back to server that student received the quiz id
             if (!websocketRef.current) {
                 alert("WebSocket is not connected.");
@@ -100,7 +98,7 @@ useEffect(() => {
             // if there's no quiz id passed in from props, alert and return
             websocketRef.current.send(JSON.stringify({
                 message_type: "student_acknowleged_live_quiz_id",
-                message: data.message,  // should contain quiz id
+                message: data.content,  // should contain quiz id
                 user_name: name,    // identify sender, which is teacher
             }));
           }
@@ -202,7 +200,21 @@ useEffect(() => {
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
 // const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/`;
 
+/*
 const sendNotification = async () => {
+        api.post("/api/send-notification/", { message_type: "chat", content: messageText, user_name: name })
+            .then((res) => {
+                //console.log("Notification sent successfully:", res.data);
+                setMessageText(""); // Clear the input field after sending
+            })
+            .catch((err) => {
+                console.error("Error sending notification:", err);
+                alert("Failed to send notification. Please try again.");
+            });
+  };
+*/
+/*
+  const sendNotificationSave = async () => {
 
     try {
       const baseURL = import.meta.env.VITE_API_URL
@@ -213,7 +225,7 @@ const sendNotification = async () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message_type: "chat", content: messageText, user_name: name }),
       });
 
       if (response.ok) {
@@ -225,6 +237,7 @@ const sendNotification = async () => {
       console.error("Error sending notification:", error);
     }
   };
+*/
 
 
     return (
@@ -232,13 +245,6 @@ const sendNotification = async () => {
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
                 <div>
    
-                <div>Enter message:
-                        <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} />
-                    </div>
-                    <div>
-                        <button className="bg-green-300" onClick={sendNotification}>Send Notification</button>
-                    </div>
-
                     <div className="flex flex-col bg-amber-200 py-2 px-10">
                         <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
                             <Navbar role="student" levels={levels} />

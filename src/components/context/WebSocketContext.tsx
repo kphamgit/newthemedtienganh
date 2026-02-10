@@ -30,7 +30,20 @@ export const WebSocketProvider: React.FC<{
 
     websocketRef.current.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      console.log("Received data:", data);
+      console.log("WebSocketProvider: Received message from server url=:", websocketRef.current?.url);
+      //..from server url=:"ws://localhost:8080/teacher/" 
+      // ws server has attached the user name to the url, 
+      // so we can use that to determine which tab sent the message and avoid sending messages back
+      // to the same tab that sent it in the first place. This is important because when a message 
+      // is sent from a tab, it is broadcasted to all tabs including the sender tab. 
+      // If we don't ignore messages from the sender tab, 
+      // it will create an infinite loop of messages being sent back and forth between the server and the sender tab.
+      //const user_name_from_url = websocketRef.current?.url.split("/").slice(-2, -1)[0]; // get the user name from the url
+      
+      console.log("Received ws data:", data)
+      console.log("from websocket url:", websocketRef.current?.url);
+
+      // transmit to other components 
       eventEmitter?.emit("message", data);
     };
 

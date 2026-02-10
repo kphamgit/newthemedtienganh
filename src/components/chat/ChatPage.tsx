@@ -52,19 +52,19 @@ export interface ChatProps {
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data); 
         if (data.message_type === "chat") {
-           console.log('ChatPage: Received CHAT message from server:', data, "isChatOpen:", isChatOpen);
+          // console.log('ChatPage: Received CHAT message from server:', data, "isChatOpen:", isChatOpen);
 
-          const chat: ChatProps = { text: data.message, user_name: data.user_name };
+          const chat: ChatProps = { text: data.content, user_name: data.user_name };
 
           if (name === chat.user_name) { // ignore messages from myself. See sendChatMessage function.
-            console.log("ChatPage: Ignoring chat message from myself:", chat.user_name);
+            //console.log("ChatPage: Ignoring chat message from myself:", chat.user_name);
             return;
           }
           if (name !== "teacher" && chat.user_name !== "teacher") {
             // students only accept messages from teacher, not from other students
             return;
           }
-          console.log('ChatPage: adding chat message: ' + chat.text);
+          //console.log('ChatPage: adding chat message: ' + chat.text);
           setIncomingMessages((prevMessages) => {
           return [...prevMessages, chat]
           });
@@ -88,9 +88,10 @@ export interface ChatProps {
       }
       const messageToSend = {
         message_type: 'chat',
-        message: outgoingMessage,
+        content: outgoingMessage,
         user_name: name // You can replace this with the actual user name from your state
       };
+      console.log('ChatPage: Sending message to server:', messageToSend);
       websocketRef.current.send(JSON.stringify(messageToSend));
       // add the sent message to incomingMessages so it shows up in chat body
       setIncomingMessages((prevMessages) => [

@@ -73,7 +73,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
        //console.log("*********** TakeQuizLive: Received data from server:", data); 
         if (data.message_type === "question_number") {
             //console.log("TakeQuizLive: Setting live question_number to:", data.message);
-            setLiveQuestionNumber(data.message);
+            setLiveQuestionNumber(data.content);
         } 
       }
       // Subscribe to the "message" event

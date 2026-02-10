@@ -7,6 +7,7 @@ import TeacherControlPanel from "./TeacherControlPanel";
 //import type { WebSocketMessageProps } from "../components/shared/types";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
 import ScoreBoard from "./ScoreBoard";
+import { useWebSocket } from "../components/context/WebSocketContext";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
 //import type { AppDispatch } from "../redux/store";
@@ -31,6 +32,8 @@ function HomeTeacher() {
     //const [chat, setChat] = useState<{ text: string; user_name: string }>({ text: "", user_name: "" });
 
     const teacherControlPanelRef = useRef<TeacherControlRefProps>(null);
+
+    const { websocketRef} = useWebSocket();
 
     //const {eventEmitter} = useWebSocket();
     //const liveQuizInReduxStore = useSelector((state: RootState) => state.liveQuizId.value);
@@ -81,6 +84,28 @@ function HomeTeacher() {
         };
     }, []);
 
+    useEffect(() => {
+        const pingInterval = setInterval(() => {
+            if (!websocketRef.current) {
+                alert("WebSocket is not connected.");
+                return;
+            }
+            // if there's no quiz id passed in from props, alert and return
+            console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
+            websocketRef.current.send(JSON.stringify({
+                message_type: "ping",
+            }));
+            /*
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'ping' }));
+            }
+                */
+        }, 30000); // 30 seconds is the "sweet spot" for Heroku
+    
+        return () => clearInterval(pingInterval);
+    }, []);
+
+    
     return (
    
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">

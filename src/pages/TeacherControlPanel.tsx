@@ -1,7 +1,8 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useEffect, useImperativeHandle, useState } from "react";
-import api from "../api";
+import useSendNotification from "../hooks/useSendNotification";
+//import api from "../api";
 //import type { RootState } from "../redux/store";
 import type { WebSocketMessageProps } from "../components/shared/types";
 
@@ -45,10 +46,13 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
         const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
+        //const { sendNotification, isSending, error } = useSendNotification();
+        const { sendNotification,  } = useSendNotification();
+
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
-            if (data.message_type === "connection_established") {
+            if (data.message_type === "another_user_joined") {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [data.user_name, ...others];
@@ -80,14 +84,14 @@ export const TeacherControlPanel = ({ref }: Props) => {
             }
             else if (data.message_type === "live_quiz_id") {
                 //console.log("TeacherControl: Received live_quiz_id message from server, data = :", data);
-                setActiveLiveQuizId(data.message);
+                setActiveLiveQuizId(data.content);
             }
             else if (data.message_type === "live_quiz_terminated") {
                 //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
                 setActiveLiveQuizId(null);
                 setShowTerminateLiveQuizButton(false);
             }
-            if (data.message_type === "connection_established") {
+            if (data.message_type === "another_user_joined") {
                 //console.log("TeacherControl: Received connection_established message from server for user:", data);
                 /*
 {
@@ -132,6 +136,17 @@ export const TeacherControlPanel = ({ref }: Props) => {
     }));
 
     const sendQuizId = () => {
+        sendNotification("live_quiz_id", liveQuizId, name, () => {
+            // After successfully sending the notification, update the active live quiz id state
+            // clear input field
+            setLiveQuizId("");
+            setActiveLiveQuizId(liveQuizId);
+            //setShowTerminateLiveQuizButton(true);
+        });
+    };
+
+    /*
+    const sendQuizIdSave = () => {
        //console.log("Sendingggg Quiz id: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
@@ -147,7 +162,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
                 if (response) {
                     websocketRef.current?.send(JSON.stringify({
                         message_type: "live_quiz_id",
-                        message: liveQuizId,
+                        content: liveQuizId,
                         user_name: name,   // identify sender
                     }));
                     
@@ -170,6 +185,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         });
         
     };
+*/
 
     const sendQuestionNumber = () => {
        //console.log("sendQuestionNumber: ");
