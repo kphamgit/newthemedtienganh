@@ -23,13 +23,40 @@ type ClozeAnswerResultsProps = {
   error_flag: boolean,
 }
 
+/*
+{
+  "live_quiz_id": "1",
+  "live_question_number": "1",
+  "total_live_score": null,
+  "students_live_question_numbers": [
+    {
+      "key": "student1_live_question_number",
+      "value": "1"
+    },
+    {
+      "key": "student2_live_question_number",
+      "value": "1"
+    }
+  ]
+}
+*/
+
+export interface LoggedInUserPendingDataProps {
+  live_quiz_id: string,
+  live_question_number: string,
+  total_live_score: string,
+  //students_live_question_numbers: { [key: string]: string } 
+  students_live_question_numbers?: { key: string; value: string }[]; // Ensure this is typed as an array of objects
+  // key is something like "student1_live_question_number", value is their live question number 
+}
+
 export interface WebSocketMessageProps {
   message_type: 
-  "connection_dropped" |
+  "user_disconnected" |
   "chat" | 
   "live_score" |
   "live_quiz_id" | 
-  "question_number" | 
+  "live_question_number" | 
   "live_quiz_id_and_live_question_number" |
   "student_acknowleged_live_question_number" |
   "student_acknowleged_live_quiz_id" |
@@ -40,11 +67,10 @@ export interface WebSocketMessageProps {
   "another_user_joined" |
   "terminate_live_quiz";
  
-  content: string;
+  content: any;
   user_name: string;  // identify sender, except for questin_number message where user_name is target user
   other_connected_users?: string[];
-  live_quiz_id?: string;   // when user logs in with live quiz ongoing
-  live_question_number?: string; // when user logs in with live quiz ongoing and didn't finish current question
+  pending_data: {live_quiz_id: string, live_question_number: string, total_live_score: string} | null;
   live_total_score?: string; // only for live_total_score message type
   queried_value?: string; // only for cache_query_response message type
 }

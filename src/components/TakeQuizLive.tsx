@@ -71,7 +71,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
         //console.log("TakeQuizLive: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** TakeQuizLive: Received data from server:", data); 
-        if (data.message_type === "question_number") {
+        if (data.message_type === "live_question_number") {
             //console.log("TakeQuizLive: Setting live question_number to:", data.message);
             setLiveQuestionNumber(data.content);
         } 
@@ -121,10 +121,11 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                 setFinishedLiveQuestion({status: false, question_number: liveQuestionNumber}); // user is now working on this question
                 // send event to server to indicate question has been received and 
                 // I am working on it
+                console.log("TakeQuizLive: Sending student_acknowleged_live_question_number message to server for question number:", liveQuestionNumber);
                 if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
                     const messageToSend = {
                         message_type: 'student_acknowleged_live_question_number',
-                        message: `${liveQuestionNumber}`,
+                        content: liveQuestionNumber,
                         user_name: name // sender
                       };
                      //console.log("TakeQuizLive: &&&&&&&&& Sending live_question_attempt_started message to server for question number:", question_number);
@@ -160,18 +161,20 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                  setQuestion(data);
                  setShowQuestion(true);
                  setFinishedLiveQuestion({status: false, question_number: live_question_number || ''}); // user is now working on this question
-                 // send event to server to indicate question has been received and 
-                 // I am working on it
+                // there's no need to send an acknoledgement to server in this scenario because 
+                // the student has already received the live_question_number value from server upon login, 
+                // which means the server already knows that the student has seen the question number and is working on it.
+                 
                  if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
                      const messageToSend = {
                          message_type: 'student_acknowleged_live_question_number',
-                         message: `${live_question_number}`,
+                         content: `${live_question_number}`,
                          user_name: name // sender
                        };
                       //console.log("TakeQuizLive: &&&&&&&&& Sending live_question_attempt_started message to server for question number:", question_number);
                        websocketRef.current.send(JSON.stringify(messageToSend));
                  }
- 
+                
              })
              .catch((err) => console.log("TakeQuizLive: Error fetching quiz question data:", err));
  
@@ -238,7 +241,9 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                //console.log("TakeQuizLive: Update score, Question Attempt Assessment Results score = ", assessment_results.score);
                 dispatch(updateLiveScore({name: name || '', live_score: assessment_results.score || 0}));
                 // send my live score to server via websocket
-                sendLiveScoreToServer(assessment_results.score?.toString() || "0");
+                //const message_content = `${liveQuestionNumber}: ${assessment_results.score}`;
+                const message_content = {live_question_number: liveQuestionNumber, score: assessment_results.score};
+                sendLiveScoreToServer(message_content);
                 
 
             })
@@ -267,7 +272,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
         }
       }
 
-      const sendLiveScoreToServer = (value: string) => {
+      const sendLiveScoreToServer = (value: any) => {
         if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
           alert('ChatPage: WebSocket is not connected');
           return;
@@ -275,9 +280,9 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
        //console.log("TakeQuizLive: Sending live score to server for question number:", question_number);
         const messageToSend = {
           message_type: 'live_score',
-          message: value,
+          content: value,  // format of content is "question_number: score", e.g. "1:5"
           user_name: name, // sender
-          live_question_number: liveQuestionNumber || '' // include question number for teacher to know which question this score is for,
+         
         };
         websocketRef.current.send(JSON.stringify(messageToSend));
       };

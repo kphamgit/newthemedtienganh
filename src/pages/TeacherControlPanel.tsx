@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import { useEffect, useImperativeHandle, useState } from "react";
-import useSendNotification from "../hooks/useSendNotification";
+//import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
 import type { WebSocketMessageProps } from "../components/shared/types";
@@ -47,18 +47,19 @@ export const TeacherControlPanel = ({ref }: Props) => {
         const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
         //const { sendNotification, isSending, error } = useSendNotification();
-        const { sendNotification,  } = useSendNotification();
+        //const { sendNotification,  } = useSendNotification();
 
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
+            
             if (data.message_type === "another_user_joined") {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [data.user_name, ...others];
               setConnectedUsers(all_connected);
             }
-            else if (data.message_type === "connection_dropped") {
+            else if (data.message_type === "user_disconnected") {
                 //console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
                 const dropped_user = data.user_name;
                 setConnectedUsers((prevUsers) => prevUsers.filter((user) => user !== dropped_user));
@@ -104,11 +105,12 @@ export const TeacherControlPanel = ({ref }: Props) => {
     "live_question_number": null
 }
                 */
+               /*
                 if (data.live_quiz_id) {
                     setActiveLiveQuizId(data.live_quiz_id);
                     setShowTerminateLiveQuizButton(true);
                 }
-            
+            */
               }
           }
           // Subscribe to the "message" event
@@ -136,6 +138,13 @@ export const TeacherControlPanel = ({ref }: Props) => {
     }));
 
     const sendQuizId = () => {
+        websocketRef.current?.send(JSON.stringify({
+            message_type: "live_quiz_id",
+            content: liveQuizId,
+            user_name: name,   // identify sender
+        }));
+        setShowTerminateLiveQuizButton(true);
+        /*
         sendNotification("live_quiz_id", liveQuizId, name, () => {
             // After successfully sending the notification, update the active live quiz id state
             // clear input field
@@ -143,6 +152,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
             setActiveLiveQuizId(liveQuizId);
             //setShowTerminateLiveQuizButton(true);
         });
+        */
+
     };
 
     /*
@@ -188,7 +199,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
 */
 
     const sendQuestionNumber = () => {
-       //console.log("sendQuestionNumber: ");
+        console.log("live question number: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
             return;
@@ -206,8 +217,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
             return;
         }
         websocketRef.current.send(JSON.stringify({
-            message_type: "question_number",
-            message: questionNumber,
+            message_type: "live_question_number",
+            content: questionNumber,
             user_name: targetUserName,    // identify sender, which is teacher
         }));
         // clear input field
@@ -251,6 +262,14 @@ export const TeacherControlPanel = ({ref }: Props) => {
             setKeyForCacheQuery(value);
         }
     }
+
+    const handleTerminateLiveQuiz = () => {
+        websocketRef.current?.send(JSON.stringify({
+            message_type: "terminate_live_quiz",
+            content: liveQuizId,
+            user_name: name,    // identify sender, which is teacher
+        }));
+    }
     
 //  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
@@ -263,13 +282,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         <div>
             Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
             { showTerminateLiveQuizButton &&
-            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={() => {
-                websocketRef.current?.send(JSON.stringify({
-                    message_type: "terminate_live_quiz",
-                    message: liveQuizId,
-                    user_name: name,    // identify sender, which is teacher
-                }));
-            }}>Terminate Live Quiz</button>
+            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={handleTerminateLiveQuiz}>Terminate Live Quiz</button>
         }
         </div>
         <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 

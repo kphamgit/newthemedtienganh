@@ -4,7 +4,6 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import type { WebSocketMessageProps } from '../components/shared/types';
-import { type LoggedInUserPendingDataProps } from '../components/shared/types';
 
 type UserRowProps = {
     name: string;
@@ -15,7 +14,7 @@ type UserRowProps = {
 }
 
 
-function ScoreBoard() {
+function ScoreBoardTeacher() {
     const { name } = useSelector((state: RootState) => state.user);
     //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list);
     const {websocketRef, eventEmitter} = useWebSocket();
@@ -41,44 +40,6 @@ const welcomeMessage = JSON.stringify({
             */
           console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
           console.log("ScoreBoard: welcome_message pending:", data.pending_data);
-          const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
-          //console.log("ScoreBoard: welcome_message other users' live question numbers :", pendingData?.students_live_question_numbers);
-
-          // remove myself from pendingData?.students_live_question_numbers array, since I will got my own live question number 
-        const filtered_students_live_question_numbers = 
-        pendingData?.students_live_question_numbers?.filter((item) => item.key !== `${data.user_name}_live_question_number`) || [];
-
-        console.log("ScoreBoard: welcome_message filtered students_live_question_numbers after removing myself:", filtered_students_live_question_numbers);
-        // now , go through userRows and update live question number for other users based on filtered_students_live_question_numbers
-        /*    
-        setUserRows((prevRows) => prevRows.map((row) => {
-                const matched_student = filtered_students_live_question_numbers.find((item) => item.key === `${row.name}_live_question_number`);
-                if (matched_student) {
-                    console.log("ScoreBoard: welcome_message updating live question number for user:", row.name, " to ", matched_student.value);
-                    return { ...row, live_question_number: Number(matched_student.value) };
-                }
-                return row;
-            }));
-          */
-
-          /*
-{
-  "live_quiz_id": "1",
-  "live_question_number": "1",
-  "total_live_score": null,
-  "students_live_question_numbers": [
-    {
-      "key": "student1_live_question_number",
-      "value": "1"
-    },
-    {
-      "key": "student2_live_question_number",
-      "value": "1"
-    }
-  ]
-}
-          */
-
           const other_connected_users = data.other_connected_users || [];
             const all_connected = [data.user_name, ...other_connected_users];
             setUserRows(all_connected.map((user_name) => ({
@@ -293,5 +254,5 @@ const welcomeMessage = JSON.stringify({
     )
 }
 
-export default ScoreBoard
+export default ScoreBoardTeacher
 

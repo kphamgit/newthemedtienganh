@@ -4,7 +4,6 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import type { WebSocketMessageProps } from '../components/shared/types';
-import { type LoggedInUserPendingDataProps } from '../components/shared/types';
 
 type UserRowProps = {
     name: string;
@@ -15,7 +14,7 @@ type UserRowProps = {
 }
 
 
-function ScoreBoard() {
+function ScoreBoardTeacherSave() {
     const { name } = useSelector((state: RootState) => state.user);
     //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list);
     const {websocketRef, eventEmitter} = useWebSocket();
@@ -26,59 +25,7 @@ function ScoreBoard() {
       const handleMessage = (data: WebSocketMessageProps) => {
         console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "welcome_message") {
-            /*
-const welcomeMessage = JSON.stringify({
-          message_type: "welcome_message",
-          content: `Welcome ${user_name} to the WebSocket server!`,
-          user_name: user_name,
-          other_connected_users: other_logged_in_users,
-          pending_data: {
-            live_quiz_id: quizId || null,
-            live_question_number: liveQuestionNumber || null,
-            total_live_score: liveTotalScore || 0,
-          },
-        });
-            */
           console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
-          console.log("ScoreBoard: welcome_message pending:", data.pending_data);
-          const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
-          //console.log("ScoreBoard: welcome_message other users' live question numbers :", pendingData?.students_live_question_numbers);
-
-          // remove myself from pendingData?.students_live_question_numbers array, since I will got my own live question number 
-        const filtered_students_live_question_numbers = 
-        pendingData?.students_live_question_numbers?.filter((item) => item.key !== `${data.user_name}_live_question_number`) || [];
-
-        console.log("ScoreBoard: welcome_message filtered students_live_question_numbers after removing myself:", filtered_students_live_question_numbers);
-        // now , go through userRows and update live question number for other users based on filtered_students_live_question_numbers
-        /*    
-        setUserRows((prevRows) => prevRows.map((row) => {
-                const matched_student = filtered_students_live_question_numbers.find((item) => item.key === `${row.name}_live_question_number`);
-                if (matched_student) {
-                    console.log("ScoreBoard: welcome_message updating live question number for user:", row.name, " to ", matched_student.value);
-                    return { ...row, live_question_number: Number(matched_student.value) };
-                }
-                return row;
-            }));
-          */
-
-          /*
-{
-  "live_quiz_id": "1",
-  "live_question_number": "1",
-  "total_live_score": null,
-  "students_live_question_numbers": [
-    {
-      "key": "student1_live_question_number",
-      "value": "1"
-    },
-    {
-      "key": "student2_live_question_number",
-      "value": "1"
-    }
-  ]
-}
-          */
-
           const other_connected_users = data.other_connected_users || [];
             const all_connected = [data.user_name, ...other_connected_users];
             setUserRows(all_connected.map((user_name) => ({
@@ -163,14 +110,12 @@ const welcomeMessage = JSON.stringify({
             }));
          }
          else if (data.message_type === "live_question_number") {
-               // is this for everybody or for me, either way I will accept
-
                console.log("ScoreBoard: Received live_question_number message from server for user:", data.user_name, " question number:", data.content);
                 // update question number in redux store for that user
                 const sender = data.user_name;
                 setUserRows((prevRows) => prevRows.map((row) => {
                     console.log("ScoreBoard: Checking if row.name === sender:", row.name, " === ", sender);
-                    if (row.name === name) {
+                    if (row.name === sender) {
                         return { ...row, live_question_number: Number(data.content), live_score: undefined }; // reset live score when question number is updated
                     }
                     return row;
@@ -178,26 +123,21 @@ const welcomeMessage = JSON.stringify({
                 
          }
          else if (data.message_type === "live_score") {
-            console.log("ScoreBoard: Received live_score message from :", data);
+            //console.log("ScoreBoard: Received live_score message from server for user:", data.user_name, " score:", data.message);
             // score should be in the form of : "5:10" where 5 is the live score for the current question 
             // and 10 is the total score for the quiz so far. We will split it and only update the live score, and add the live score to total score.
             // update live score in redux store for that user
-            /*
-                  Parsed message:  {
-              message_type: 'live_score',
-              content: { live_question_number: '1', score: 5 },
-              user_name: 'student1'
-            }
-            */
-
             const sender = data.user_name;
-            
-            // kpham: note that the server (Nodejs/Redis also keeps track of the total scores for students), for recovery purposes
-            // here, the total score is calculated by adding live score to previous total score in the client side.
-            // the two should be the same unless there are bugs.
+            const score = Number(data.content.split(":")[0]); // get live score
+            const total_score = Number(data.content.split(":")[1]); // get total score
+            // first, get the total score for that user
+            //const user_total_score = userRows.find((row) => row.name === sender)?.total_score || 0;
+            //console.log("ScoreBoard: User:", sender, " total score is:", user_total_score);
+            // add live score to total score, convert to number first
+          
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
-                    return { ...row, live_score: data.content.score, total_score: data.content.score + (row.total_score || 0)};
+                    return { ...row, live_score: score, total_score: total_score };
                 }
                 return row;
             }));
@@ -238,7 +178,6 @@ const welcomeMessage = JSON.stringify({
 
     return (
         <>
-        <div>UserRows: {JSON.stringify(userRows)}</div>
             <div className="bg-green-300 p-2 mb-2">
                 <div>Users online:</div>
                 {userRows && userRows.length > 0 &&
@@ -252,9 +191,13 @@ const welcomeMessage = JSON.stringify({
                                     >X
                                     </button>
                                 </span>
+                            { name === "teacher" && user.live_quiz_id !== undefined &&
+                            <span>Quiz id: {user.live_quiz_id} </span>
+                            }
                                  - {user.name}
+                               
                             </div>
-                            {user.live_question_number !== undefined &&
+                            {user.live_question_number !== undefined && user.name !== "teacher" &&
                                 <>
                                     <div
                                         className={`${user.live_score === undefined ? "bg-amber-600" : "bg-green-600"
@@ -274,7 +217,7 @@ const welcomeMessage = JSON.stringify({
                                     </div>
                                 </>
                             }
-                            {user.total_score !== undefined &&
+                            {user.name !== "teacher" && user.total_score !== undefined &&
                                 <div className='flex flex-row justify-center items-center ml-2'>
                                     
                                     <div className='p-1 mx-2'>Total:</div>
@@ -293,5 +236,5 @@ const welcomeMessage = JSON.stringify({
     )
 }
 
-export default ScoreBoard
+export default ScoreBoardTeacherSave;
 

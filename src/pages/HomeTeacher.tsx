@@ -6,7 +6,7 @@ import { Outlet } from "react-router-dom";
 import TeacherControlPanel from "./TeacherControlPanel";
 //import type { WebSocketMessageProps } from "../components/shared/types";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
-import ScoreBoard from "./ScoreBoard";
+import ScoreBoardTeacher from "./ScoreBoardTeacher";
 import { useWebSocket } from "../components/context/WebSocketContext";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
@@ -118,7 +118,7 @@ function HomeTeacher() {
                 </div>
                 <div className="flex flex-col">
                     <div className="bg-blue-200">
-                        <ScoreBoard />
+                        <ScoreBoardTeacher />
                     </div>
            
                 </div>

@@ -58,12 +58,36 @@ useEffect(() => {
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        //console.log("HomeStudent: handleMessage called with data:", data);
+        console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data);
+       if (data.message_type === "welcome_message") {
+            //console.log("HomeStudent: Received welcome_message from server:", data);
+             // user just logged in and established the WebSocket connection. If there's a live quiz in progress, the server will send the current live quiz id and question number (if there's a live question in progress) to this user through this welcome_message
+            if (data.pending_data) {
+                console.log("HomeStudent: welcome_message contains pending_data:", data.pending_data);
+                if (data.pending_data.live_quiz_id && data.pending_data.live_quiz_id) {
+                    setLiveQuizId(data.pending_data.live_quiz_id);
+                    setLiveQuestionNumber(data.pending_data.live_question_number);
+                }
+                else if (data.pending_data.live_quiz_id) {
+                    // this means a live quiz is in progress but a live question has not started yet
+                    setLiveQuizId(data.pending_data.live_quiz_id);
+                }
+            }
+            else {
+                console.log("HomeStudent: welcome_message does not contain pending_data");
+            }
+        
+             //if(data.live_total_score){
+               // setLiveTotalScore(data.live_total_score);
+           // }
+
+       }
         if (data.message_type === "another_user_joined") {
             //console.log("HomeStudent: Received ** connection_established message** from server:", data);
             // user is logged in while a live quiz is in progress. Hasn't received any live question yet
+            /*
             if (data.live_quiz_id) {
                 setLiveQuizId(data.live_quiz_id);
             }
@@ -76,6 +100,7 @@ useEffect(() => {
                 }
                 setLiveQuestionNumber(data.live_question_number);
             }
+            */
             //if(data.live_total_score){
                // setLiveTotalScore(data.live_total_score);
            // }
