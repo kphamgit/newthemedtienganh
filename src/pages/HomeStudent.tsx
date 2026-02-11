@@ -7,11 +7,13 @@ import { Outlet } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 import TakeQuizLive from "../components/TakeQuizLive";
 import { useSelector } from 'react-redux';
-import type { WebSocketMessageProps } from "../components/shared/types";
+//import type { WebSocketMessageProps } from "../components/shared/types";
 import ScoreBoard from "./ScoreBoard";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
 //import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
+import type { WebSocketMessageProps } from "../components/shared/types";
+import { type LoggedInUserPendingDataProps } from "../components/shared/types";
 
 
 function HomeStudent() {
@@ -64,13 +66,13 @@ useEffect(() => {
        if (data.message_type === "welcome_message") {
             //console.log("HomeStudent: Received welcome_message from server:", data);
              // user just logged in and established the WebSocket connection. If there's a live quiz in progress, the server will send the current live quiz id and question number (if there's a live question in progress) to this user through this welcome_message
-            if (data.pending_data) {
+            if (data.pending_data as LoggedInUserPendingDataProps) {
                 console.log("HomeStudent: welcome_message contains pending_data:", data.pending_data);
-                if (data.pending_data.live_quiz_id && data.pending_data.live_quiz_id) {
+                if (data.pending_data?.live_quiz_id && data.pending_data.live_quiz_id) {
                     setLiveQuizId(data.pending_data.live_quiz_id);
                     setLiveQuestionNumber(data.pending_data.live_question_number);
                 }
-                else if (data.pending_data.live_quiz_id) {
+                else if (data.pending_data?.live_quiz_id) {
                     // this means a live quiz is in progress but a live question has not started yet
                     setLiveQuizId(data.pending_data.live_quiz_id);
                 }
@@ -78,11 +80,6 @@ useEffect(() => {
             else {
                 console.log("HomeStudent: welcome_message does not contain pending_data");
             }
-        
-             //if(data.live_total_score){
-               // setLiveTotalScore(data.live_total_score);
-           // }
-
        }
         if (data.message_type === "another_user_joined") {
             //console.log("HomeStudent: Received ** connection_established message** from server:", data);

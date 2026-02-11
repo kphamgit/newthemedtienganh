@@ -49,7 +49,36 @@ export interface LoggedInUserPendingDataProps {
   students_live_question_numbers?: { key: string; value: string }[]; // Ensure this is typed as an array of objects
   // key is something like "student1_live_question_number", value is their live question number 
 }
+//live_question_retrieved
+interface BaseWebSocketMessageProps {
+  message_type: 
+  "user_disconnected" |
+  "chat" | 
+  "live_score" |
+  "live_quiz_id" | 
+  "live_question_number" | 
+  "live_quiz_id_and_live_question_number" |
+  "student_acknowleged_live_question_number" |
+  "live_question_retrieved" | 
+  "student_acknowleged_live_quiz_id" |
+  "disconnect_user" |
+  "cache_query_response" | 
+  "live_quiz_terminated" |
+  "welcome_message" |
+  "another_user_joined" |
+  "terminate_live_quiz";
+  content: any;
+  user_name: string;  // identify sender, except for questin_number message where user_name is target user
+}
 
+export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
+  other_connected_users?: string[];
+  pending_data?: LoggedInUserPendingDataProps| null;
+  live_total_score?: string; // only for live_total_score message type
+  queried_value?: string; // only for cache_query_response message type
+  quiz_name: string; // 
+}
+/*
 export interface WebSocketMessageProps {
   message_type: 
   "user_disconnected" |
@@ -73,7 +102,9 @@ export interface WebSocketMessageProps {
   pending_data: {live_quiz_id: string, live_question_number: string, total_live_score: string} | null;
   live_total_score?: string; // only for live_total_score message type
   queried_value?: string; // only for cache_query_response message type
+  quiz_name: string; // 
 }
+*/
 
 export interface QuestionProps {
     id: number,

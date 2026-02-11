@@ -111,6 +111,19 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                 return;
             }
 
+            api.post(`/api/quizzes/${quiz_id}/questions/${liveQuestionNumber}/live/`, {
+                user_name: name || '',
+            })
+            .then((res) => res.data)
+            .then((data) => {
+                console.log("TakeQuizLive: Quiz Question Data:", data);
+                // you can set state here to store question data
+                setQuestion(data);
+                setShowQuestion(true);
+                setFinishedLiveQuestion({status: false, question_number: liveQuestionNumber}); // user is now working on this question
+            })
+           
+          /*
          api.get(`/api/quizzes/${quiz_id}/questions/${liveQuestionNumber}/`)
             .then((res) => res.data)
             .then((data) => {
@@ -121,6 +134,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                 setFinishedLiveQuestion({status: false, question_number: liveQuestionNumber}); // user is now working on this question
                 // send event to server to indicate question has been received and 
                 // I am working on it
+                
                 console.log("TakeQuizLive: Sending student_acknowleged_live_question_number message to server for question number:", liveQuestionNumber);
                 if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
                     const messageToSend = {
@@ -131,9 +145,11 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                      //console.log("TakeQuizLive: &&&&&&&&& Sending live_question_attempt_started message to server for question number:", question_number);
                       websocketRef.current.send(JSON.stringify(messageToSend));
                 }
+                      
 
             })
             .catch((err) => console.log("TakeQuizLive: Error fetching quiz question data:", err));
+            */
 
       }, [quiz_id, liveQuestionNumber]);
     
@@ -200,15 +216,13 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
       const handleSubmit = () => {
            //console.log("TakeQuizLive: handleSubmit called");
             setShowQuestion(false); //
-            // clear quizID and questionNumber to prepare for next question
-            //setQuizId("");
             // stop countdown timer
             //counterRef.current?.stop();
             //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
             const url = `/api/process_live_question_attempt/`;
             //console.log("POSTing to url =", url);
             
-            api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
+            api.post<ProcessQuestionAttemptResultsProps>(url, { user_name: name, format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
               .then((res) => {     
                 const { assessment_results } = res.data;
                 /*
@@ -242,8 +256,8 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
                 dispatch(updateLiveScore({name: name || '', live_score: assessment_results.score || 0}));
                 // send my live score to server via websocket
                 //const message_content = `${liveQuestionNumber}: ${assessment_results.score}`;
-                const message_content = {live_question_number: liveQuestionNumber, score: assessment_results.score};
-                sendLiveScoreToServer(message_content);
+                //const message_content = {live_question_number: liveQuestionNumber, score: assessment_results.score};
+                //sendLiveScoreToServer(message_content);
                 
 
             })
@@ -272,20 +286,6 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id , parent_ca
         }
       }
 
-      const sendLiveScoreToServer = (value: any) => {
-        if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
-          alert('ChatPage: WebSocket is not connected');
-          return;
-        }
-       //console.log("TakeQuizLive: Sending live score to server for question number:", question_number);
-        const messageToSend = {
-          message_type: 'live_score',
-          content: value,  // format of content is "question_number: score", e.g. "1:5"
-          user_name: name, // sender
-         
-        };
-        websocketRef.current.send(JSON.stringify(messageToSend));
-      };
 
   return (
     <div className=' bg-cyan-50  h-full w-full'>

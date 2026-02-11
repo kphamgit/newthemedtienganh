@@ -21,6 +21,8 @@ function ScoreBoardTeacher() {
 
     const [userRows, setUserRows] = useState<UserRowProps[]>([]);
 
+    const [quizName, setQuizName] = useState<string>("");
+
   useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         console.log("ScoreBoard: handleMessage called with data:", data);
@@ -89,6 +91,10 @@ const welcomeMessage = JSON.stringify({
             setUserRows(all_connected.map((user_name) => ({name: user_name})));
           }
             */
+        }
+        else if (data.message_type === "live_quiz_id") {
+            console.log("ScoreBoard: Received live_quiz_id message from server data = ", data);
+            setQuizName(data.quiz_name || "");
         }
         else if (data.message_type === "user_disconnected") {
             console.log("ScoreBoard: Received user_disconnected message from server for user:", data.user_name);
@@ -200,6 +206,7 @@ const welcomeMessage = JSON.stringify({
     return (
         <>
         <div>UserRows: {JSON.stringify(userRows)}</div>
+        <div>{quizName}</div>
             <div className="bg-green-300 p-2 mb-2">
                 <div>Users online:</div>
                 {userRows && userRows.length > 0 &&

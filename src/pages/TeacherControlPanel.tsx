@@ -4,7 +4,8 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
-import type { WebSocketMessageProps } from "../components/shared/types";
+import type { LoggedInUserPendingDataProps, WebSocketMessageProps } from "../components/shared/types";
+import api from "../api";
 
 
 
@@ -35,8 +36,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         const [connectedUsers, setConnectedUsers] =  useState<string[]>([]);
         const {websocketRef, eventEmitter} = useWebSocket();
 
-        //const liveQuizId = useSelector((state: RootState) => state.liveQuizId.value);
-        const [liveQuizId, setLiveQuizId] = useState("");
+        const [inputLiveQuizId, setInputLiveQuizId] = useState("");
 
         const [activeLiveQuizId, setActiveLiveQuizId] = useState<string | null>(null); 
         // track active live quiz id . Set after a live_quiz_id message is received from server,
@@ -52,8 +52,18 @@ export const TeacherControlPanel = ({ref }: Props) => {
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
-            
-            if (data.message_type === "another_user_joined") {
+            if (data.message_type === "welcome_message") {
+                      console.log("TeacherControlPanel: Received welcome_message from server for user:", data.user_name);
+                      console.log("TeacherControlPanel: welcome_message pending data:", data.pending_data);
+                      const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
+                      console.log("TeacherControlPanel: welcome_message pending data live quiz id:", pendingData?.live_quiz_id);
+                      // is there a live quiz going on now that teacher is logged in?
+                        if (pendingData?.live_quiz_id) {
+                            setActiveLiveQuizId(pendingData.live_quiz_id);
+                            setShowTerminateLiveQuizButton(true);
+                        }
+               }
+            else if (data.message_type === "another_user_joined") {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [data.user_name, ...others];
@@ -82,10 +92,6 @@ export const TeacherControlPanel = ({ref }: Props) => {
     ]
 }
 */
-            }
-            else if (data.message_type === "live_quiz_id") {
-                //console.log("TeacherControl: Received live_quiz_id message from server, data = :", data);
-                setActiveLiveQuizId(data.content);
             }
             else if (data.message_type === "live_quiz_terminated") {
                 //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
@@ -138,74 +144,39 @@ export const TeacherControlPanel = ({ref }: Props) => {
     }));
 
     const sendQuizId = () => {
-        websocketRef.current?.send(JSON.stringify({
-            message_type: "live_quiz_id",
-            content: liveQuizId,
-            user_name: name,   // identify sender
-        }));
-        setShowTerminateLiveQuizButton(true);
-        /*
-        sendNotification("live_quiz_id", liveQuizId, name, () => {
-            // After successfully sending the notification, update the active live quiz id state
-            // clear input field
-            setLiveQuizId("");
-            setActiveLiveQuizId(liveQuizId);
-            //setShowTerminateLiveQuizButton(true);
-        });
-        */
+        console.log("live quiz id: ");
+        api.get(`/api/start_live_quiz/${inputLiveQuizId}`)
+        .then(response => {
+            console.log("Response from server after starting live quiz:", response.data);
+            setActiveLiveQuizId(inputLiveQuizId);
+            /*
+            const liveQuizIdFromServer = response.data.live_quiz_id;
+            if (!liveQuizIdFromServer) {
+                alert("Failed to start live quiz. Please check the quiz id and try again.");
+                return;
+            }
+                */
 
-    };
-
-    /*
-    const sendQuizIdSave = () => {
-       //console.log("Sendingggg Quiz id: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
+            setShowTerminateLiveQuizButton(true);
         }
-        // verify from server that there's a quiz with that id?
-        // english/quizzes/retrieve/<int:pk>/
-        const url = `/english/quizzes/retrieve/${liveQuizId}/`;
-        //console.log("Verifying quiz id from server with url:", url);
-        
-        api.get(url)
-            .then((response) => {
-                if (response) {
-                    websocketRef.current?.send(JSON.stringify({
-                        message_type: "live_quiz_id",
-                        content: liveQuizId,
-                        user_name: name,   // identify sender
-                    }));
-                    
+        )
+        .catch(error => {
+            //console.error("Error starting live quiz:", error);
+            alert("Error starting live quiz. " + error.response?.data.error);
+            
+            /*
 
-                    // clear input field
-                    // disable input field after sending quiz id
-                    // clear input field
-                    setLiveQuizId("");
-                    setShowTerminateLiveQuizButton(true);
-                } else {
-                    //console.log("Quiz id NOT found on server.");
-                    alert("Quiz id NOT found on server.");
-                    return;
-                }
-            })
-        .catch((error) => {
-            console.error("Error verifying quiz id from server:", error);
-            alert("Error verifying quiz id from server.");
-            return;
-        });
-        
+            */
+           
+        });   
     };
-*/
 
     const sendQuestionNumber = () => {
-        console.log("live question number: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
+        console.log("Sending live question number: ");
+        if (activeLiveQuizId === null) {
+            alert("No active live quiz. Please start a live quiz first.");
             return;
         }
-        // if there's no quiz id passed in from props, alert and return
-      
         // if question number is empty, alert and return
         if (questionNumber === "") {
             alert("Please enter question number.");
@@ -216,12 +187,27 @@ export const TeacherControlPanel = ({ref }: Props) => {
             alert("Please enter target user name.");
             return;
         }
+        /*
         websocketRef.current.send(JSON.stringify({
             message_type: "live_question_number",
             content: questionNumber,
             user_name: targetUserName,    // identify sender, which is teacher
         }));
-        // clear input field
+        */
+        api.post(`/api/send_live_question_number/${questionNumber}/`, {
+            live_quiz_id: activeLiveQuizId,
+            target_user_name: targetUserName,
+        })      
+        .then(response => {
+            console.log("Response from server after sending live question number:", response.data);
+            console.log("Live question number sent successfully.");
+            //alert("Live question number sent successfully.");
+        })
+        .catch(error => {
+            alert("Error sending live question number. " + error.response?.data.error);
+            //console.error("Error sending live question number:", error);
+            //alert("Error sending live question number. " + error.response?.data.error);
+        });
         setQuestionNumber("");
     };
 
@@ -266,7 +252,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
     const handleTerminateLiveQuiz = () => {
         websocketRef.current?.send(JSON.stringify({
             message_type: "terminate_live_quiz",
-            content: liveQuizId,
+            content: inputLiveQuizId,
             user_name: name,    // identify sender, which is teacher
         }));
     }
@@ -286,11 +272,11 @@ export const TeacherControlPanel = ({ref }: Props) => {
         }
         </div>
         <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 
-        value={liveQuizId || ""} 
-        onChange={e => {setLiveQuizId(e.target.value)}} 
+        value={inputLiveQuizId || ""} 
+        onChange={e => {setInputLiveQuizId(e.target.value)}} 
         readOnly={activeLiveQuizId !== null}
         />
-        { liveQuizId !== "" &&
+        { inputLiveQuizId !== "" &&
         <button className="text-red bg-green-300 mb-2 p-2 rounded-md hover:bg-green-400" onClick={sendQuizId}>Send Quiz id</button>
         }
     
