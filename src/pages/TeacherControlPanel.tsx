@@ -4,7 +4,7 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
-import type { LoggedInUserPendingDataProps, WebSocketMessageProps } from "../components/shared/types";
+import type { MyConnectedUserProps, WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
 
 
@@ -33,7 +33,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         
         const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
-        const [connectedUsers, setConnectedUsers] =  useState<string[]>([]);
+        const [connectedUsers, setConnectedUsers] =  useState<MyConnectedUserProps[]>([]);
         const {websocketRef, eventEmitter} = useWebSocket();
 
         const [inputLiveQuizId, setInputLiveQuizId] = useState("");
@@ -49,30 +49,25 @@ export const TeacherControlPanel = ({ref }: Props) => {
         //const { sendNotification, isSending, error } = useSendNotification();
         //const { sendNotification,  } = useSendNotification();
 
+        const [testReceiver, setTestReceiver] = useState("");
+
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
             if (data.message_type === "welcome_message") {
                       console.log("TeacherControlPanel: Received welcome_message from server for user:", data.user_name);
-                      console.log("TeacherControlPanel: welcome_message pending data:", data.pending_data);
-                      const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
-                      console.log("TeacherControlPanel: welcome_message pending data live quiz id:", pendingData?.live_quiz_id);
-                      // is there a live quiz going on now that teacher is logged in?
-                        if (pendingData?.live_quiz_id) {
-                            setActiveLiveQuizId(pendingData.live_quiz_id);
-                            setShowTerminateLiveQuizButton(true);
-                        }
+                      //console.log("TeacherControlPanel: welcome_message pending data:", data.pending_data);
                }
             else if (data.message_type === "another_user_joined") {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
-              const all_connected = [data.user_name, ...others];
-              setConnectedUsers(all_connected);
+              const all_connected = [...others, { user_name: data.user_name, live_question_number: null }]; // combine the user who just joined and the other already connected users 
+              setConnectedUsers(all_connected as MyConnectedUserProps[]);
             }
             else if (data.message_type === "user_disconnected") {
                 //console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
                 const dropped_user = data.user_name;
-                setConnectedUsers((prevUsers) => prevUsers.filter((user) => user !== dropped_user));
+                setConnectedUsers((prevUsers) => prevUsers.filter((user) => user.name !== dropped_user));
             }
             else if (data.message_type === "cache_query_response") {
                 //console.log("TeacherControl: Received cache_query_responsefrom server for user, data = :", data);
@@ -97,6 +92,10 @@ export const TeacherControlPanel = ({ref }: Props) => {
                 //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
                 setActiveLiveQuizId(null);
                 setShowTerminateLiveQuizButton(false);
+            }
+            if (data.message_type === "TEST_RESPONSE") {
+                console.log("TeacherControl: Received TEST_RESPONSE from server, data = :", JSON.stringify(data.content)) ;
+                //alert("Received TEST_RESPONSE from server: " + JSON.stringify(data));
             }
             if (data.message_type === "another_user_joined") {
                 //console.log("TeacherControl: Received connection_established message from server for user:", data);
@@ -226,6 +225,21 @@ export const TeacherControlPanel = ({ref }: Props) => {
          
      };
 
+     const sendTest = () => {
+        //console.log("sendCacheQuery: ");
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        //console.log("Key for cache query:", keyForCacheQuery);
+        websocketRef.current.send(JSON.stringify({
+            message_type: "TEST",
+            message: "TEST only",  // query key
+            user_name: testReceiver,    // identify sender, which is teacher
+        }));
+        
+    };
+
     const handleNameClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         const selectedName = e.currentTarget.innerText;
         setTargetUserName(selectedName);
@@ -295,7 +309,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         {connectedUsers &&
             connectedUsers.map((user, index) => (
                 <div key={index} >
-                <button className='bg-bgColor2 text-textColor1 p-1 rounded-md' onClick={handleNameClick}>{user}</button>
+                <button className='bg-bgColor2 text-textColor1 p-1 rounded-md' onClick={handleNameClick}>{user.name}</button>
                 </div>
             ))
         }
@@ -321,9 +335,9 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <span>Select user name:</span>
               <div className="flex flex-row justify-start ml-10 text text-gray-600">
                   {connectedUsers &&
-                      connectedUsers.map((name, index) => (
+                      connectedUsers.map((user, index) => (
                           <div key={index} >
-                              <button className='bg-green-500 text-white p-1 m-1 rounded-md' onClick={handleNameClickForCacheQuery}>{name}</button>
+                              <button className='bg-green-500 text-white p-1 m-1 rounded-md' onClick={handleNameClickForCacheQuery}>{user.name}</button>
                           </div>
                       ))
                   }
@@ -333,6 +347,10 @@ export const TeacherControlPanel = ({ref }: Props) => {
             { cacheQueryResult &&
                     <div className="mt-4">{cacheQueryResult}</div>
             }
+            <div>
+                <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="receiver" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
+            </div>
+            <div className="bg-green-300 p-2" onClick={sendTest}>SEND TEST</div>
           
    </div>
       

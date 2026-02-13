@@ -4,6 +4,7 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import type { WebSocketMessageProps } from '../components/shared/types';
+import { setUser } from '../redux/userSlice';
 //import { setUser } from '../redux/userSlice';
 //import { type LoggedInUserPendingDataProps } from '../components/shared/types';
 
@@ -15,6 +16,9 @@ type UserRowProps = {
     live_question_number?: number;
 }
 
+type Props = {
+    //currentQuestionNumber: string; 
+}
 
 function ScoreBoard() {
     const { name } = useSelector((state: RootState) => state.user);
@@ -43,7 +47,7 @@ const welcomeMessage = JSON.stringify({
         });
             */
           console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
-          console.log("ScoreBoard: welcome_message pending data:", data.pending_data);
+          
           //const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
           //console.log("ScoreBoard: welcome_message other users' live question numbers :", pendingData?.students_live_question_numbers);
 
@@ -82,13 +86,18 @@ const welcomeMessage = JSON.stringify({
 }
           */
 
+          console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
           const other_connected_users = data.other_connected_users || [];
-            const all_connected = [data.user_name, ...other_connected_users];
-            setUserRows(all_connected.map((user_name) => ({
-              name: user_name,
-              //live_quiz_id: data.live_quiz_id || undefined,
-        
+        //const all_connected = other_connected_users.push({user_name: name, live_question_number: "100" || ""})
+          const my_user_info = {user_name: name || data.user_name, live_question_number: null};
+          // add myself to the list of other connected users, since the server does not include myself in the other_connected_users array
+         /*
+          other_connected_users.push(my_user_info);
+            setUserRows(other_connected_users.map((user) => ({
+                name: user.user_name,
+                live_question_number: user.live_question_number ? Number(user.live_question_number) : undefined,
             })));
+            */
           /*
            //setUserRows([{ name: data.user_name }]);
            //add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
@@ -192,14 +201,7 @@ message_type': 'live_score', 'content': 5, 'live_total_score': 15, 'user_name': 
             // kpham: note that the server (Nodejs/Redis also keeps track of the total scores for students), for recovery purposes
             // here, the total score is calculated by adding live score to previous total score in the client side.
             // the two should be the same unless there are bugs.
-            setUserRows((prevRows) => prevRows.map((row) => {
-                if (row.name === sender) {
-                    const new_live_score = Number(data.content);
-                    const new_total_score = Number(data.live_total_score) ; // if live_total_score is provided by the server, use it. Otherwise, calculate it by adding live score to previous total score in the client side.
-                    return { ...row, live_score: new_live_score, live_total_score: new_total_score };
-                }
-                return row;
-            }));
+           
         }
         else if (data.message_type === "live_quiz_terminated") {
             //console.log("ScoreBoard: Received live_quiz_terminated message from server.");
@@ -241,6 +243,7 @@ message_type': 'live_score', 'content': 5, 'live_total_score': 15, 'user_name': 
             <div className="bg-green-300 p-2 mb-2">
                 <div>Users online:</div>
                 <div>{quizName}</div>
+                <div>HERE {name},</div>
                 {userRows && userRows.length > 0 &&
                     userRows.map((user, index) => (
                         <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>

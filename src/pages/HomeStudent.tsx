@@ -13,7 +13,7 @@ import ScoreBoard from "./ScoreBoard";
 //import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
-import { type LoggedInUserPendingDataProps } from "../components/shared/types";
+
 
 
 function HomeStudent() {
@@ -21,16 +21,12 @@ function HomeStudent() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
     const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
-    //const [liveTotalScore, setLiveTotalScore] = useState<string | null>(null);
-    //const liveQuestionNumberRef = useRef<string | undefined>(undefined);
+    // this liveQuestionNumber applies for all the students taking the live quiz.
 
     const {eventEmitter, websocketRef} = useWebSocket();
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
-    //const dispatch = useDispatch<AppDispatch>();
-    //const [message, setMessage] = useState<{message_type: "chat", message: string}>({message_type: "chat", message: ""});
-    //const [messageText, setMessageText] = useState<string>("");
 // send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
 // Heroku has a 55 seconds timeout for idle connections, so sending a ping every 30 seconds is a common strategy to keep the connection alive without overwhelming the server with too many pings. This way, even if there's no activity from the user, the WebSocket connection will remain open and responsive. 
 useEffect(() => {
@@ -63,24 +59,26 @@ useEffect(() => {
         console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data);
-       if (data.message_type === "welcome_message") {
-            //console.log("HomeStudent: Received welcome_message from server:", data);
-             // user just logged in and established the WebSocket connection. If there's a live quiz in progress, the server will send the current live quiz id and question number (if there's a live question in progress) to this user through this welcome_message
-            if (data.pending_data as LoggedInUserPendingDataProps) {
-                console.log("HomeStudent: welcome_message contains pending_data:", data.pending_data);
-                if (data.pending_data?.live_quiz_id && data.pending_data.live_quiz_id) {
-                    setLiveQuizId(data.pending_data.live_quiz_id);
-                    setLiveQuestionNumber(data.pending_data.live_question_number);
-                }
-                else if (data.pending_data?.live_quiz_id) {
-                    // this means a live quiz is in progress but a live question has not started yet
-                    setLiveQuizId(data.pending_data.live_quiz_id);
-                }
-            }
-            else {
-                console.log("HomeStudent: welcome_message does not contain pending_data");
-            }
-       }
+          if (data.message_type === "welcome_message") {
+            console.log("HomeStudent: Received welcome_message from server:", data);
+              // other_connected_users
+              // first, look myself in data.other_connected_users array
+              const myself = data.other_connected_users?.find(user => user.name === name);
+              console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
+              if (data.live_quiz_id) {
+                  //if (myself) {
+                      // if found, set live quiz state based on the live quiz info attached to myself in the other_connected_users array
+                      setLiveQuizId(data.live_quiz_id);
+                      //console.log("HomeStudent: welcome_message received, myself live quiz info:", myself);
+                      //setLiveQuestionNumber(myself.live_question_number ?? undefined);
+                      //setLiveTotalScore(myself.live_total_score ?? undefined);
+                      if (myself?.live_question_number !== "0") {
+                        setLiveQuestionNumber(myself?.live_question_number ?? undefined);
+                      }
+                 // }
+
+              }
+        }
         if (data.message_type === "another_user_joined") {
             //console.log("HomeStudent: Received ** connection_established message** from server:", data);
             // user is logged in while a live quiz is in progress. Hasn't received any live question yet
@@ -141,9 +139,7 @@ useEffect(() => {
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
    
-    //useEffect(() => {
-      //  liveQuestionNumberRef.current = liveQuestionNumber;
-   // }, [liveQuestionNumber]);
+ 
     
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
@@ -261,6 +257,10 @@ const sendNotification = async () => {
   };
 */
 
+    const handleLiveQuestionLoaded = (question_number: string) => {
+        //console.log("HomeStudent: handleLiveQuestionLoaded called with question_number:", question_number);
+        //setLiveQuestionNumber(question_number);
+    }
 
     return (
        
@@ -278,6 +278,7 @@ const sendNotification = async () => {
                             parent_callback={live_question_attempt_finished} 
                             live_quiz_id={liveQuizId} 
                             live_question_number = {liveQuestionNumber} 
+                            
                             //live_total_score={liveTotalScore ?? undefined}
                         />
                     }
@@ -285,7 +286,7 @@ const sendNotification = async () => {
                 </div>
                 <div className="flex flex-col">
                     <div className="bg-blue-200">
-                        <ScoreBoard  />
+                        <ScoreBoard />
 
                     </div>
      
@@ -296,6 +297,11 @@ const sendNotification = async () => {
 }
 
 export default HomeStudent;
+
+/*
+
+*/
+
 
 /*
 return (

@@ -118,10 +118,7 @@ function HomeTeacher() {
                     <Outlet />
                 </div>
                 <div className="flex flex-col">
-                    <div className="bg-blue-200">
-                        <ScoreBoard />
-                    </div>
-           
+                
                 </div>
             </div>
  
