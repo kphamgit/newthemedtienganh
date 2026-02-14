@@ -4,7 +4,7 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import type { WebSocketMessageProps } from '../components/shared/types';
-import { setUser } from '../redux/userSlice';
+//import { setUser } from '../redux/userSlice';
 //import { setUser } from '../redux/userSlice';
 //import { type LoggedInUserPendingDataProps } from '../components/shared/types';
 
@@ -16,9 +16,6 @@ type UserRowProps = {
     live_question_number?: number;
 }
 
-type Props = {
-    //currentQuestionNumber: string; 
-}
 
 function ScoreBoard() {
     const { name } = useSelector((state: RootState) => state.user);
@@ -87,9 +84,9 @@ const welcomeMessage = JSON.stringify({
           */
 
           console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
-          const other_connected_users = data.other_connected_users || [];
+          //const other_connected_users = data.other_connected_users || [];
         //const all_connected = other_connected_users.push({user_name: name, live_question_number: "100" || ""})
-          const my_user_info = {user_name: name || data.user_name, live_question_number: null};
+          //const my_user_info = {user_name: name || data.user_name, live_question_number: null};
           // add myself to the list of other connected users, since the server does not include myself in the other_connected_users array
          /*
           other_connected_users.push(my_user_info);
@@ -196,7 +193,7 @@ const welcomeMessage = JSON.stringify({
             /*
 message_type': 'live_score', 'content': 5, 'live_total_score': 15, 'user_name': from_user}
             */
-            const sender = data.user_name;
+            //const sender = data.user_name;
             
             // kpham: note that the server (Nodejs/Redis also keeps track of the total scores for students), for recovery purposes
             // here, the total score is calculated by adding live score to previous total score in the client side.

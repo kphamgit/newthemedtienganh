@@ -257,10 +257,6 @@ const sendNotification = async () => {
   };
 */
 
-    const handleLiveQuestionLoaded = (question_number: string) => {
-        //console.log("HomeStudent: handleLiveQuestionLoaded called with question_number:", question_number);
-        //setLiveQuestionNumber(question_number);
-    }
 
     return (
        

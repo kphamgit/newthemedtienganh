@@ -26,8 +26,8 @@ function ScoreBoardTeacherSave() {
         console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "welcome_message") {
           console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
-          const other_connected_users = data.other_connected_users || [];
-            const all_connected = [data.user_name, ...other_connected_users];
+          //const other_connected_users = data.other_connected_users || [];
+           // const all_connected = [data.user_name, ...other_connected_users];
         
           /*
            //setUserRows([{ name: data.user_name }]);

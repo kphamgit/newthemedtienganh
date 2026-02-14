@@ -8,7 +8,7 @@ import TeacherControlPanel from "./TeacherControlPanel";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
 //import ScoreBoardTeacher from "./ScoreBoardTeacher";
 import { useWebSocket } from "../components/context/WebSocketContext";
-import ScoreBoard from "./ScoreBoard";
+//import ScoreBoard from "./ScoreBoard";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
 //import type { AppDispatch } from "../redux/store";
