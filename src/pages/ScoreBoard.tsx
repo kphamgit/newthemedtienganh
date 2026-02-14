@@ -3,19 +3,17 @@ import type { RootState } from '../redux/store';
 import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
-import type { WebSocketMessageProps } from '../components/shared/types';
+import type { ConnectedUserDataProps, WebSocketMessageProps } from '../components/shared/types';
 //import { setUser } from '../redux/userSlice';
 //import { setUser } from '../redux/userSlice';
 //import { type LoggedInUserPendingDataProps } from '../components/shared/types';
 
 type UserRowProps = {
     name: string;
-    live_quiz_id?: string;
     live_score?: number;
     live_total_score?: number;
     live_question_number?: number;
 }
-
 
 function ScoreBoard() {
     const { name } = useSelector((state: RootState) => state.user);
@@ -26,88 +24,30 @@ function ScoreBoard() {
 
     const [quizName, setQuizName] = useState<string>("");
 
+    const getLiveQuestionNumber = (liveQuestionNumber: number | undefined) => {
+        return liveQuestionNumber && liveQuestionNumber !== 0 ? Number(liveQuestionNumber) : undefined;
+      };
+      
+    
+
   useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "welcome_message") {
-            /*
-const welcomeMessage = JSON.stringify({
-          message_type: "welcome_message",
-          content: `Welcome ${user_name} to the WebSocket server!`,
-          user_name: user_name,
-          other_connected_users: other_logged_in_users,
-          pending_data: {
-            live_quiz_id: quizId || null,
-            live_question_number: liveQuestionNumber || null,
-            total_live_score: liveTotalScore || 0,
-          },
-        });
-            */
-          console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
-          
-          //const pendingData = data.pending_data as LoggedInUserPendingDataProps | null;
-          //console.log("ScoreBoard: welcome_message other users' live question numbers :", pendingData?.students_live_question_numbers);
-
-          // remove myself from pendingData?.students_live_question_numbers array, since I will got my own live question number 
-        //const filtered_students_live_question_numbers = 
-        //pendingData?.students_live_question_numbers?.filter((item) => item.key !== `${data.user_name}_live_question_number`) || [];
-
-        //console.log("ScoreBoard: welcome_message filtered students_live_question_numbers after removing myself:", filtered_students_live_question_numbers);
-        // now , go through userRows and update live question number for other users based on filtered_students_live_question_numbers
-        /*    
-        setUserRows((prevRows) => prevRows.map((row) => {
-                const matched_student = filtered_students_live_question_numbers.find((item) => item.key === `${row.name}_live_question_number`);
-                if (matched_student) {
-                    console.log("ScoreBoard: welcome_message updating live question number for user:", row.name, " to ", matched_student.value);
-                    return { ...row, live_question_number: Number(matched_student.value) };
-                }
-                return row;
-            }));
-          */
-
-          /*
-{
-  "live_quiz_id": "1",
-  "live_question_number": "1",
-  "total_live_score": null,
-  "students_live_question_numbers": [
-    {
-      "key": "student1_live_question_number",
-      "value": "1"
-    },
-    {
-      "key": "student2_live_question_number",
-      "value": "1"
-    }
-  ]
-}
-          */
-
+           
+          console.log("ScoreBoard: Received welcome_message from server:", data);
           console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
-          //const other_connected_users = data.other_connected_users || [];
-        //const all_connected = other_connected_users.push({user_name: name, live_question_number: "100" || ""})
-          //const my_user_info = {user_name: name || data.user_name, live_question_number: null};
-          // add myself to the list of other connected users, since the server does not include myself in the other_connected_users array
-         /*
-          other_connected_users.push(my_user_info);
-            setUserRows(other_connected_users.map((user) => ({
-                name: user.user_name,
-                live_question_number: user.live_question_number ? Number(user.live_question_number) : undefined,
-            })));
-            */
-          /*
-           //setUserRows([{ name: data.user_name }]);
-           //add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
-           console.log("ScoreBoard: Adding user to userRows:", data.user_name);  
-           setUserRows((prevRows) => {
-                if (prevRows.some((row) => row.name === data.user_name)) {
-                    console.log("ScoreBoard: ********* THIS SHOULD NOT HAPPEND User already in the list, not adding again:", data.user_name);
-                  return prevRows; // user already in the list, do not add again
-                }
-                return [...prevRows, { name: data.user_name }]; // add new user to the list 
-              });
-              */
-        } //live_question_retrieved
+          const connectedUsersFromServer = data.other_connected_users as ConnectedUserDataProps[];
+
+          setUserRows(
+            connectedUsersFromServer.map((user) => ({
+              name: user.name,
+              live_question_number: getLiveQuestionNumber(Number(user.live_question_number)),
+              live_total_score: user.live_total_score ? Number(user.live_total_score) : undefined,
+            }))
+          );
+        } //
+
         else if (data.message_type === "live_question_retrieved") {
             console.log("ScoreBoard: Received live_question_retrieved message from server for user:", data.user_name, " question number:", data.content);
             // update question number in score board

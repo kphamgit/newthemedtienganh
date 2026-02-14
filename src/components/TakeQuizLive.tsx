@@ -30,7 +30,7 @@ interface TakeQuizLiveProps {
     parent_callback: () => void;   // to notify parent component when a question is finished ( or the quiz is finished??)
 }
 
-function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_callback}: TakeQuizLiveProps) {
+function TakeQuizLive({ live_quiz_id ,  parent_callback}: TakeQuizLiveProps) {
     // scenarios:
     /*
      1) if live quiz id is set, then it can be either the student receives a enable live quiz message for the teacher
@@ -68,15 +68,15 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
 
     const dispatch = useDispatch<AppDispatch>();
     
+    /*
     useEffect(() => {
-        // if live_question_number prop is set, use it to set liveQuestionNumber state
         if (live_question_number) {
-          console.log("TakeQuizLive: live_question_number prop is set to:", live_question_number);
-          console.log("TakeQuizLive: This happens when user logs in while a live quiz is in progress with an unfinished question.");
+          //console.log("TakeQuizLive: live_question_number prop is set to:", live_question_number);
+          //console.log("TakeQuizLive: This happens when user logs in while a live quiz is in progress with an unfinished question.");
           setLiveQuestionNumber(live_question_number);
         }
     }, [live_question_number]);
-
+  */
 
     useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
@@ -93,15 +93,17 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
     useEffect(() => {
-         // call api to get quiz question data for quizId and questionId
+         // call api to get quiz question 
+         // data for quizId and questionId
          // only if both quizId and questionNumber are set
-            if (!quiz_id ) {
-               //console.log("TakeQuizLive: quiz_id is not set.");
+         console.log("TakeQuizLive: useEffect for fetching quiz question triggered. live_quiz_id =", live_quiz_id, "liveQuestionNumber =", liveQuestionNumber, "pendingQuestionAttempt =", pendingQuestionAttempt);
+            if (!live_quiz_id ) {
+                console.log("TakeQuizLive: quiz_id is not set.");
                 return;
             }
-            if (quiz_id === "" || liveQuestionNumber === "") {
-                return;
-            }
+            //if (live_quiz_id === "" || liveQuestionNumber === "") {
+              //  return;
+           // }
             // if there's a current question being shown, do not fetch new question
             if (pendingQuestionAttempt) {
                //console.log("TakeQuizLive: Ignoring new question fetch because user is still working on current question.");
@@ -109,10 +111,10 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
             }
             // if question_number is not set, do not fetch question
             if (!liveQuestionNumber ) {
-               //console.log("TakeQuizLive: question_number is not set.");
+                console.log("TakeQuizLive: question_number is not set.");
                 return;
             }
-            api.post(`/api/quizzes/${quiz_id}/questions/${liveQuestionNumber}/live/`, {
+            api.post(`/api/quizzes/${live_quiz_id}/questions/${liveQuestionNumber}/live/`, {
                 user_name: name || '',
             })
             .then((res) => res.data)
@@ -123,7 +125,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
                 setShowQuestion(true);
                 setPendingQuestionAttempt(true); // set pending question attempt status to true
             })
-      }, [quiz_id, liveQuestionNumber]);
+      }, [live_quiz_id, liveQuestionNumber]);
     
     function SafeHTML({ content }: { content: string }) {
         const sanitizedContent = DOMPurify.sanitize(content, {
@@ -199,7 +201,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
 
       const displayShowQuestionStatus = () => {
         // only display status if quiz_id is set
-        if (quiz_id) {
+        if (live_quiz_id) {
             if (!showQuestion) {
               return "Waiting for question ...";
                 //return <div>Question number: {question?.question_number}</div>
@@ -236,7 +238,7 @@ function TakeQuizLive({ live_question_number,  live_quiz_id: quiz_id ,  parent_c
       <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
       <div className='bg-cyan-400 flex flex-row justify-center items-center mt-5 mb-3'>
         <span className='mx-3'>Quiz ID:</span>
-        <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{quiz_id} </span>
+        <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
         {displayShowQuestionStatus()}
       </div>
       <div className='grid grid-cols-12 border-4 border-blue-600 rounded-md mx-10 my-5 p-5 bg-white'>

@@ -28,7 +28,7 @@ export type CurrentStudentLiveQuestionNumberProps = {
   value: string;
 }
 
-export interface MyConnectedUserProps { 
+export interface ConnectedUserDataProps { 
   name: string, 
   live_question_number: string | null,
   live_total_score: string | null,
@@ -59,7 +59,7 @@ interface BaseWebSocketMessageProps {
 }
 
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
-  other_connected_users?: MyConnectedUserProps[];
+  other_connected_users?: ConnectedUserDataProps[];
   queried_value?: string; // only for cache_query_response message type
   quiz_name: string; // 
   live_quiz_id: string; // for quiz host to identify which quiz the message is related to, and for students to identify which quiz to join  

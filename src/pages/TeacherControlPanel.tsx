@@ -4,7 +4,7 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
-import type { MyConnectedUserProps, WebSocketMessageProps } from "../components/shared/types";
+import type { ConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
 
 
@@ -33,7 +33,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         
         const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
-        const [connectedUsers, setConnectedUsers] =  useState<MyConnectedUserProps[]>([]);
+        const [connectedUsers, setConnectedUsers] =  useState<ConnectedUserDataProps[]>([]);
         const {websocketRef, eventEmitter} = useWebSocket();
 
         const [inputLiveQuizId, setInputLiveQuizId] = useState("");
@@ -49,7 +49,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         //const { sendNotification, isSending, error } = useSendNotification();
         //const { sendNotification,  } = useSendNotification();
 
-        const [testReceiver, setTestReceiver] = useState("");
+        const [testReceiver, setTestReceiver] = useState("all");
 
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
@@ -62,7 +62,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [...others, { user_name: data.user_name, live_question_number: null }]; // combine the user who just joined and the other already connected users 
-              setConnectedUsers(all_connected as MyConnectedUserProps[]);
+              setConnectedUsers(all_connected as ConnectedUserDataProps[]);
             }
             else if (data.message_type === "user_disconnected") {
                 //console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
@@ -240,6 +240,21 @@ export const TeacherControlPanel = ({ref }: Props) => {
         
     };
 
+    const clearRedisStore = () => {
+        //console.log("sendCacheQuery: ");
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        //console.log("Key for cache query:", keyForCacheQuery);
+        websocketRef.current.send(JSON.stringify({
+            message_type: "CLEAR_REDIS_STORE",
+            message: "TEST only",  // query key
+            user_name: testReceiver,    // identify sender, which is teacher
+        }));
+        
+    };
+
     const handleNameClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         const selectedName = e.currentTarget.innerText;
         setTargetUserName(selectedName);
@@ -347,11 +362,14 @@ export const TeacherControlPanel = ({ref }: Props) => {
             { cacheQueryResult &&
                     <div className="mt-4">{cacheQueryResult}</div>
             }
-            <div>
-                <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="receiver" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
+            <div className="flex flex-row justify-start mt-4">
+                <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="all" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
             </div>
-            <div className="bg-green-300 p-2" onClick={sendTest}>SENDDD TEST</div>
+            <div className="bg-green-300 p-2 flex flex-row justify-start m-3" onClick={sendTest}>GET REDIS USERS DATA</div>
           
+          
+            <div className="bg-green-300 p-2 flex flex-row justify-start m-3" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
+
    </div>
       
     </div>

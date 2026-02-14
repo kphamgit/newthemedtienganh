@@ -20,7 +20,7 @@ function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
-    const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
+    // const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
     // this liveQuestionNumber applies for all the students taking the live quiz.
 
     const {eventEmitter, websocketRef} = useWebSocket();
@@ -54,9 +54,10 @@ useEffect(() => {
         return () => clearInterval(pingInterval);
     }, []);
 
+
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        console.log("HomeStudent: handleMessage called with data:", data);
+        //console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data);
           if (data.message_type === "welcome_message") {
@@ -64,18 +65,18 @@ useEffect(() => {
               // other_connected_users
               // first, look myself in data.other_connected_users array
               const myself = data.other_connected_users?.find(user => user.name === name);
-              console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
+              //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
               if (data.live_quiz_id) {
-                  //if (myself) {
+                  if (myself) {
                       // if found, set live quiz state based on the live quiz info attached to myself in the other_connected_users array
-                      setLiveQuizId(data.live_quiz_id);
+                      //setLiveQuizId(data.live_quiz_id);
                       //console.log("HomeStudent: welcome_message received, myself live quiz info:", myself);
-                      //setLiveQuestionNumber(myself.live_question_number ?? undefined);
-                      //setLiveTotalScore(myself.live_total_score ?? undefined);
-                      if (myself?.live_question_number !== "0") {
-                        setLiveQuestionNumber(myself?.live_question_number ?? undefined);
+                      
+                      if (Number(myself?.live_question_number) !== 0) {
+                        console.log("HomeStudent: welcome_message received,  live question number is:", myself?.live_question_number);
+                        //setLiveQuestionNumber(myself?.live_question_number ?? undefined);
                       }
-                 // }
+                  }
 
               }
         }
@@ -212,7 +213,7 @@ useEffect(() => {
    // }
     const live_question_attempt_finished = () => {
        //console.log("HomeStudent: ****************** live_question_attempt_finished called, clearing liveQuestionNumber");
-        setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
+       // setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
         // the liveQuestionNumber prop will be refreshed and TakeQuizLive) will be rendered with new question
     }
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
@@ -273,7 +274,6 @@ const sendNotification = async () => {
                         <TakeQuizLive 
                             parent_callback={live_question_attempt_finished} 
                             live_quiz_id={liveQuizId} 
-                            live_question_number = {liveQuestionNumber} 
                             
                             //live_total_score={liveTotalScore ?? undefined}
                         />

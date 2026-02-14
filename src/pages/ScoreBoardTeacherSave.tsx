@@ -26,21 +26,11 @@ function ScoreBoardTeacherSave() {
         console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "welcome_message") {
           console.log("ScoreBoard: Received welcome_message from server for user:", data.user_name);
-          //const other_connected_users = data.other_connected_users || [];
+          const other_connected_users = data.other_connected_users || [];
            // const all_connected = [data.user_name, ...other_connected_users];
-        
-          /*
-           //setUserRows([{ name: data.user_name }]);
-           //add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
-           console.log("ScoreBoard: Adding user to userRows:", data.user_name);  
-           setUserRows((prevRows) => {
-                if (prevRows.some((row) => row.name === data.user_name)) {
-                    console.log("ScoreBoard: ********* THIS SHOULD NOT HAPPEND User already in the list, not adding again:", data.user_name);
-                  return prevRows; // user already in the list, do not add again
-                }
-                return [...prevRows, { name: data.user_name }]; // add new user to the list 
-              });
-              */
+           console.log("ScoreBoard: other_connected_users:", other_connected_users);
+          
+              
         }
         else if (data.message_type === "another_user_joined") {
           console.log("ScoreBoard: Received another_user_joined message from server for user:", data);
