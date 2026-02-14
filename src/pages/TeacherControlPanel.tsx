@@ -350,7 +350,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <div>
                 <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="receiver" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
             </div>
-            <div className="bg-green-300 p-2" onClick={sendTest}>SEND TEST</div>
+            <div className="bg-green-300 p-2" onClick={sendTest}>SENDDD TEST</div>
           
    </div>
       
