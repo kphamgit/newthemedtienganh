@@ -6,7 +6,8 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import type { RootState } from "../redux/store";
 import type { ConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
-
+import RedisDataModal from "../components/RedisDataModal";
+import { type RedisDataProps } from "../components/RedisDataModal";
 
 
 export interface TeacherControlRefProps {
@@ -51,6 +52,10 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
         const [testReceiver, setTestReceiver] = useState("all");
 
+        const [showRedisDataModal, setShowRedisDataModal] = useState(false);
+
+        const [redisData, setRedisData] = useState<RedisDataProps>();
+
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
@@ -93,29 +98,21 @@ export const TeacherControlPanel = ({ref }: Props) => {
                 setActiveLiveQuizId(null);
                 setShowTerminateLiveQuizButton(false);
             }
-            if (data.message_type === "TEST_RESPONSE") {
-                console.log("TeacherControl: Received TEST_RESPONSE from server, data = :", JSON.stringify(data.content)) ;
+            if (data.message_type === "REDIS_DATA") {
+                //console.log("TeacherControl: Received REDIS DATA RESPONSE from server, data = :",data) ;
+                console.log("REDIS_DATA content:", data.content);
+                console.log("REDIS_DATA users:", data.content.users);
+                console.log("REDIS_DATA live_quiz:", data.content.live_quiz_id);
+                console.log("REDIS_DATA live_question_number", data.content.live_question_number);
+                setRedisData(data.content);
+                setShowRedisDataModal(true);
+               // const parsedData = JSON.parse(data.content);
+                
+                //console.log("Parsed REDIS_DATA from server:", parsedData);
                 //alert("Received TEST_RESPONSE from server: " + JSON.stringify(data));
             }
             if (data.message_type === "another_user_joined") {
                 //console.log("TeacherControl: Received connection_established message from server for user:", data);
-                /*
-{
-    "message_type": "connection_established",
-    "user_name": "teacher",
-    "other_connected_users": [
-        "admin"
-    ],
-    "live_quiz_id": "1",
-    "live_question_number": null
-}
-                */
-               /*
-                if (data.live_quiz_id) {
-                    setActiveLiveQuizId(data.live_quiz_id);
-                    setShowTerminateLiveQuizButton(true);
-                }
-            */
               }
           }
           // Subscribe to the "message" event
@@ -286,6 +283,10 @@ export const TeacherControlPanel = ({ref }: Props) => {
         }));
     }
     
+    const closeRedisDataModal = () => {
+        setShowRedisDataModal(false);
+    }
+
 //  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
     <div className="m-10">
@@ -365,11 +366,15 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <div className="flex flex-row justify-start mt-4">
                 <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="all" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
             </div>
-            <div className="bg-green-300 p-2 flex flex-row justify-start m-3" onClick={sendTest}>GET REDIS USERS DATA</div>
+            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-green-500" onClick={sendTest}>GET REDIS USERS DATA</div>
           
           
-            <div className="bg-green-300 p-2 flex flex-row justify-start m-3" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
+            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-red-400" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
 
+            { showRedisDataModal && 
+                <RedisDataModal content={redisData as RedisDataProps} parentCallback={closeRedisDataModal}
+                /> 
+            }
    </div>
       
     </div>

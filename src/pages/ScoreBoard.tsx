@@ -125,19 +125,27 @@ function ScoreBoard() {
             }));
          }
          else if (data.message_type === "live_quiz_id") {
-          console.log("ScoreBoard: Received live_quiz_id message from server data = ", data);
+          //console.log("ScoreBoard: Received live_quiz_id message from server data = ", data);
           setQuizName(data.quiz_name || "");
          }
          else if (data.message_type === "live_score") {
-            console.log("ScoreBoard: Received live_score message from :", data);
-            /*
-message_type': 'live_score', 'content': 5, 'live_total_score': 15, 'user_name': from_user}
-            */
-            //const sender = data.user_name;
             
-            // kpham: note that the server (Nodejs/Redis also keeps track of the total scores for students), for recovery purposes
-            // here, the total score is calculated by adding live score to previous total score in the client side.
-            // the two should be the same unless there are bugs.
+            //console.log("ScoreBoard: Received live_score message from :", data);
+            /*
+Received live_score notification from Redis.  {
+  message_type: 'live_score',
+  content: { score: 5, live_total_score: 5 },
+  user_name: 'student1'
+}
+            */
+
+            const sender = data.user_name;
+            setUserRows((prevRows) => prevRows.map((row) => {
+                if (row.name === sender) {
+                    return { ...row, live_score: Number(data.content.score), live_total_score: data.content.live_total_score };
+                }
+                return row;
+            }));
            
         }
         else if (data.message_type === "live_quiz_terminated") {
@@ -214,7 +222,7 @@ message_type': 'live_score', 'content': 5, 'live_total_score': 15, 'user_name': 
                                     </div>
                                 </>
                             }
-                            {user.live_total_score !== undefined &&
+                            {user.live_total_score !== undefined && user.live_total_score !== 999 &&
                                 <div className='flex flex-row justify-center items-center ml-2'>
                                     
                                     <div className='p-1 mx-2'>Total:</div>

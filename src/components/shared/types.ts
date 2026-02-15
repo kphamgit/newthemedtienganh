@@ -52,7 +52,7 @@ interface BaseWebSocketMessageProps {
   "live_quiz_terminated" |
   "welcome_message" |
   "another_user_joined" |
-  "TEST_RESPONSE" |
+  "REDIS_DATA" |
   "terminate_live_quiz";
   content: any;
   user_name: string;  // identify sender, except for questin_number message where user_name is target user
