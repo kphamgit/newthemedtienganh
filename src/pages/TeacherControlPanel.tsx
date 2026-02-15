@@ -4,7 +4,7 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
-import type { ConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
+import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
 import RedisDataModal from "../components/RedisDataModal";
 import { type RedisDataProps } from "../components/RedisDataModal";
@@ -34,7 +34,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         
         const [showStudentSelectForCacheQuery, setShowStudentSelectForCacheQuery] = useState(false);
 
-        const [connectedUsers, setConnectedUsers] =  useState<ConnectedUserDataProps[]>([]);
+        const [connectedUsers, setConnectedUsers] =  useState<ReceivedConnectedUserDataProps[]>([]);
         const {websocketRef, eventEmitter} = useWebSocket();
 
         const [inputLiveQuizId, setInputLiveQuizId] = useState("");
@@ -67,7 +67,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
               //console.log("TeacherControl: Received connection_established message from server for user:", data.user_name);
               const others = data.other_connected_users || [];
               const all_connected = [...others, { user_name: data.user_name, live_question_number: null }]; // combine the user who just joined and the other already connected users 
-              setConnectedUsers(all_connected as ConnectedUserDataProps[]);
+              setConnectedUsers(all_connected as ReceivedConnectedUserDataProps[]);
             }
             else if (data.message_type === "user_disconnected") {
                 //console.log("TeacherControl: Received connection_dropped message from server for user:", data.user_name);
@@ -99,11 +99,38 @@ export const TeacherControlPanel = ({ref }: Props) => {
                 setShowTerminateLiveQuizButton(false);
             }
             if (data.message_type === "REDIS_DATA") {
-                //console.log("TeacherControl: Received REDIS DATA RESPONSE from server, data = :",data) ;
+                console.log("TeacherControl: Received REDIS DATA RESPONSE from server, data = :",data) ;
+                /*
+{
+    "message_type": "REDIS_DATA",
+    "content": {
+        "users": [
+            {
+                "name": "teacher",
+                "live_question_number": 0,
+                "live_total_score": 999,
+                "is_logged_in": "true"
+            }
+        ],
+        "live_quiz_id": null,
+        "live_question_number": null
+    }
+}
+            */
+
+                /*
                 console.log("REDIS_DATA content:", data.content);
                 console.log("REDIS_DATA users:", data.content.users);
                 console.log("REDIS_DATA live_quiz:", data.content.live_quiz_id);
                 console.log("REDIS_DATA live_question_number", data.content.live_question_number);
+                */
+               // the field is_logged_in is string "true" or "false", convert it to boolean true or false
+                data.content.users = data.content.users.map((user: ReceivedConnectedUserDataProps) => {
+                    return {
+                        ...user,
+                        is_logged_in: user.is_logged_in === "true" ? true : false,
+                    }
+                });
                 setRedisData(data.content);
                 setShowRedisDataModal(true);
                // const parsedData = JSON.parse(data.content);

@@ -20,7 +20,7 @@ function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
-    // const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
+ const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
     // this liveQuestionNumber applies for all the students taking the live quiz.
 
     const {eventEmitter, websocketRef} = useWebSocket();
@@ -38,7 +38,7 @@ useEffect(() => {
                 return;
             }
             // if there's no quiz id passed in from props, alert and return
-            console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
+            // console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
             websocketRef.current.send(JSON.stringify({
                 message_type: "ping",
             }));
@@ -65,19 +65,28 @@ useEffect(() => {
               // other_connected_users
               // first, look myself in data.other_connected_users array
               const myself = data.other_connected_users?.find(user => user.name === name);
+              console.log("HomeStudent: welcome_message received, myself info:", myself);
               //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
               if (data.live_quiz_id) {
-                  if (myself) {
-                      // if found, set live quiz state based on the live quiz info attached to myself in the other_connected_users array
-                      //setLiveQuizId(data.live_quiz_id);
+                setLiveQuizId(data.live_quiz_id);
+                if (data.live_question_number) {
+                    // setLiveQuestionNumber(data.live_question_number);
+                }
+                
+                if (myself) {
+                    console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
                       //console.log("HomeStudent: welcome_message received, myself live quiz info:", myself);
-                      
-                      if (Number(myself?.live_question_number) !== 0) {
-                        console.log("HomeStudent: welcome_message received,  live question number is:", myself?.live_question_number);
+                    const live_question_number = myself.live_question_number;
+                    console.log("HomeStudent: welcome_message received, myself live_question_number:", live_question_number);
+                    if (live_question_number) {
+                        setLiveQuestionNumber(live_question_number);
+                    }
+                      //if (Number(myself?.live_question_number) !== 0) {
+                    //    console.log("HomeStudent: welcome_message received,  live question number is:", myself?.live_question_number);
                         //setLiveQuestionNumber(myself?.live_question_number ?? undefined);
-                      }
-                  }
-
+                   // }
+                }
+                    
               }
         }
         if (data.message_type === "another_user_joined") {
@@ -274,6 +283,7 @@ const sendNotification = async () => {
                         <TakeQuizLive 
                             parent_callback={live_question_attempt_finished} 
                             live_quiz_id={liveQuizId} 
+                            live_question_number={liveQuestionNumber}
                             
                             //live_total_score={liveTotalScore ?? undefined}
                         />
@@ -283,7 +293,6 @@ const sendNotification = async () => {
                 <div className="flex flex-col">
                     <div className="bg-blue-200">
                         <ScoreBoard />
-
                     </div>
      
                 </div>

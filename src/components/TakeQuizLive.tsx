@@ -30,7 +30,7 @@ interface TakeQuizLiveProps {
     parent_callback: () => void;   // to notify parent component when a question is finished ( or the quiz is finished??)
 }
 
-function TakeQuizLive({ live_quiz_id ,  parent_callback}: TakeQuizLiveProps) {
+function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: TakeQuizLiveProps) {
     // scenarios:
     /*
      1) if live quiz id is set, then it can be either the student receives a enable live quiz message for the teacher
@@ -68,7 +68,7 @@ function TakeQuizLive({ live_quiz_id ,  parent_callback}: TakeQuizLiveProps) {
 
     const dispatch = useDispatch<AppDispatch>();
     
-    /*
+    
     useEffect(() => {
         if (live_question_number) {
           //console.log("TakeQuizLive: live_question_number prop is set to:", live_question_number);
@@ -76,7 +76,7 @@ function TakeQuizLive({ live_quiz_id ,  parent_callback}: TakeQuizLiveProps) {
           setLiveQuestionNumber(live_question_number);
         }
     }, [live_question_number]);
-  */
+  
 
     useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {

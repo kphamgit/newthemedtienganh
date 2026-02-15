@@ -1,10 +1,13 @@
+import { useEffect } from "react";
+import { type ReceivedConnectedUserDataProps } from "./shared/types";
+
 export interface RedisDataProps {
     // Add any props if needed
     //parentCallback: (action: string ) => void;
-    users: any[]
+    users: ReceivedConnectedUserDataProps[];
     live_quiz_id: string | null;    
     live_question_number: string | null;
-    parentCallback?: () => void;
+   
 }
 
 export interface Props {
@@ -15,6 +18,12 @@ export interface Props {
 }
 
 function RedisDataModal({ content, parentCallback }: Props) {
+
+    useEffect(() => {
+        console.log("RedisDataModal: Received new content from WebSocket:", content);
+    }, [content]);
+
+    
     return (
         <div
             className="fixed inset-40 rounded-md bg-blue-200 bg-opacity-50 flex flex-col items-center justify-center z-10"
@@ -27,7 +36,10 @@ function RedisDataModal({ content, parentCallback }: Props) {
                     <p>Connected Users:</p>
                     <ul className="ml-5 list-disc">
                         {content.users.map((user, index) => (
-                            <li key={index}>{user.name}, question number: {user.live_question_number}, total score: {user.live_total_score}</li>
+                            <li key={index}>{user.name},
+                            logged_in: <span className="text-red-700">{user.is_logged_in ? "Yes" : "No"}</span>,
+                            question number: {user.live_question_number}, 
+                            total score: {user.live_total_score}</li>
                         ))}
                     </ul>
                   

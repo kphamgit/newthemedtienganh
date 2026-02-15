@@ -28,12 +28,14 @@ export type CurrentStudentLiveQuestionNumberProps = {
   value: string;
 }
 
-export interface ConnectedUserDataProps { 
+export interface ReceivedConnectedUserDataProps { 
   name: string, 
   live_question_number: string | null,
   live_total_score: string | null,
+  is_logged_in: string | null,  // note that Redis store doesn't have boolean type, any "boolean" 
+  // value is stored as string, so this will have to be converted to Javascript boolean type when used in the frontend
+  // such as in ScoreBoard or RedisDataModal components
 }
-
 
 //live_question_retrieved
 interface BaseWebSocketMessageProps {
@@ -59,10 +61,11 @@ interface BaseWebSocketMessageProps {
 }
 
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
-  other_connected_users?: ConnectedUserDataProps[];
+  other_connected_users?: ReceivedConnectedUserDataProps[];
   queried_value?: string; // only for cache_query_response message type
-  quiz_name: string; // 
+  quiz_name?: string; // 
   live_quiz_id: string; // for quiz host to identify which quiz the message is related to, and for students to identify which quiz to join  
+  live_question_number: string; // for quiz host to identify which question the message is related to, and for students to identify which question to answer
 }
 
 export interface QuestionProps {
