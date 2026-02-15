@@ -8,6 +8,8 @@ import TeacherControlPanel from "./TeacherControlPanel";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
 //import ScoreBoardTeacher from "./ScoreBoardTeacher";
 import { useWebSocket } from "../components/context/WebSocketContext";
+import ScoreBoard from "./ScoreBoard";
+import ManageConnections from "./ManageConnections";
 //import ScoreBoard from "./ScoreBoard";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
@@ -109,31 +111,36 @@ function HomeTeacher() {
     
     return (
    
-            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
-                
-                  
-               
-                <div>
-                    <TeacherControlPanel ref = {teacherControlPanelRef}/>
-                    <Outlet />
-                </div>
-                <div className="flex flex-col">
-                
-                </div>
+        <div className="grid grid-cols-[2fr_1fr] gap-4">
+            <div className="bg-blue-300">
+                <TeacherControlPanel ref={teacherControlPanelRef} />
+                <Outlet />
             </div>
- 
+            <div className="bg-green-300">
+                <div><ScoreBoard /></div>
+                <div><ManageConnections /></div>
+            </div>
+        </div>
     );
 }
 
 export default HomeTeacher;
 
 /*
-  <div className="flex flex-col">
-                    <div className="bg-blue-200">
-                        <ScoreBoard />
-                        <MessageControlTeacher parent_callback={handle_callback} />
-                    </div>
-           
+   return (
+   
+            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
+                <div className="col-span-8 bg-white rounded-lg shadow-md p-4 m-4 flex flex-col">
+                    <TeacherControlPanel ref = {teacherControlPanelRef}/>
+                    <Outlet />
                 </div>
+                <div className="col-span-4 bg-red-300 rounded-lg shadow-md p-4 m-4">
+                    <ScoreBoard />
+                
+                </div>
+            </div>
+ 
+    );
+
 */
 

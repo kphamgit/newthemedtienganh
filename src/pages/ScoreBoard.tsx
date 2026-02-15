@@ -19,7 +19,7 @@ type UserRowProps = {
 function ScoreBoard() {
     const { name } = useSelector((state: RootState) => state.user);
     //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list);
-    const {websocketRef, eventEmitter} = useWebSocket();
+    const {eventEmitter} = useWebSocket();
 
     const [userRows, setUserRows] = useState<UserRowProps[]>([]);
 
@@ -82,34 +82,6 @@ function ScoreBoard() {
                     return [...prevRows, { name: data.user_name, is_logged_in: true }]; // add new user to the list with is_logged_in set to true
                 }
             });
-            /*
-            setUserRows((prevRows) => {
-                if (prevRows.some((row) => row.name === data.user_name)) {
-                    console.log("ScoreBoard: ********* THIS SHOULD NOT HAPPEND User already in the list, not adding again:", data.user_name);
-                  return prevRows; // user already in the list, do not add again
-                }
-                return [...prevRows, { name: data.user_name }]; // add new user to the list 
-              });
-          */
-
-            /*
-          const others = data.other_connected_users || [];
-          const all_connected = [data.user_name, ...others];
-          if (data.live_total_score) {
-            console.log("ScoreBoard: connection_established message contains live_total_score for user:", data.user_name, " score:", data.live_total_score);
-            // if live_total_score is present, set live total score for each this user
-           
-            setUserRows(all_connected.map((user_name) => ({
-              name: user_name,
-              //live_quiz_id: data.live_quiz_id || undefined,
-              live_question_number: data.live_question_number ? Number(data.live_question_number) : undefined,
-              total_score: user_name === data.user_name ? Number(data.live_total_score) : undefined, // only set total score for the user who just connected, since other users might have different total scores
-            })));
-            
-          } else {
-            setUserRows(all_connected.map((user_name) => ({name: user_name})));
-          }
-            */
         }
         else if (data.message_type === "user_disconnected") {
             console.log("ScoreBoard: Received user_disconnected message from server for user:", data.user_name);
@@ -200,45 +172,23 @@ Received live_score notification from Redis.  {
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
-    const sendDisconnect = (username: string) => {
-         console.log("sendDisconnect username:", username);
-         if (!websocketRef.current) {
-             alert("WebSocket is not connected.");
-             return;
-         }
-         websocketRef.current.send(JSON.stringify({
-             message_type: "disconnect_user",
-             message: username,  // user to be disconnected
-             user_name: name,    // identify sender
-         }));
-     
-     };
-
     return (
         <>
-        <div>UserRows: {JSON.stringify(userRows)}</div>
+        
             <div className="bg-green-300 p-2 mb-2">
                 
-                <div>{quizName}</div>
-                <div>Student: {name},</div>
+                <div className='text-green-800 text-xl mb-2'>{quizName}</div>
+         
                 {userRows && userRows.length > 0 &&
                     userRows.map((user, index) => (
                         <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
-                            <div>
-                                <span>
-                                    <button
-                                        className="bg-red-500 text-white px-1 py-0 rounded mr-2"
-                                        onClick={() => sendDisconnect(user.name)}   
-                                    >X
-                                    </button>
-                                </span>
-                                 - {user.name}
+                            <div
+                                className={`text-red-800 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
+                                    }`}
+                            >
+                                {user.name}
                             </div>
-                            {
-                                <div>{ user.is_logged_in !== undefined && ":" +
-                                    user.is_logged_in.toString() + ":"
-                                }</div>
-                            }
+                          
                             {user.live_question_number !== undefined &&
                                 <>
                                     <div

@@ -96,7 +96,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
          // call api to get quiz question 
          // data for quizId and questionId
          // only if both quizId and questionNumber are set
-         console.log("TakeQuizLive: useEffect for fetching quiz question triggered. live_quiz_id =", live_quiz_id, "liveQuestionNumber =", liveQuestionNumber, "pendingQuestionAttempt =", pendingQuestionAttempt);
+         //console.log("TakeQuizLive: useEffect for fetching quiz question triggered. live_quiz_id =", live_quiz_id, "liveQuestionNumber =", liveQuestionNumber, "pendingQuestionAttempt =", pendingQuestionAttempt);
             if (!live_quiz_id ) {
                 console.log("TakeQuizLive: quiz_id is not set.");
                 return;
@@ -234,9 +234,9 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
 
   return (
-    <div className=' bg-red-800  h-full w-full'>
+    <div className=' bg-green-200  h-full w-full'>
       <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
-      <div className='bg-cyan-400 flex flex-row justify-center items-center mt-5 mb-3'>
+      <div className='bg-cyan-300 flex flex-row justify-center items-center mt-5 mb-3'>
         <span className='mx-3'>Quiz ID:</span>
         <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
         {displayShowQuestionStatus()}
