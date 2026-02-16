@@ -16,15 +16,16 @@ type UserRowProps = {
     live_question_number?: number;
 }
 
-function ManageConnections() {
+type Props = {
+    parentCallback: (selectedName: string) => void;    
+}
+
+function ManageConnections({parentCallback}: Props) {
     const { name } = useSelector((state: RootState) => state.user);
     //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list);
     const {websocketRef, eventEmitter} = useWebSocket();
 
     const [userRows, setUserRows] = useState<UserRowProps[]>([]);
-
-    
-
     const getLiveQuestionNumber = (liveQuestionNumber: number | undefined) => {
         return liveQuestionNumber && liveQuestionNumber !== 0 ? Number(liveQuestionNumber) : undefined;
       };
@@ -115,15 +116,24 @@ function ManageConnections() {
         <div>Manage Users:</div>
             <div className="bg-green-300 p-2 mb-2">
                 
-                <div>Student: {name},</div>
+                <div><button className='bg-amber-700 text-white hover:bg-amber-900 p-1 rounded-md mb-2'
+                 onClick={() => parentCallback('everybody')}>Everybody</button></div>
                 {userRows && userRows.length > 0 &&
                     userRows.map((user, index) => (
                         <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
                                <div
                                 className={`text-blue-800 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
                                     }`}
-                            >
-                                {user.name}
+                            >    
+                                { user.is_logged_in !== undefined && user.is_logged_in === true ?
+                                <button className='bg-green-700 text-white hover:bg-green-900 p-1 rounded-md'
+                                    onClick={() => {parentCallback(user.name); } }
+                                >{user.name}
+
+                                </button>
+                                :
+                                <span >{user.name}</span>
+                                }
                             </div>
                                 
                                 { 

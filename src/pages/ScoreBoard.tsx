@@ -177,13 +177,14 @@ Received live_score notification from Redis.  {
         
             <div className="bg-green-300 p-2 mb-2">
                 
-                <div className='text-green-800 text-xl mb-2'>{quizName}</div>
+                <div className='text-green-800 mb-2'>{quizName}</div>
          
                 {userRows && userRows.length > 0 &&
                     userRows.map((user, index) => (
+                        user.name !== "teacher" && (
                         <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
                             <div
-                                className={`text-red-800 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
+                                className={`text-red-900 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
                                     }`}
                             >
                                 {user.name}
@@ -221,6 +222,7 @@ Received live_score notification from Redis.  {
                                 </div>
                             }
                         </div>
+                    )
                     ))
                 }
             </div>

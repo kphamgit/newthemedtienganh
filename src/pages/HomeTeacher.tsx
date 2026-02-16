@@ -9,7 +9,7 @@ import { type TeacherControlRefProps } from "./TeacherControlPanel";
 //import ScoreBoardTeacher from "./ScoreBoardTeacher";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import ScoreBoard from "./ScoreBoard";
-import ManageConnections from "./ManageConnections";
+//import ManageConnections from "./ManageConnections";
 //import ScoreBoard from "./ScoreBoard";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
@@ -118,7 +118,7 @@ function HomeTeacher() {
             </div>
             <div className="bg-green-300">
                 <div><ScoreBoard /></div>
-                <div><ManageConnections /></div>
+   
             </div>
         </div>
     );
