@@ -25,7 +25,8 @@ import { useSelector } from 'react-redux';
 //import type { RootState } from '../redux/store';
 import DOMPurify from 'dompurify';
 import type { RootState } from '../redux/store';
-import { SRContinuous } from './questions/SRContinuous';
+// import { SRContinuous } from './questions/SRContinuous';
+import SRNonContinuous from './questions/SRNonContinuous';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
@@ -332,7 +333,7 @@ const TakeQuiz: React.FC = () => {
                 <DragDrop content={question.content} ref={childRef} />
               }
               { question?.format === 7 &&
-                <SRContinuous content={question.content} ref={childRef} />
+                <SRNonContinuous content={question.content} ref={childRef} />
               }
               { question?.format === 8 &&
                 <WordsSelect content={question.content} ref={childRef} />
