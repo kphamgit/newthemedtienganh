@@ -21,6 +21,7 @@ import { updateLiveScore } from '../redux/connectedUsersSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '../redux/store';
 import { WordsSelect } from './questions/WordsSelect';
+import SRNonContinuous from './questions/SRNonContinuous';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -221,6 +222,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         return <CheckboxQuestion content={question?.content ?? ""} ref={childRef} />;
       case 6:
         return <DragDrop content={question?.content ?? ""} ref={childRef} />;
+      case 7:
+        return <SRNonContinuous content={question?.content ?? ""} ref={childRef} />
       case 8:
         return <WordsSelect content={question?.content ?? ""} ref={childRef} />;
       case 10:

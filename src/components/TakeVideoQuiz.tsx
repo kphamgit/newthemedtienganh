@@ -17,6 +17,7 @@ import { WordsSelect } from "./questions/WordsSelect";
 import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
 import CorrectModal from './CorrectModal';
+import SRNonContinuous from './questions/SRNonContinuous';
 
 
 
@@ -425,6 +426,9 @@ const handleModalClose = async () => {
               }
               { question?.format === 6 &&
                 <DragDrop content={question.content} ref={childRef} />
+              }
+              { question?.format === 7 &&
+                <SRNonContinuous content={question.content} ref={childRef} />
               }
               { question?.format === 8 &&
                 <WordsSelect content={question.content} ref={childRef} />

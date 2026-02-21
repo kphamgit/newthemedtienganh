@@ -22,7 +22,7 @@ const SRNonContinuous = ({ ref }: Props) => {
   }
 
   const getAnswer = () => {
-    console.log("getAnswer called, transcript = ", transcript)
+    console.log("SRNonContinuous: getAnswer called, transcript = ", transcript)
     return transcript
 }
   useImperativeHandle(ref, () => ({

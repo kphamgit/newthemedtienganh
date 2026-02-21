@@ -9,6 +9,7 @@ import WordScrambleExplanation from "./explanations/WordScrambleExplanation";
 import WordsSelect from "./explanations/WordsSelect";
 import DropDown from "./explanations/DropDown";
 import SentenceScramble from "./explanations/SentenceScramble";
+import SRExplanation from "./explanations/SRExplanation";
 
 export interface Props {
     parentCallback: (action: string ) => void;
@@ -49,7 +50,6 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
     <div 
     className="fixed inset-x-150 inset-y-70 bg-green-200 bg-opacity-50 flex items-center justify-center z-10"
 >
- 
     <div className="bg-white rounded-lg shadow-lg p-6 w-auto h-auto text-center">
         <div className="mb-4 text-green-900">{explanation}</div>
         <Explanation>
@@ -58,6 +58,7 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
             {format === 4 && <RadioExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 5 && <CheckboxExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 6 && <WordScrambleExplanation content={content} processQuestionResults={processQuestionResults} />}
+            {format === 7 && <SRExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 8 && <WordsSelect content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 10 && <DropDown content={content} processQuestionResults={processQuestionResults} />}
             {format === 12 && <SentenceScramble content={content} processQuestionResults={processQuestionResults} />}

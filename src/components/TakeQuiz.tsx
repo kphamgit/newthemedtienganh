@@ -222,10 +222,15 @@ const TakeQuiz: React.FC = () => {
         //counterRef.current?.stop();
         //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
         const url = `/api/question_attempts/${questionAttemptId}/process/`;
-        //console.log("POSTing to url =", url);
+        console.log("POSTing to url =", url);
+        const uanswer = childRef.current?.getAnswer();  
+        console.log("User answer to be submitted =", uanswer);
+        const aKey = question?.answer_key;
+        console.log("Answer key for this question =", aKey);
         
-        api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
+        api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: uanswer, answer_key: aKey})
           .then((res) => {     
+            console.log("Received response from process question attempt:", res.data);
             // server returns the next question id (if any), together with assessment results 
             const { assessment_results, next_question_id } = res.data;
             // update quizAttemptData.quiz_attempt
@@ -237,6 +242,7 @@ const TakeQuiz: React.FC = () => {
               },
             }));
 
+          
             setQuestionAttemptAssessmentResults(assessment_results);
             //alert("Score for this question: " + JSON.stringify(assessment_results) );
             nextQuestionId.current = next_question_id ?? null;
