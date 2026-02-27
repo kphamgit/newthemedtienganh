@@ -57,7 +57,7 @@ useEffect(() => {
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        //console.log("HomeStudent: handleMessage called with data:", data);
+        console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data);
           if (data.message_type === "welcome_message") {
@@ -131,14 +131,14 @@ useEffect(() => {
                 message: data.content,  // should contain quiz id
                 user_name: name,    // identify sender, which is teacher
             }));
-          }
-          else if (data.message_type === "live_quiz_terminated") {
+        }
+        else if (data.message_type === "live_quiz_terminated") {
             //console.log("HomeStudent: Received terminate_live_quiz message from server.");
              // reset live quiz state
              setLiveQuizId(null);
              
              //setLiveQuestionNumber(undefined);
-          }
+        }
       }
     
       // Subscribe to the "message" event
@@ -165,8 +165,8 @@ useEffect(() => {
             .get("/api/levels/")
             .then((res) => res.data)
             .then((data) => {
-                //console.log("categories", data);
-                setLevels(data);
+                console.log("HOME STUDENT levels = ", data);
+                setLevels(data as LevelProps[]);
                 //console.log("categories", data);
             })
             .catch((err) => alert(err));
@@ -273,13 +273,8 @@ const sendNotification = async () => {
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
                 <div>
    
-                    <div className="flex flex-col bg-amber-200 py-2 px-10">
-                        <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
-                            <Navbar role="student" levels={levels} />
-                        </div>
-                    </div>
-                   
-                    {liveQuizId &&
+                
+                    {liveQuizId ?
                         <TakeQuizLive 
                             parent_callback={live_question_attempt_finished} 
                             live_quiz_id={liveQuizId} 
@@ -287,6 +282,13 @@ const sendNotification = async () => {
                             
                             //live_total_score={liveTotalScore ?? undefined}
                         />
+                        :
+                        <div className="flex flex-col bg-amber-200 py-2 px-10">
+                        <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+                            <Navbar role="student" levels={levels} />
+                        </div>
+                    </div>
+                   
                     }
                     <Outlet />
                 </div>

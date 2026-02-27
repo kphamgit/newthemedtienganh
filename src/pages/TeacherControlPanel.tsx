@@ -34,6 +34,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
         const [inputLiveQuizId, setInputLiveQuizId] = useState("");
 
+        const [inputVideoSegmentNumber, setInputVideoSegmentNumber] = useState("");
+
         const [activeLiveQuizId, setActiveLiveQuizId] = useState<string | null>(null); 
         // track active live quiz id . Set after a live_quiz_id message is received from server,
         //  which indicates that the live quiz has been saved in the cache.
@@ -145,7 +147,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
         .catch(error => {
             //console.error("Error starting live quiz:", error);
             alert("Error starting live quiz. " + error.response?.data.error);
-            
+            // clear the input field
+            setInputLiveQuizId("");
             /*
 
             */
@@ -153,10 +156,24 @@ export const TeacherControlPanel = ({ref }: Props) => {
         });   
     };
 
+    const sendVideoSegmentNumber = () => {
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        websocketRef.current.send(JSON.stringify({
+            message_type: "video_segment_number",
+            content: inputVideoSegmentNumber,  // query key
+            user_name: name,    // identify sender, which is teacher
+        }));
+    };
+
     const sendQuestionNumber = () => {
         console.log("Sending live question number: ");
         if (activeLiveQuizId === null) {
             alert("No active live quiz. Please start a live quiz first.");
+            // clear the question number input field
+            setQuestionNumber("");
             return;
         }
         // if question number is empty, alert and return
@@ -240,6 +257,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         setTargetUserName(userName);
     }
 
+    //   { inputLiveQuizId !== "" &&
 //  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
     <div className="m-10">
@@ -254,20 +272,50 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={handleTerminateLiveQuiz}>Terminate Live Quiz</button>
         }
         </div>
+        <span>
         <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 
         value={inputLiveQuizId || ""} 
         onChange={e => {setInputLiveQuizId(e.target.value)}} 
         readOnly={activeLiveQuizId !== null}
         />
-        { inputLiveQuizId !== "" &&
-        <button className="text-red bg-green-300 mb-2 p-2 rounded-md hover:bg-green-400" onClick={sendQuizId}>Send Quiz id</button>
-        }
-    
+     
+              <button
+                  className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputLiveQuizId ? "" : "opacity-50 cursor-not-allowed"
+                      }`}
+                  onClick={sendQuizId}
+                  disabled={!inputLiveQuizId} // Disable the button if inputLiveQuizId is empty
+              >
+                  Send Quiz id
+              </button>
+              </span>
+
+              <span>
+                  <input className="bg-blue-200 text-black m-2 p-2" placeholder="video segment num (2...)"
+                      value={inputVideoSegmentNumber || ""}
+                      onChange={e => { setInputVideoSegmentNumber(e.target.value) }}
+                      readOnly={activeLiveQuizId === null}
+                  />
+
+                  <button
+                      className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputVideoSegmentNumber ? "" : "opacity-50 cursor-not-allowed"
+                          }`}
+                      onClick={sendVideoSegmentNumber}
+                      disabled={!inputVideoSegmentNumber} // Disable the button if inputLiveQuizId is empty
+                  >
+                      Send Video Segment Number
+                  </button>
+              </span>
         </div>
     <div className="mt-2 bg-gray-200">
         <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
-        <button className="text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-800" onClick={sendQuestionNumber}>Send Question Number</button>
-   
+              <button
+                  className={`text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-800 ${questionNumber ? "" : "opacity-50 cursor-not-allowed"
+                      }`}
+                  onClick={sendQuestionNumber}
+                  disabled={!questionNumber} // Disable the button if questionNumber is empty
+              >
+                  Send Question Number
+              </button>
         <span>
             <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="target user name..."
             onChange={e => setTargetUserName(e.target.value)} value={targetUserName} 

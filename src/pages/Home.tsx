@@ -124,17 +124,3 @@ function Home() {
 }
 
 export default Home;
-
-/*
-          <div><button className="text-red bg-green-300 mb-2" onClick={sendChatMessage}>Send Message</button></div>
-            <div><button className="text-red bg-green-300 mb-2" onClick={sendQuizId}>Send Quiz Id</button></div>
-            <div><button className="text-red bg-green-300 mb-2" onClick={sendQuestionId}>Send Question Id</button></div>
-*/
-
-/*
-            { user.name === "teacher" ?
-            <TeacherControlPanel />
-            :
-            <TakeQuizLive />
-}
-*/

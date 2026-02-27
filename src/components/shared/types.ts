@@ -45,6 +45,7 @@ interface BaseWebSocketMessageProps {
   "live_score" |
   "live_quiz_id" | 
   "live_question_number" | 
+  "video_segment_number" |
   "live_quiz_id_and_live_question_number" |
   "student_acknowleged_live_question_number" |
   "live_question_retrieved" | 
@@ -58,6 +59,12 @@ interface BaseWebSocketMessageProps {
   "terminate_live_quiz";
   content: any;
   user_name: string;  // identify sender, except for questin_number message where user_name is target user
+}
+
+export interface VideoSegment {
+  segment_number: number,
+  start_time: string,
+  end_time: string,
 }
 
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {

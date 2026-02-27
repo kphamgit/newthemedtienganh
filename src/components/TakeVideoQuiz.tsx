@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import api from '../api';
 import {  MediaPlayer, MediaProvider, useMediaRemote, useMediaStore } from '@vidstack/react';
@@ -70,7 +70,10 @@ export default function TakeVideoQuiz() {
     // This hook "listens" for changes in the media state (i.e, play is ongoing or has been paused) and re-renders the 
     // component when it changes
     //const { paused } = useMediaStore(playerRef);
-    const { paused, started } = useMediaStore(playerRef);
+    //const { paused, started } = useMediaStore(playerRef);
+    const { paused } = useMediaStore(playerRef);
+
+    const [showVideoPlayer, setShowVideoPlayer] = useState<boolean>(true);
 
     useEffect(() => {
         api.
@@ -97,12 +100,6 @@ export default function TakeVideoQuiz() {
                 console.log("TakeVideoQuiz: segment 1 startTimeInSeconds =", startTimeInSeconds);
                 console.log("TakeVideoQuiz: segment 1 stopTimeInSeconds =", stopTimeInSeconds);
                 
-                //console.log("TakeVideoQuiz: seeking to segment 1 start time", start_time, "stop time =", stop_time);
-                //remote.seek(0);
-                //remote.seek(startTimeInSeconds);
-                //stopTime.current = stopTimeInSeconds;
-                //remote.play();
-                
             } else {
                 
                 //console.warn("TakeVideoQuiz: segment 1 not found, seeking to 0");
@@ -119,72 +116,60 @@ export default function TakeVideoQuiz() {
         });
     }, [quiz_id]);
 
- // path("quiz_attempts/<int:pk>/create_next_question_attempt/", views.create_question_attempt),  #
-    /*
- const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
-      //console.log("fetchNextQuestion POSTing to url =", url);
-    
-      try {
-        const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
-          question_id: questionId,
-        });
-        //onsole.log("Received response from create_next_question_attempt:", response.data);
-    
-        const { question_attempt_id, question } = response.data;
-        setQuestion(question);
-        setQuestionAttemptId(question_attempt_id);
-        setShowQuestion(true); // Show the next question
-        //setTimerDuration(question.timeout);
-        //counterRef.current?.start(); // Start the countdown timer for the next question
-        nextQuestionId.current = null; // Reset nextQuestionId
-      } catch (error) {
-        console.error("Error creating next question attempt:", error);
+    const fetchNextQuestionAttempt = useEffectEvent(() => {
+      // We check pending status here to ensure we have the latest state
+      let questionId = null;
+      if (!question) {
+        const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
+        console.log("TakeVideoQuiz: current_segment =", current_segment);
+        setActiveSegmentQuestionIds(current_segment ? current_segment.question_numbers.split(",").map((id: string) => parseInt(id)) : []);
+        questionId = current_segment ? parseInt(current_segment.question_numbers.split(",")[0]) : null;
       }
-    */
+      else {
+        questionId = question.id;  // use current question id (this means user has clicked on rewatch button while a quesion is pending, 
+        // so we want to fetch the same question attempt again)
+      }
+
+      console.log("TakeVideoQuiz: questionId to fetch for next question attempt =", questionId);
+      const url = `/api/quiz_attempts/${quizAttempt?.id}/create_next_question_attempt/`;
+    
+      api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
+        question_id: questionId,
+    })
+    .then((response) => {
+        console.log("TakeVideoQuiz: Received response from create_next_question_attempt:", response.data);
+        const { question_attempt_id, question } = response.data;
+        console.log("TakeVideoQuiz: next question to display:", question);
+        console.log("TakeVideoQuiz: question_attempt_id =", question_attempt_id);
+        setQuestion(question);
+        setShowQuestion(true); // Show the next question
+        setQuestionAttemptId(question_attempt_id);
+     
+        //nextQuestionId.current = null; // Reset nextQuestionId
+    })
+    .catch((error) => {
+        console.error("TakeVideoQuiz: Error creating next question attempt:", error);
+    });
+
+    });
    
     useEffect( () => {
         if (paused) {
-           console.log("TakeVideoQuiz: video is paused ");
+           console.log("************* TakeVideoQuiz: video is paused. Fetching next question attempt ");
+           // print question for debugging
+           if (question) {
+            console.log("TakeVideoQuiz: current question in state =", question);
+           }
+           else {
+            console.log("TakeVideoQuiz: no question currently in state");
+           }
+           console.log(" fetching next question attempt")
            // console.log("TakeVideoQuiz: &&&&& quizAttempt =", quizAttempt);
+           fetchNextQuestionAttempt();
         }
-        if (paused && quizAttempt && started) {
-            console.log("TakeVideoQuiz: VVVVVvideo is paused");
-            console.log("TakeVideoQuiz: quizAttempt =", quizAttempt);
-            // fetch the next question attempt
-            
-          
-            const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber); 
-            console.log("TakeVideoQuiz: current_segment =", current_segment);
-            setActiveSegmentQuestionIds(current_segment ? current_segment.question_numbers.split(",").map((id: string) => parseInt(id)) : []);
-            const questionId = current_segment ? parseInt(current_segment.question_numbers.split(",")[0]) : null;
-            console.log("TakeVideoQuiz: questionId to send =", questionId);
-            const url = `/api/quiz_attempts/${quizAttempt.id}/create_next_question_attempt/`;
-            console.log("TakeVideoQuiz: POSTing to url =", url);
-            api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
-                question_id: questionId,
-            })
-            .then((response) => {
-                console.log("TakeVideoQuiz: Received response from create_next_question_attempt:", response.data);
-                const { question_attempt_id, question } = response.data;
-                console.log("TakeVideoQuiz: next question to display:", question);
-                console.log("TakeVideoQuiz: question_attempt_id =", question_attempt_id);
-                setQuestion(question);
-                setShowQuestion(true); // Show the next question
-                setQuestionAttemptId(question_attempt_id);
-             
-                //nextQuestionId.current = null; // Reset nextQuestionId
-            })
-            .catch((error) => {
-                console.error("TakeVideoQuiz: Error creating next question attempt:", error);
-            });
-            
+     
+    }, [paused]);
 
-        }
-    }, [paused, quizAttempt, started]);
-
-    useEffect(() => {
-        console.log("TakeVideoQuiz: activeSegmentQuestionIds updated:", activeSegmentQuestionIds);
-    },[activeSegmentQuestionIds]);
 
   const handleTimeUpdate = (event:any) => {
     const currentTime = event.currentTime;
@@ -233,6 +218,8 @@ export default function TakeVideoQuiz() {
     
     remote.seek(startTimeInSeconds);
     console.log("TakeVideoQuiz: Playing video from segment start time");
+    // set showQuestion to false. No questions should be shown while video is playing. Questions will only be shown when video is paused (handleTimeUpdate will set showQuestion to true when video is paused)
+    setShowQuestion(false);
     remote.play();
  
   }
@@ -293,7 +280,7 @@ export default function TakeVideoQuiz() {
 const handleModalClose = async () => {
     setShowIncorrectModal(false);
     setShowCorrectModal(false);
-
+    console.log("TakeVideoQuiz: handleModalClose called, nextQuestionId =", nextQuestionId.current);
     if (nextQuestionId.current === null) {
         console.log("TakeVideoQuiz: No more questions. Either End of Segment or End of quiz!");
         
@@ -301,8 +288,10 @@ const handleModalClose = async () => {
         const isLastSegment = activeSegmentNumber === video_segments.length;
         if (isLastSegment) {
             console.log("TakeVideoQuiz: This was the last segment. Quiz completed.");
-            alert("You have completed the quiz!");
+            
             setShowCorrectModal(false);
+            setShowVideoPlayer(false);
+            alert("You have completed the quiz!");
             return;
         }
         else {
@@ -361,7 +350,8 @@ const handleModalClose = async () => {
   return (
     <>
  {/* 1. The Parent defines the max size and shape */}
-
+{ showVideoPlayer &&
+<>
  <div className="w-full max-w-[800px] aspect-video bg-blue-200 relative overflow-hidden rounded-lg">
   <MediaPlayer 
     ref = {playerRef}
@@ -391,6 +381,8 @@ const handleModalClose = async () => {
       <span> Pause Video</span>
     )}
   </button>
+  </>
+}
   {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <ModalForIncorrect 
         parentCallback={handleModalClose} 

@@ -7,6 +7,7 @@ export interface CategoryProps {
 }
 
 export interface LevelProps {
+        id: number;
         level_number: number;
         name: string;
         categories: CategoryProps[];

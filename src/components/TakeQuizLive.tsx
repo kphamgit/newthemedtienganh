@@ -1,9 +1,9 @@
 
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 //import {  useParams } from 'react-router-dom';
 import { useWebSocket } from './context/WebSocketContext';
-import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, WebSocketMessageProps } from './shared/types';
+import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, VideoSegment, WebSocketMessageProps } from './shared/types';
 import api from '../api';
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
 import { ButtonSelect } from './questions/ButtonSelect';
@@ -23,13 +23,17 @@ import { type AppDispatch, type RootState } from '../redux/store';
 import { WordsSelect } from './questions/WordsSelect';
 import SRNonContinuous from './questions/SRNonContinuous';
 
+import './VideoPlayer.css';
+
+import LiveVideoPlayer from './LiveVideoPlayer';
+
 interface TakeQuizLiveProps {
     live_quiz_id: string;
     live_question_number?: string;
-    //live_total_score?: string;
-    //onLiveQuestionLoaded: (questionNumber: string) => void; // callback function to notify parent component when a live question is loaded
     parent_callback: () => void;   // to notify parent component when a question is finished ( or the quiz is finished??)
 }
+
+
 
 function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: TakeQuizLiveProps) {
     // scenarios:
@@ -68,7 +72,10 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
     const dispatch = useDispatch<AppDispatch>();
-    
+
+    const [allVideoSegments, setAllVideoSegments] = useState<VideoSegment[]>([]);
+    const [videoUrl, setVideoUrl] = useState<string>("");
+ 
     
     useEffect(() => {
         if (live_question_number) {
@@ -83,7 +90,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
       const handleMessage = (data: WebSocketMessageProps) => {
         if (data.message_type === "live_question_number") {
             setLiveQuestionNumber(data.content);
-        } 
+        }
       }
       // Subscribe to the "message" event
       eventEmitter?.on("message", handleMessage);
@@ -91,7 +98,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
       return () => {
         eventEmitter?.off("message", handleMessage);
       };
-    }, [eventEmitter]); // Only include eventEmitter in the dependency array
+    }, [eventEmitter, allVideoSegments]); // Only include eventEmitter in the dependency array
 
     useEffect(() => {
          // call api to get quiz question 
@@ -102,31 +109,48 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
                 console.log("TakeQuizLive: quiz_id is not set.");
                 return;
             }
-            //if (live_quiz_id === "" || liveQuestionNumber === "") {
-              //  return;
-           // }
-            // if there's a current question being shown, do not fetch new question
-            if (pendingQuestionAttempt) {
-               //console.log("TakeQuizLive: Ignoring new question fetch because user is still working on current question.");
-                return;
-            }
-            // if question_number is not set, do not fetch question
-            if (!liveQuestionNumber ) {
-                console.log("TakeQuizLive: question_number is not set.");
-                return;
-            }
-            api.post(`/api/quizzes/${live_quiz_id}/questions/${liveQuestionNumber}/live/`, {
-                user_name: name || '',
-            })
+        
+            api.get(`/api/quizzes/${live_quiz_id}/`)
             .then((res) => res.data)
             .then((data) => {
-                console.log("TakeQuizLive: Quiz Question Data:", data);
-                // you can set state here to store question data
-                setQuestion(data);
-                setShowQuestion(true);
-                setPendingQuestionAttempt(true); // set pending question attempt status to true
+                console.log("TakeQuizLive: Quiz  Data:", data);
+                if (data.video_url && data.video_segments) {
+                  setAllVideoSegments(data.video_segments);
+                  setVideoUrl(data.video_url);
+                }
             })
-      }, [live_quiz_id, liveQuestionNumber]);
+      }, [live_quiz_id]);
+
+    // 1. Encapsulate the "Action" that needs the latest values
+    const fetchLiveQuestion = useEffectEvent((questionNum: number) => {
+      // We check pending status here to ensure we have the latest state
+      if (pendingQuestionAttempt) return;
+
+      api.post(`/api/quizzes/${live_quiz_id}/questions/${questionNum}/live/`, {
+        user_name: name || '',
+      })
+        .then((res) => res.data)
+        .then((data) => {
+          //console.log("TakeQuizLive: Quiz Question Data:", data);
+          setQuestion(data);
+          setShowQuestion(true);
+          setPendingQuestionAttempt(true);
+        })
+        .catch(err => console.error("Fetch failed", err));
+    });
+
+    // 2. The Effect now only cares about the "Event" (the number changing)
+    useEffect(() => {
+      if (!liveQuestionNumber) {
+        //console.log("TakeQuizLive: question_number is not set.");
+        return;
+      }
+
+      // Call the event handler
+      fetchLiveQuestion(Number(liveQuestionNumber));
+
+      // Dependency array is now clean and specific
+    }, [liveQuestionNumber]);
     
     function SafeHTML({ content }: { content: string }) {
         const sanitizedContent = DOMPurify.sanitize(content, {
@@ -235,7 +259,6 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
     }
   }
 
-
   return (
     <div className=' bg-green-200  h-full w-full'>
       <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
@@ -244,30 +267,34 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
         {displayShowQuestionStatus()}
       </div>
-      <div className='grid grid-cols-12 border-4 border-blue-600 rounded-md mx-10 my-5 p-5 bg-white'>
-      {question && showQuestion && (
-        <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
-          <div className="mb-3 text-lg text-blue-600 font-bold">
-            Question: {question?.question_number}
-          </div>
-          {SafeHTML({ content: question.instructions ?? "" })}
-          {question?.prompt && (
-            <div className="mb-3 mt-5 text-amber-700">
-              {question.prompt}
+      
+      { videoUrl && allVideoSegments &&
+          
+         <LiveVideoPlayer videoUrl={videoUrl} allVideoSegments={allVideoSegments} />
+}
+        {question && showQuestion && (
+          <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
+            <div className="mb-3 text-lg text-blue-600 font-bold">
+              Question: {question?.question_number}
             </div>
-          )
-          }
-          <div className='my-5'>
-            {displayQuestion(question.format)}
+            {SafeHTML({ content: question.instructions ?? "" })}
+            {question?.prompt && (
+              <div className="mb-3 mt-5 text-amber-700">
+                {question.prompt}
+              </div>
+            )
+            }
+            <div className='my-5'>
+              {displayQuestion(question.format)}
+            </div>
+            <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+              onClick={() => handleSubmit()}
+            >
+              Submit
+            </button>
           </div>
-          <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
-            onClick={() => handleSubmit()}
-          >
-            Submit
-          </button>
-        </div>
-      )}
-      </div>
+        )}
+     
       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
 
       {showIncorrectModal && <ModalForIncorrect

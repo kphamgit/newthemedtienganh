@@ -47,7 +47,6 @@ function Category() {
             .get(`/api/categories/${id}/units/`)
             .then((res) => res.data)
             .then((data) => {
-                console.log("************ units", data);
                 setUnits(data);
                
             })
@@ -79,16 +78,17 @@ function Category() {
                             unit.quizzes && unit.quizzes.map((quiz) => (
                                 <div key={quiz.id} className="px-6 my-1">
                                     <span>{quiz.quiz_number}.</span>
-                                    <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
-                                        {quiz.name} 
-                                    </button>
-                                    { quiz.video_url && 
+                                   
+                                    { quiz.video_url ?
                                     <>
-                                        <span className="text-sm text-gray-500"> (video available) url = {quiz.video_url}</span>
                                         <button className=' px-2 rounded-md hover:underline' onClick={() => take_video_quiz(quiz)}>
                                         {quiz.name} 
                                     </button>
                                     </>
+                                    :
+                                    <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
+                                    {quiz.name} 
+                                </button>
                                     }
                                 </div>
                             ))
