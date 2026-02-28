@@ -37,6 +37,7 @@ interface Props {
     const tempArrayOfInputFields: InputField[][] = [];
   
     // Iterate through each sentence and process it to create input fields
+    let length_of_longest_word = 1;
     sentences_array?.forEach((sentence) => {
       //console.log("*************** sentence =", sentence);
       /*
@@ -45,7 +46,11 @@ Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's
 
       const regExp = /\[.*?\]/g;
       const matches = sentence.match(regExp);
-      //console.log("MMMM matches =", matches);
+      //console.log("MMMMMMMMM matches =", matches);
+      /*
+ [ "[who*that]",  "[smart*intelligent]" ]
+      */
+
       /*
 [
     "[was(to be)]",
@@ -65,7 +70,7 @@ Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's
       });
       //console.log("MMMMM processed_matches =", processed_matches);
 
-      let length_of_longest_word = 1;
+    
       if (processed_matches) {
         for (let i = 0; i < processed_matches.length; i++) {
           if (processed_matches[i].length > length_of_longest_word) {
@@ -142,6 +147,8 @@ Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's
     }
   };
 
+
+  
     function renderField(type: string, value: string, id: string, blank_index: number,  blank_prompt: string) {
       //console.log("renderContent type=", type, " value=", value)
       if (type === 'input') {

@@ -1,7 +1,6 @@
 import React from 'react';
 
 interface ExplanationProps {
-  answer_key?: string; // Optional answer key prop
   children: React.ReactNode; // Accepts any valid React content as children
 }
 
