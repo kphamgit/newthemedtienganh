@@ -36,8 +36,8 @@ function ScoreBoard() {
         //console.log("ScoreBoard: handleMessage called with data:", data);
         if (data.message_type === "welcome_message") {
            
-          console.log("ScoreBoard: Received welcome_message from server:", data);
-          console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
+          //console.log("ScoreBoard: Received welcome_message from server:", data);
+          //console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
           const connectedUsersFromServer = data.other_connected_users as ReceivedConnectedUserDataProps[];
 
           setUserRows(
@@ -51,10 +51,10 @@ function ScoreBoard() {
         } //
 
         else if (data.message_type === "live_question_retrieved") {
-            console.log("ScoreBoard: Received live_question_retrieved message from server for user:", data.user_name, " question number:", data.content);
+            //console.log("ScoreBoard: Received live_question_retrieved message from server for user:", data.user_name, " question number:", data.content);
             // update question number in score board
             const sender = data.user_name;
-            console.log("ScoreBoard: live_question_retrieved updating live question number for user:", sender, " to ", data.content);
+            //console.log("ScoreBoard: live_question_retrieved updating live question number for user:", sender, " to ", data.content);
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
                     return { ...row, live_question_number: Number(data.content), live_score: undefined }; // reset live score when question number is updated
@@ -64,13 +64,13 @@ function ScoreBoard() {
       
         }
         else if (data.message_type === "another_user_joined") {
-          console.log("ScoreBoard: Received another_user_joined message from server for user:", data);
+          //console.log("ScoreBoard: Received another_user_joined message from server for user:", data);
             // add this user to user rows, but only if not already in the list (to avoid duplicate when teacher opens multiple tabs)
             // set is_logged_in to true for this user in case they are already in the list but got disconnected before
             setUserRows((prevRows) => {
                 const userExists = prevRows.some((row) => row.name === data.user_name);
                 if (userExists) {
-                    console.log("ScoreBoard: User already in the list, updating is_logged_in to true for user:", data.user_name);
+                    //console.log("ScoreBoard: User already in the list, updating is_logged_in to true for user:", data.user_name);
                     return prevRows.map((row) => {
                         if (row.name === data.user_name) {
                             return { ...row, is_logged_in: true };
@@ -78,13 +78,13 @@ function ScoreBoard() {
                         return row;
                     });
                 } else {
-                    console.log("ScoreBoard: Adding new user to the list:", data.user_name);
+                    //console.log("ScoreBoard: Adding new user to the list:", data.user_name);
                     return [...prevRows, { name: data.user_name, is_logged_in: true }]; // add new user to the list with is_logged_in set to true
                 }
             });
         }
         else if (data.message_type === "user_disconnected") {
-            console.log("ScoreBoard: Received user_disconnected message from server for user:", data.user_name);
+            //console.log("ScoreBoard: Received user_disconnected message from server for user:", data.user_name);
             const dropped_user = data.user_name;
             // look for this user in userRows and set is_logged_in to false, but do not remove the user 
             // from the list since we want to keep their score and question number visible on the board

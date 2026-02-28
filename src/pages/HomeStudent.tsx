@@ -57,15 +57,15 @@ useEffect(() => {
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
-        console.log("HomeStudent: handleMessage called with data:", data);
+        //console.log("HomeStudent: handleMessage called with data:", data);
         //if (data.message_type === "chat") {
        //console.log("*********** MessageControl: Received data from server:", data);
           if (data.message_type === "welcome_message") {
-            console.log("HomeStudent: Received welcome_message from server:", data);
+              //console.log("HomeStudent: Received welcome_message from server:", data);
               // other_connected_users
               // first, look myself in data.other_connected_users array
               const myself = data.other_connected_users?.find(user => user.name === name);
-              console.log("HomeStudent: welcome_message received, myself info:", myself);
+              //console.log("HomeStudent: welcome_message received, myself info:", myself);
               //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
               if (data.live_quiz_id) {
                 setLiveQuizId(data.live_quiz_id);
@@ -74,10 +74,10 @@ useEffect(() => {
                 }
                 
                 if (myself) {
-                    console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
+                    //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
                       //console.log("HomeStudent: welcome_message received, myself live quiz info:", myself);
                     const live_question_number = myself.live_question_number;
-                    console.log("HomeStudent: welcome_message received, myself live_question_number:", live_question_number);
+                    //console.log("HomeStudent: welcome_message received, myself live_question_number:", live_question_number);
                     if (live_question_number) {
                         setLiveQuestionNumber(live_question_number);
                     }
@@ -165,7 +165,6 @@ useEffect(() => {
             .get("/api/levels/")
             .then((res) => res.data)
             .then((data) => {
-                console.log("HOME STUDENT levels = ", data);
                 setLevels(data as LevelProps[]);
                 //console.log("categories", data);
             })
