@@ -18,6 +18,7 @@ import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
 import CorrectModal from './CorrectModal';
 import SRNonContinuous from './questions/SRNonContinuous';
+import OpenAIStream from './shared/OpenAIStream';
 
 
 
@@ -401,6 +402,13 @@ const handleModalClose = async () => {
                     <div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instructions ?? '' }}></div>
                     <div className='m-2 text-textColorQuestionPrompt'>{question?.prompt}</div>
                 
+                    <div>
+                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                             <OpenAIStream sentence={question.audio_str} />
+                        }                 
+                    </div>
+
+
                     <div className='bg-cyan-200 flex flex-col rounded-md justify-center'>
                    
                     <div className='my-5'>

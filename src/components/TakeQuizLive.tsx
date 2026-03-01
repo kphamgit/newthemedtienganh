@@ -26,6 +26,7 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import './VideoPlayer.css';
 
 import LiveVideoPlayer from './LiveVideoPlayer';
+import OpenAIStream from './shared/OpenAIStream';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -284,6 +285,14 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
               </div>
             )
             }
+
+              <div>
+                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                             <OpenAIStream sentence={question.audio_str} />
+                        }                 
+              </div>
+
+
             <div className='my-5'>
               {displayQuestion(question.format)}
             </div>

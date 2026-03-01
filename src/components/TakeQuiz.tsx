@@ -27,6 +27,8 @@ import DOMPurify from 'dompurify';
 import type { RootState } from '../redux/store';
 // import { SRContinuous } from './questions/SRContinuous';
 import SRNonContinuous from './questions/SRNonContinuous';
+import { AzureAudioPlayer } from './shared/AzureAudioPlayer';
+import OpenAIStream from './shared/OpenAIStream';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
@@ -317,6 +319,13 @@ const TakeQuiz: React.FC = () => {
               </div>
             )
             }
+
+            <div>
+                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                             <OpenAIStream sentence={question.audio_str} />
+                        }                 
+              </div>
+
               <div className='my-5'>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />

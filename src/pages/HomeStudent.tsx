@@ -13,6 +13,9 @@ import ScoreBoard from "./ScoreBoard";
 //import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
+//import OpenAI_TTS from "../components/shared/OpenAI_TTS";
+import OpenAIStream from "../components/shared/OpenAIStream";
+
 
 
 
@@ -271,8 +274,7 @@ const sendNotification = async () => {
        
             <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
                 <div>
-   
-                
+                  
                     {liveQuizId ?
                         <TakeQuizLive 
                             parent_callback={live_question_attempt_finished} 
