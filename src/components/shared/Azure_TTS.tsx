@@ -12,13 +12,13 @@ function Azure_TTS() {
      console.log("Calling AZURE TTS API url: ", url)
      api.post(url, { text }, { responseType: 'blob' })
       .then((response) => {
-        /*
+        
         const audioBlob = response.data;
         const audioUrl = URL.createObjectURL(audioBlob);
   
         const audio = new Audio(audioUrl);
         audio.play();
-        */
+        
       })
       .catch((err) => {
         console.error("TTS request failed", err);
