@@ -4,6 +4,7 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from '../components/shared/types';
+
 //import { setUser } from '../redux/userSlice';
 //import { setUser } from '../redux/userSlice';
 //import { type LoggedInUserPendingDataProps } from '../components/shared/types';
@@ -175,8 +176,8 @@ Received live_score notification from Redis.  {
     return (
         <>
         
-            <div className="bg-green-300 p-2 mb-2">
-                
+            <div className="bg-green-300 p-2 mt-10 mb-2">
+               
                 <div className='text-green-800 mb-2'>{quizName}</div>
          
                 {userRows && userRows.length > 0 &&

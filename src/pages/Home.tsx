@@ -10,6 +10,7 @@ import { useSelector } from 'react-redux';
 //import type { WebSocketMessageProps } from "../components/shared/types";
 import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
+import AudioRecorder from "../components/shared/AudioRecorder";
 
 
 function Home() {
@@ -116,9 +117,14 @@ function Home() {
                 :
                 <HomeStudent />
             }
-            {isChatOpen !== false &&
-                <ChatPage ref={chatPageRef} />
-            }
+               <div
+        className="fixed top-5 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-15 flex flex-col z-100"
+      >
+        <AudioRecorder />
+        
+      </div>
+      { isChatOpen && <ChatPage ref={chatPageRef} />}
+         
         </WebSocketProvider>
     );
 }

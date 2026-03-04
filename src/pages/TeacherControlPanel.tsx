@@ -47,6 +47,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
 
         const [redisData, setRedisData] = useState<RedisDataProps>();
 
+        const [studentRecordings, setStudentRecordings] = useState<{file_key: string, audio_url: string}[]>([]);
+
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
@@ -257,6 +259,21 @@ export const TeacherControlPanel = ({ref }: Props) => {
         setTargetUserName(userName);
     }
 
+    const get_recordings = () => {
+        api.get(`/api/get_recordings/`)
+        .then(response => {
+            console.log("Response from server after getting recordings:", response.data);
+            //console.log("Recordings: " + JSON.stringify(response.data));
+            //audio_urls
+            setStudentRecordings(response.data.recordings);
+        }
+        )
+        .catch(error => {
+            console.error("Error getting recordings:", error);
+            alert("Error getting recordings. " + error.response?.data.error);
+        });
+    }
+
     //   { inputLiveQuizId !== "" &&
 //  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
@@ -340,9 +357,55 @@ export const TeacherControlPanel = ({ref }: Props) => {
                 /> 
             }
    </div>
-      
+
+   <div>
+        <button className="bg-blue-400 p-2 rounded-md hover:bg-blue-600" onClick={get_recordings}>Get Recordings</button>
+   </div>
+          {studentRecordings.length > 0 &&
+              <div className="mt-4">
+                  <h3 className="text-lg font-bold mb-2">Student Recordings:</h3>
+                  <ul className="list-disc list-inside">
+                    {
+                      studentRecordings.map((recording, index) => (
+                            <li key={index}>
+                                <p>{recording.file_key}</p>
+                                { recording.file_key.includes(".webm") &&
+                                        <audio controls>
+                                           <source src={recording.audio_url} type="audio/webm" />
+                                           Your browser does not support the audio element.
+                                       </audio>
+                                }
+                            </li>
+                        ))
+                        
+                    }
+                  </ul>
+              </div>
+          }
+
     </div>
   )
 }
 
 export default TeacherControlPanel
+
+/*
+    {studentRecordings.length > 0 &&
+              <div className="mt-4">
+                  <h3 className="text-lg font-bold mb-2">Student Recordings:</h3>
+                  <ul className="list-disc list-inside">
+                      {studentRecordings.map((recordingUrl, index) => (
+                          <li key={index}>
+
+                              <audio controls>
+                                  <source src={recordingUrl} type="audio/webm" />
+                                  Your browser does not support the audio element.
+                              </audio>
+                          </li>
+                      ))}
+                  </ul>
+              </div>
+          }
+
+*/
+

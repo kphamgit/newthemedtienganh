@@ -105,7 +105,7 @@ export interface ChatProps {
   
     return (
       <div
-        className="fixed bottom-15 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-72 flex flex-col z-50"
+        className="fixed bottom-15 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-72 flex flex-col z-20"
       >
        
           <>
