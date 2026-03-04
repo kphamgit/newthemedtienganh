@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import {Visualizer } from 'react-sound-visualizer'
+import {toast, ToastContainer} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
@@ -68,10 +70,23 @@ const AudioRecorder = () => {
     }
     
     try {
-      await fetch('http://localhost:8000/api/upload-audio/', {
+      const baseURL = import.meta.env.VITE_API_URL;
+
+      await fetch(`${baseURL}/api/upload-audio/`, {
         method: 'POST',
         body: formData,
       });
+      // add a toast notification here to indicate successful upload
+      toast.success('Okay!', {
+        position: 'top-right',
+        autoClose: 2000, // Auto close after 2 seconds
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+
     } catch (error) {
       console.error('Error uploading audio:', error);
     }
@@ -134,6 +149,7 @@ const AudioRecorder = () => {
                         <source src={URL.createObjectURL(blob)} type="audio/webm" />
                     </audio>
                 }
+                <ToastContainer />
     </div>
   );
 };

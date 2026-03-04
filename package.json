@@ -38,6 +38,7 @@
     "react-sound-visualizer": "^1.4.0",
     "react-speech-recognition": "^4.0.1",
     "react-spinners": "^0.17.0",
+    "react-toastify": "^11.0.5",
     "redux-persist": "^6.0.0",
     "tailwindcss": "^4.1.17",
     "uuid": "^13.0.0"
