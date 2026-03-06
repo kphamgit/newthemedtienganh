@@ -9,6 +9,8 @@ import api from "../api";
 import RedisDataModal from "../components/RedisDataModal";
 import { type RedisDataProps } from "../components/RedisDataModal";
 import ManageConnections from "./ManageConnections";
+import {toast, ToastContainer} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 export interface TeacherControlRefProps {
@@ -103,7 +105,8 @@ export const TeacherControlPanel = ({ref }: Props) => {
             }
             if (data.message_type === "another_user_joined") {
                 //console.log("TeacherControl: Received connection_established message from server for user:", data);
-              }
+            }
+  
           }
           // Subscribe to the "message" event
           eventEmitter?.on("message", handleMessage);
@@ -274,6 +277,52 @@ export const TeacherControlPanel = ({ref }: Props) => {
         });
     }
 
+    const delete_s3_audio = (file_key: string) => {
+        console.log("Deleting s3 audio with file key:", file_key);  
+        api.post(`/api/delete-audio/`, {
+            file_key: file_key,
+        })        
+        .then(() => {
+            //console.log("Response from server after deleting s3 audio:", response.data);
+            //alert("Audio deleted successfully.");
+             toast.success('Okay!', {
+                    position: 'bottom-center',
+                    autoClose: 1000, // Auto close after 2 seconds
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                  });
+            // remove the deleted recording from the studentRecordings state to update the UI
+            setStudentRecordings(prevRecordings => prevRecordings.filter(recording => recording.file_key !== file_key));
+        })
+    }
+
+    const create_azure_audio = () => {
+        api.post(`/api/create-azure-audio/`, {
+            text: "hello this world",
+            blob_name: "hello this world"
+        })
+        .then((response) => {
+            console.log("Response from server after creating azure audio:", response.data);
+            toast.success('Azure audio created successfully!', {
+                    position: 'bottom-center',
+                    autoClose: 1000, // Auto close after 2 seconds
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                  });
+        })
+         .catch(error => {
+            console.error("Error creating azure audio:", error);
+            alert("Error creating azure audio. " + error.response?.data.error);
+        });
+    }
+
+
     //   { inputLiveQuizId !== "" &&
 //  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
@@ -283,6 +332,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
       
     </div>
     <div className="mt-2 bg-gray-200">
+        <button onClick={create_azure_audio}>Create azure audio</button>
         <div>
             Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
             { showTerminateLiveQuizButton &&
@@ -370,10 +420,13 @@ export const TeacherControlPanel = ({ref }: Props) => {
                             <li key={index}>
                                 <p>{recording.file_key}</p>
                                 { recording.file_key.includes(".webm") &&
+                                <>
                                         <audio controls>
                                            <source src={recording.audio_url} type="audio/webm" />
                                            Your browser does not support the audio element.
                                        </audio>
+                                       <button onClick={() => delete_s3_audio(recording.file_key)}>Delete</button>
+                                       </>
                                 }
                             </li>
                         ))
@@ -382,7 +435,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
                   </ul>
               </div>
           }
-
+      <ToastContainer />
     </div>
   )
 }

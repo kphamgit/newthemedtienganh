@@ -14,6 +14,8 @@ type UserRowProps = {
     live_score?: number;
     live_total_score?: number;
     live_question_number?: number;
+    recording_received?: boolean; // new property to indicate if recording has been received for this user
+    recording_presigned_url?: string; // new property to store the S3 key of the received recording for this user
 }
 
 type Props = {
@@ -85,8 +87,20 @@ function ManageConnections({parentCallback}: Props) {
             /*
             setUserRows((prevRows) => prevRows.filter((row) => row.name !== dropped_user));
             */
-         
+        }
+        if (data.message_type === "recording_received") {
+            //console.log("TeacherControl: Received recording_received message from server, data = :", data);
+            console.log("ManageConnection: Recording received. Presigned S3 URL = ", data.content); 
+            // split by '_' and get the first part as user name, which is student2 in this example
             
+           
+            // search user rows for this user and add a property to indicate their recording has been received
+            setUserRows((prevRows) => prevRows.map((row) => {
+                if (row.name === data.user_name) {
+                    return { ...row, recording_received: true, recording_presigned_url: data.content }; // add a highlight property to the user row
+                }
+                return row;
+            }));
         }
       }
       // Subscribe to the "message" event
@@ -132,7 +146,19 @@ function ManageConnections({parentCallback}: Props) {
 
                                 </button>
                                 :
-                                <span >{user.name}</span>
+                                <span>{user.name}</span>
+                                }
+                                { user.recording_received && 
+                                <>
+                                    {/* kpham: use key to make sure audio element is 
+                                    re-rendered when a new recording is received for the same user 
+                                    without the key, the audio element is UN-reactive to change in src value */}
+                                    <audio key={user.recording_presigned_url} controls className='ml-2'>
+                                        <source src={user.recording_presigned_url} type="audio/webm" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    </>
+
                                 }
                             </div>
                                 
@@ -161,4 +187,16 @@ function ManageConnections({parentCallback}: Props) {
 }
 
 export default ManageConnections
+
+/*
+   { user.recording_received && 
+                                    <span className='ml-2 text-sm text-green-700'>(Recording Received)
+                                    <audio controls className='ml-2'>
+                                        <source src={user.recording_presigned_url} type="audio/webm" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    </span>
+                                }
+*/
+
 

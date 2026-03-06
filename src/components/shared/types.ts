@@ -49,6 +49,7 @@ interface BaseWebSocketMessageProps {
   "live_quiz_id_and_live_question_number" |
   "student_acknowleged_live_question_number" |
   "live_question_retrieved" | 
+  "recording_received" |
   "student_acknowleged_live_quiz_id" |
   "disconnect_user" |
   "cache_query_response" | 
