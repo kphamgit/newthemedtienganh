@@ -27,6 +27,7 @@ import './VideoPlayer.css';
 
 import LiveVideoPlayer from './LiveVideoPlayer';
 import OpenAIStream from './shared/OpenAIStream';
+import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -114,7 +115,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             api.get(`/api/quizzes/${live_quiz_id}/`)
             .then((res) => res.data)
             .then((data) => {
-                console.log("TakeQuizLive: Quiz  Data:", data);
+                //console.log("TakeQuizLive: Quiz  Data:", data);
                 if (data.video_url && data.video_segments) {
                   setAllVideoSegments(data.video_segments);
                   setVideoUrl(data.video_url);
@@ -239,6 +240,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
     switch(format) {
       case 1:
         return <DynamicWordInputs content={question?.content ?? ""} ref={childRef} />;
+      case 2:
+        return <ButtonSelectCloze content={question?.content ?? ""} choices={question?.button_cloze_options ?? ""} ref={childRef} />;
       case 3:
         return <ButtonSelect content={question?.content ?? ""} ref={childRef} />;
       case 4:

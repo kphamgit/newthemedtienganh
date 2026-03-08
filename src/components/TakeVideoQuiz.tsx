@@ -19,6 +19,7 @@ import { DropDowns } from "./questions/DropDowns";
 import CorrectModal from './CorrectModal';
 import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
+import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
 
 
@@ -414,6 +415,9 @@ const handleModalClose = async () => {
                     <div className='my-5'>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />
+              }
+              { question?.format === 2 &&
+                  <ButtonSelectCloze content={question.content} choices={question.button_cloze_options} ref={childRef} />
               }
               { question?.format === 3 &&
                 <ButtonSelect content={question.content} ref={childRef} />

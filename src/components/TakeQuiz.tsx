@@ -29,9 +29,9 @@ import type { RootState } from '../redux/store';
 import SRNonContinuous from './questions/SRNonContinuous';
 //import { AzureAudioPlayer } from './shared/AzureAudioPlayer';
 import OpenAIStream from './shared/OpenAIStream';
+import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
-
 
 export interface ChildRef {
     getAnswer: () => string | undefined;
@@ -329,6 +329,9 @@ const TakeQuiz: React.FC = () => {
               <div className='my-5'>
               { question?.format === 1 &&
                 <DynamicWordInputs content={question.content} ref={childRef} />
+              }
+              { question?.format === 2 &&
+                <ButtonSelectCloze content={question.content} choices={question.button_cloze_options} ref={childRef} />
               }
               { question?.format === 3 &&
                 <ButtonSelect content={question.content} ref={childRef} />

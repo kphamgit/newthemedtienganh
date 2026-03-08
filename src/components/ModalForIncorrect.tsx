@@ -53,7 +53,7 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
     <div className="bg-white rounded-lg shadow-lg p-6 w-auto h-auto text-center">
         <div className="mb-4 text-green-900">{explanation}</div>
         <Explanation>
-            {format === 1 && <ClozeExplanation content={content} processQuestionResults={processQuestionResults} />}
+            {(format === 1 || format == 2 ) && <ClozeExplanation content={content} processQuestionResults={processQuestionResults} />}
             {format === 3 && <ButtonSelectExplanation content={content}  processQuestionResults={processQuestionResults} />}
             {format === 4 && <RadioExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 5 && <CheckboxExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
