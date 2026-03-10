@@ -109,7 +109,7 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
       a.text.length > b.text.length ? a : b
     ).text;
     setLongestWord(longest_word);
-    console.log("ButtonSelectCloze: content =", content, " choices = ", choices, " parsedChoices = ", parsedChoices, " wordBankItems = ", wordBankItems);
+    //console.log("ButtonSelectCloze: content =", content, " choices = ", choices, " parsedChoices = ", parsedChoices, " wordBankItems = ", wordBankItems);
     //It's [illegal] to drive on the left side of the road.
     const sentenceTokens: SentenceToken[] = [];
     // We can use a regex to split the content into text and blanks using square brackets as delimiters

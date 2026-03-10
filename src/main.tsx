@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { Provider } from 'react-redux'
 import { store, persistor} from "./redux/store";
 import { PersistGate } from 'redux-persist/integration/react'
+//import { UserConnectionsProvider } from './components/context/UserConnectionsContext.tsx'
 //import { WebSocketProvider } from "./components/context/WebSocketContext";
 
 //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/`;
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')!).render(
 <StrictMode>
      <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
+      
     <App />
+   
     </PersistGate>
     </Provider>
 </StrictMode>

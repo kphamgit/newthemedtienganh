@@ -17,9 +17,9 @@ import DOMPurify from 'dompurify';
 import type { ChildRef } from './TakeQuiz';
 import CorrectModal from './CorrectModal';
 import ModalForIncorrect from './ModalForIncorrect';
-import { updateLiveScore } from '../redux/connectedUsersSlice';
-import { useDispatch, useSelector } from 'react-redux';
-import { type AppDispatch, type RootState } from '../redux/store';
+
+import { useSelector } from 'react-redux';
+import { type RootState } from '../redux/store';
 import { WordsSelect } from './questions/WordsSelect';
 import SRNonContinuous from './questions/SRNonContinuous';
 
@@ -28,6 +28,7 @@ import './VideoPlayer.css';
 import LiveVideoPlayer from './LiveVideoPlayer';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
+import ScoreBoard from '../pages/ScoreBoard';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -73,12 +74,14 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
      const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
             useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
-    const dispatch = useDispatch<AppDispatch>();
-
     const [allVideoSegments, setAllVideoSegments] = useState<VideoSegment[]>([]);
     const [videoUrl, setVideoUrl] = useState<string>("");
  
-    
+    const [myLiveScore, setMyLiveScore] = useState<{
+       question_number: number | undefined, score: number | undefined, total_score: number | undefined}>(
+      {question_number: undefined, score: undefined, total_score: undefined});
+    const [totalScore, setTotalScore] = useState<number>(0);
+
     useEffect(() => {
         if (live_question_number) {
           //console.log("TakeQuizLive: live_question_number prop is set to:", live_question_number);
@@ -137,6 +140,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
           setQuestion(data);
           setShowQuestion(true);
           setPendingQuestionAttempt(true);
+          // set question number in myLiveScore state to keep track of which question I am on for scoring purposes
+            setMyLiveScore((prev) => ({ ...prev, question_number: Number(liveQuestionNumber), score: undefined }));
         })
         .catch(err => console.error("Fetch failed", err));
     });
@@ -175,16 +180,16 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             api.post<ProcessQuestionAttemptResultsProps>(url, { user_name: name, format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
               .then((res) => {     
                 const { assessment_results } = res.data;
-                /*
-  {'error_flag': False, 'score': 10, 'cloze_question_results': 
-       [
-        {'user_answer': 'have', 'answer_key': 'have', 'error_flag': False, 'score': 5},
-        {'user_answer': 'seen', 'answer_key': 'seen', 'error_flag': False, 'score': 5},
-       ]}
-                */
-
+               
                 setQuestionAttemptAssessmentResults(assessment_results);
-                //alert("assessment_results for this question: " + assessment_results );
+
+                setTotalScore((prevTotalScore) => prevTotalScore + assessment_results.score);
+               
+                setMyLiveScore({ 
+                    question_number: Number(liveQuestionNumber), 
+                    score: assessment_results.score, 
+                    total_score: totalScore + assessment_results.score 
+                });
                 
                 if (assessment_results.error_flag === false) {
                   //alert("Answer is correct.");
@@ -202,8 +207,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
                  
                   setShowIncorrectModal(true);
                 }
-               //console.log("TakeQuizLive: Update score, Question Attempt Assessment Results score = ", assessment_results.score);
-                dispatch(updateLiveScore({name: name || '', live_score: assessment_results.score || 0}));
+                //console.log("TakeQuizLive: ******* Update score, Question Attempt Assessment Results score = ", assessment_results.score);
+                //dispatch(updateLiveScore({name: name || '', live_score: assessment_results.score || 0}));
                 // send my live score to server via websocket
                 //const message_content = `${liveQuestionNumber}: ${assessment_results.score}`;
                 //const message_content = {live_question_number: liveQuestionNumber, score: assessment_results.score};
@@ -264,61 +269,67 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
   }
 
   return (
-    <div className=' bg-green-200  h-full w-full'>
-      <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
-      <div className='bg-cyan-300 flex flex-row justify-center items-center mt-5 mb-3'>
-        <span className='mx-3'>Quiz ID:</span>
-        <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
-        {displayShowQuestionStatus()}
-      </div>
-      
-      { videoUrl && allVideoSegments &&
-          
-         <LiveVideoPlayer videoUrl={videoUrl} allVideoSegments={allVideoSegments} />
-}
-        {question && showQuestion && (
-          <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
-            <div className="mb-3 text-lg text-blue-600 font-bold">
-              Question: {question?.question_number}
-            </div>
-            {SafeHTML({ content: question.instructions ?? "" })}
-            {question?.prompt && (
-              <div className="mb-3 mt-5 text-amber-700">
-                {question.prompt}
-              </div>
-            )
-            }
-
-              <div>
-                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
-                             <OpenAIStream sentence={question.audio_str} />
-                        }                 
-              </div>
-
-
-            <div className='my-5'>
-              {displayQuestion(question.format)}
-            </div>
-            <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
-              onClick={() => handleSubmit()}
-            >
-              Submit
-            </button>
+    <>
+      <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5">
+        {/* Left Column */}
+        <div className="bg-cyan-200 py-2 px-10 h-screen">
+          <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
+          <div className='bg-cyan-300 flex flex-row justify-center items-center mt-5 mb-3'>
+            <span className='mx-3'>Quiz ID:</span>
+            <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
+            {displayShowQuestionStatus()}
           </div>
-        )}
-     
-      {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
 
-      {showIncorrectModal && <ModalForIncorrect
-        parentCallback={handleModalClose}
-        format={question?.format ?? 1}
-        content={question?.content ?? ""}
-        answer_key={question?.answer_key ?? ""}
-        explanation={question?.explanation ?? ""}
-        processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
-      />
-      }
-    </div>
+          {videoUrl && allVideoSegments &&
+            <LiveVideoPlayer videoUrl={videoUrl} allVideoSegments={allVideoSegments} />
+          }
+          {question && showQuestion && (
+            <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
+              <div className="mb-3 text-lg text-blue-600 font-bold">
+                Question: {question?.question_number}
+              </div>
+              {SafeHTML({ content: question.instructions ?? "" })}
+              {question?.prompt && (
+                <div className="mb-3 mt-5 text-amber-700">
+                  {question.prompt}
+                </div>
+              )
+              }
+              <div>
+                {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                  <OpenAIStream sentence={question.audio_str} />
+                }
+              </div>
+              <div className='my-5'>
+                {displayQuestion(question.format)}
+              </div>
+              <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+                onClick={() => handleSubmit()}
+              >
+                Submit
+              </button>
+            </div>
+
+          )}
+        </div>
+
+        {/* Right Column */}
+        <div className="bg-blue-200">
+          <ScoreBoard myLiveScore={myLiveScore} />
+        </div>
+        {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
+
+        {showIncorrectModal && <ModalForIncorrect
+          parentCallback={handleModalClose}
+          format={question?.format ?? 1}
+          content={question?.content ?? ""}
+          answer_key={question?.answer_key ?? ""}
+          explanation={question?.explanation ?? ""}
+          processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+        />
+        }
+      </div>
+    </>
   )
 }
 

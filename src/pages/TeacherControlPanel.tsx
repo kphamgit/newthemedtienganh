@@ -18,10 +18,11 @@ export interface TeacherControlRefProps {
 }
 
 interface Props {
+    live_quiz_id?: string | null; // Define the type of the liveQuizId prop
     ref: React.Ref<TeacherControlRefProps>;
 }
 
-export const TeacherControlPanel = ({ref }: Props) => {
+export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
 //function TeacherControlPanel() {
      
     //const user_name = useSelector((state: { name: string }) => state.name);
@@ -50,6 +51,15 @@ export const TeacherControlPanel = ({ref }: Props) => {
         const [redisData, setRedisData] = useState<RedisDataProps>();
 
         const [studentRecordings, setStudentRecordings] = useState<{file_key: string, audio_url: string}[]>([]);
+
+    useEffect(() => {
+        if (live_quiz_id) {
+            console.log("TeacherControlPanel: Received live_quiz_id from parent component:", live_quiz_id);
+            setActiveLiveQuizId(live_quiz_id || null);
+            setShowTerminateLiveQuizButton(true);
+        }
+      
+    }, [live_quiz_id]);
 
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
@@ -216,16 +226,18 @@ export const TeacherControlPanel = ({ref }: Props) => {
     };
 
 
-     const sendTest = () => {
+     const sendRedisUsersDataRequest = () => {
+        console.log("Sending request to get Redis users data: ");
         //console.log("sendCacheQuery: ");
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
             return;
         }
         //console.log("Key for cache query:", keyForCacheQuery);
+        //console.log("Requesting Redis users data for user:", testReceiver);
         websocketRef.current.send(JSON.stringify({
-            message_type: "TEST",
-            message: "TEST only",  // query key
+            message_type: "GET_REDIS_USER_DATA",
+            message: "GET_REDIS_USER_DATA",  // query key
             user_name: testReceiver,    // identify sender, which is teacher
         }));
         
@@ -240,7 +252,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
         //console.log("Key for cache query:", keyForCacheQuery);
         websocketRef.current.send(JSON.stringify({
             message_type: "CLEAR_REDIS_STORE",
-            message: "TEST only",  // query key
+            message: "CLEAR_REDIS_STORE",  // query key
             user_name: testReceiver,    // identify sender, which is teacher
         }));
         
@@ -399,7 +411,7 @@ export const TeacherControlPanel = ({ref }: Props) => {
             <div className="flex flex-row justify-start mt-4">
                 <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="all" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
             </div>
-            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-green-500" onClick={sendTest}>GET REDIS USERS DATA</div>
+            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-green-500" onClick={sendRedisUsersDataRequest}>GET REDIS USERS DATA</div>
             <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-red-400" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
 
             { showRedisDataModal && 

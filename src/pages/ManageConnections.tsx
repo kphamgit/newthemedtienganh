@@ -40,8 +40,8 @@ function ManageConnections({parentCallback}: Props) {
         if (data.message_type === "welcome_message") {
            
           console.log("ManageUsers: Received welcome_message from server:", data);
-          console.log("ScoreBoard: welcome_message other_connected_users:", data.other_connected_users);
-          const connectedUsersFromServer = data.other_connected_users as ReceivedConnectedUserDataProps[];
+          console.log("ScoreBoard: welcome_message other_connected_users:", data.connected_users);
+          const connectedUsersFromServer = data.connected_users as ReceivedConnectedUserDataProps[];
 
           setUserRows(
             connectedUsersFromServer.map((user) => ({

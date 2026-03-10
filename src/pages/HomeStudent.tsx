@@ -3,33 +3,33 @@ import api from "../api";
 import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
 import Navbar from "../components/Navbar";
-import { Outlet } from "react-router-dom";
+//import { Outlet } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 import TakeQuizLive from "../components/TakeQuizLive";
 import { useSelector } from 'react-redux';
 //import type { WebSocketMessageProps } from "../components/shared/types";
-import ScoreBoard from "./ScoreBoard";
+//import ScoreBoard from "./ScoreBoard";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
 //import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
+import { useUserConnections } from "../components/context/UserConnectionsContext";
+import { Outlet } from "react-router-dom";
+//import UserConnections from "./UserConnections";
 //import AudioRecorder from "../components/shared/AudioRecorder";
 //import OpenAI_TTS from "../components/shared/OpenAI_TTS";
 //import OpenAIStream from "../components/shared/OpenAIStream";
 
-
-
-
 function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
-    const [liveQuizId, setLiveQuizId] = useState<string | null>(null);
- const [liveQuestionNumber, setLiveQuestionNumber] = useState<string | undefined>(undefined);
-    // this liveQuestionNumber applies for all the students taking the live quiz.
+ 
+    const {liveQuizId, myLiveQuestionNumber, setLiveQuizId} = useUserConnections();
 
     const {eventEmitter, websocketRef} = useWebSocket();
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+
 
 // send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
 // Heroku has a 55 seconds timeout for idle connections, so sending a ping every 30 seconds is a common strategy to keep the connection alive without overwhelming the server with too many pings. This way, even if there's no activity from the user, the WebSocket connection will remain open and responsive. 
@@ -58,71 +58,12 @@ useEffect(() => {
         return () => clearInterval(pingInterval);
     }, []);
 
-
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("HomeStudent: handleMessage called with data:", data);
-        //if (data.message_type === "chat") {
-       //console.log("*********** MessageControl: Received data from server:", data);
-          if (data.message_type === "welcome_message") {
-              //console.log("HomeStudent: Received welcome_message from server:", data);
-              // other_connected_users
-              // first, look myself in data.other_connected_users array
-              const myself = data.other_connected_users?.find(user => user.name === name);
-              //console.log("HomeStudent: welcome_message received, myself info:", myself);
-              //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
-              if (data.live_quiz_id) {
-                setLiveQuizId(data.live_quiz_id);
-                if (data.live_question_number) {
-                    // setLiveQuestionNumber(data.live_question_number);
-                }
-                
-                if (myself) {
-                    //console.log("HomeStudent: welcome_message received, myself info from other_connected_users array:", myself);
-                      //console.log("HomeStudent: welcome_message received, myself live quiz info:", myself);
-                    const live_question_number = myself.live_question_number;
-                    //console.log("HomeStudent: welcome_message received, myself live_question_number:", live_question_number);
-                    if (live_question_number) {
-                        setLiveQuestionNumber(live_question_number);
-                    }
-                      //if (Number(myself?.live_question_number) !== 0) {
-                    //    console.log("HomeStudent: welcome_message received,  live question number is:", myself?.live_question_number);
-                        //setLiveQuestionNumber(myself?.live_question_number ?? undefined);
-                   // }
-                }
-                    
-              }
-        }
-        if (data.message_type === "another_user_joined") {
-            //console.log("HomeStudent: Received ** connection_established message** from server:", data);
-            // user is logged in while a live quiz is in progress. Hasn't received any live question yet
-            /*
-            if (data.live_quiz_id) {
-                setLiveQuizId(data.live_quiz_id);
-            }
-            // user is logged while a live question (and a live quiz) is in progress
-            if (data.live_question_number) {
-                if (!data.live_quiz_id) {
-                    // should never happen
-                    console.error("HomeStudent: Error: live_question_number received without live_quiz_id");
-                    return;
-                }
-                setLiveQuestionNumber(data.live_question_number);
-            }
-            */
-            //if(data.live_total_score){
-               // setLiveTotalScore(data.live_total_score);
-           // }
-        }
-        else if (data.message_type === "disconnect_user") {
-            //console.log("HomeStudent: Received disconnect_user message from server for user:", data.user_name);
-            if (data.user_name === name) {
-                // will log out this user in this tab, which will trigger the storage event listener to log out user in other tabs as well
-                //dispatch(clearUser());
-            }
-        }
-        else if (data.message_type === "live_quiz_id") {
-           //console.log("HomeStudent: Setting liveQuizId to:", data.message);
+    
+        if (data.message_type === "live_quiz_id") {
+            //console.log("HomeStudent: received live_quiz_id message from server, quiz id:", data.content);
             setLiveQuizId(data.content);
             // send acknowledgement back to server that student received the quiz id
             if (!websocketRef.current) {
@@ -181,7 +122,7 @@ useEffect(() => {
     // KPHAM: this logic works in conjunction with ProtecedRoute component
     // in which, upon component mount, the loggedin state of the use is checked before 
     // attempting to authorize access to protected routes
-
+/*
     useEffect(() => {
        //console.log("HomeStudent: Setting up storage event listener for logout detection across tabs...");
         const handleStorageChange = (event: StorageEvent) => {
@@ -218,11 +159,7 @@ useEffect(() => {
             window.removeEventListener("storage", handleStorageChange);
         };
     }, []);
-
-    //const toggleChatBox = () => {
-     //   chatPageRef.current?.toggle_chat();
-        //setIsChatOpen(chatPageRef.current?.get_isChatOpen?.() ?? null);
-   // }
+*/
     const live_question_attempt_finished = () => {
        //console.log("HomeStudent: ****************** live_question_attempt_finished called, clearing liveQuestionNumber");
        // setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
@@ -230,87 +167,40 @@ useEffect(() => {
     }
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
 // const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/`;
-
-/*
-const sendNotification = async () => {
-        api.post("/api/send-notification/", { message_type: "chat", content: messageText, user_name: name })
-            .then((res) => {
-                //console.log("Notification sent successfully:", res.data);
-                setMessageText(""); // Clear the input field after sending
-            })
-            .catch((err) => {
-                console.error("Error sending notification:", err);
-                alert("Failed to send notification. Please try again.");
-            });
-  };
-*/
-/*
-  const sendNotificationSave = async () => {
-
-    try {
-      const baseURL = import.meta.env.VITE_API_URL
-      const url = `${baseURL}/api/send-notification/`
-      console.log("Sending notification to:", url);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message_type: "chat", content: messageText, user_name: name }),
-      });
-
-      if (response.ok) {
-        console.log("Notification sent successfully!");
-      } else {
-        console.error("Failed to send notification:", await response.json());
-      }
-    } catch (error) {
-      console.error("Error sending notification:", error);
-    }
-  };
-*/
-
-
+    
+   
     return (
-       
-            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
-                <div>
-              
-                    {liveQuizId ?
-                        <TakeQuizLive 
-                            parent_callback={live_question_attempt_finished} 
-                            live_quiz_id={liveQuizId} 
-                            live_question_number={liveQuestionNumber}
-                            
-                            //live_total_score={liveTotalScore ?? undefined}
-                        />
-                        :
-                        <div className="flex flex-col bg-amber-200 py-2 px-10">
-                        <div className='col-span-9 bg-bgColor2 text-textColor2 text-lg m-1'>
+
+        <div className="bg-cyan-300 h-full w-full">
+            <div className="opacity-20">HOME STUDENT</div>
+            <div>
+                {liveQuizId ?
+                    <div>
+                        
+                        <div className=" bg-amber-500 py-2">
+                            <TakeQuizLive
+                                parent_callback={live_question_attempt_finished}
+                                live_quiz_id={liveQuizId}
+                                live_question_number={myLiveQuestionNumber?.toString()}
+                            />
+                        </div>
+                    </div>
+                    :
+                    <div className="flex flex-col bg-cyan-200 py-2 px-10">
+                        <div className='col-span-9 text-lg m-1'>
                             <Navbar role="student" levels={levels} />
                         </div>
                     </div>
-                   
-                    }
-                    <Outlet />
-                </div>
-                <div className="flex flex-col">
-                    <div className="bg-blue-200">
-                        <ScoreBoard />
-                    </div>
-     
-                </div>
+                }
+            
             </div>
+                <Outlet />
+        </div>
 
     );
 }
 
 export default HomeStudent;
-
-/*
-
-*/
-
 
 /*
 return (

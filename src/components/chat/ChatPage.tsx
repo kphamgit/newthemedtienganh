@@ -3,11 +3,12 @@ import { useEffect, useImperativeHandle, useState } from 'react';
 import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
-import type { WebSocketMessageProps } from '../shared/types';
+//import type { WebSocketMessageProps } from '../shared/types';
 //import type { RootState } from '../../redux/store';
 //import type { WebSocketMessageProps } from '../shared/types';
 
 //import { useAppSelector } from '../../redux/store';
+//import { v4 as uuidv4 } from "uuid";
 
 export interface ChatPageRefProps {
   get_isChatOpen: () => boolean | undefined;
@@ -16,7 +17,7 @@ export interface ChatPageRefProps {
 
 export interface ChatPageProps {
     ref: React.Ref<ChatPageRefProps>;
-   
+    chat: ChatProps;
   }
 
 export interface ChatProps {
@@ -24,7 +25,7 @@ export interface ChatProps {
     user_name: string;
   }
   
-    export const ChatPage = ({ ref }: ChatPageProps) => {
+    export const ChatPage = ({ ref, chat }: ChatPageProps) => {
 
     const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
 
@@ -35,7 +36,7 @@ export interface ChatProps {
 
     const [outgoingMessage, setOutgoingMessage] = useState<string>('');
 
-    const {eventEmitter, websocketRef} = useWebSocket();
+    const {websocketRef} = useWebSocket();
     
     //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
@@ -46,6 +47,30 @@ export interface ChatProps {
       toggle_chat: () => setIsChatOpen(!isChatOpen)
     }));
   
+    useEffect(() => {
+      // check for duplicate message id before adding to incomingMessages
+
+
+
+      if (chat.text) {
+        const chatMessage: ChatProps = { text: chat.text, user_name: chat.user_name };
+        // ignore messages from myself. 
+        if (name === chatMessage.user_name) {
+          return;
+        }
+        if (name !== "teacher" && chatMessage.user_name !== "teacher") {
+          // students only accept messages from teacher, not from other students
+          return;
+        }
+
+        setIncomingMessages((prevMessages) => {
+          return [...prevMessages, chat]
+          });
+
+      }
+    }, [chat])
+
+    /*
     useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("MessageControl: handleMessage called with data:", data);
@@ -72,6 +97,7 @@ export interface ChatProps {
           }
       }
     
+
       // Subscribe to the "message" event
       eventEmitter?.on("message", handleMessage);
       // Cleanup the event listener on unmount
@@ -79,7 +105,7 @@ export interface ChatProps {
         eventEmitter?.off("message", handleMessage);
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
-    
+    */
     
     const sendChatMessage = () => {
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
@@ -91,7 +117,7 @@ export interface ChatProps {
         content: outgoingMessage,
         user_name: name // You can replace this with the actual user name from your state
       };
-      console.log('ChatPage: Sending message to server:', messageToSend);
+      //console.log('ChatPage: Sending message to server:', messageToSend);
       websocketRef.current.send(JSON.stringify(messageToSend));
       // add the sent message to incomingMessages so it shows up in chat body
       setIncomingMessages((prevMessages) => [
