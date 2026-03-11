@@ -6,8 +6,7 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import type { RootState } from "../redux/store";
 import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
-import RedisDataModal from "../components/RedisDataModal";
-import { type RedisDataProps } from "../components/RedisDataModal";
+
 import ManageConnections from "./ManageConnections";
 import {toast, ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -45,10 +44,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
         const [testReceiver, setTestReceiver] = useState("all");
-
-        const [showRedisDataModal, setShowRedisDataModal] = useState(false);
-
-        const [redisData, setRedisData] = useState<RedisDataProps>();
 
         const [studentRecordings, setStudentRecordings] = useState<{file_key: string, audio_url: string}[]>([]);
 
@@ -106,8 +101,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
                         is_logged_in: user.is_logged_in === "true" ? true : false,
                     }
                 });
-                setRedisData(data.content);
-                setShowRedisDataModal(true);
+
                // const parsedData = JSON.parse(data.content);
                 
                 //console.log("Parsed REDIS_DATA from server:", parsedData);
@@ -266,10 +260,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         }));
     }
     
-    const closeRedisDataModal = () => {
-        setShowRedisDataModal(false);
-    }
-
     const onUserNameClick = (userName: string) => {
         setTargetUserName(userName);
     }
@@ -414,10 +404,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-green-500" onClick={sendRedisUsersDataRequest}>GET REDIS USERS DATA</div>
             <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-red-400" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
 
-            { showRedisDataModal && 
-                <RedisDataModal content={redisData as RedisDataProps} parentCallback={closeRedisDataModal}
-                /> 
-            }
    </div>
 
    <div>
