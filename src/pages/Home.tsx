@@ -55,13 +55,51 @@ function Home() {
 
     //useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
 
-    useEffect(() => {
+    const [lastSent, setLastSent] = useState<string>('Never');
+  const [status, setStatus] = useState<string>('Initializing...');
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const socket = websocketRef.current;
+
+      if (!socket) {
+        setStatus('Socket ref is null');
+        return;
+      }
+
+      console.log("WebSocket URL ", socket.url, "readyState:", socket.readyState);
+      if (socket.readyState === WebSocket.OPEN) {
+        console.log("Sending ping message to WebSocket server...");
+        const message = JSON.stringify({ 
+          message_type: "ping",
+          time: new Date().toLocaleTimeString() 
+        });
+        
+        socket.send(message);
+        
+        setLastSent(new Date().toLocaleTimeString());
+        setStatus('Message sent successfully');
+      } else {
+        // ReadyStates: 0=CONNECTING, 2=CLOSING, 3=CLOSED
+        setStatus(`Socket not open (ReadyState: ${socket.readyState})`);
+      }
+    }, 20000);
+
+    return () => {
+      clearInterval(intervalId);
+      console.log('Test interval cleared');
+    };
+  }, [websocketRef]);
+
+    /*
+ useEffect(() => {
         console.log("Home: Setting up WebSocket ping interval...");
         if (!websocketRef.current) {
             console.warn("WebSocket is not connected. websocketRef.current:", websocketRef.current);
             return;
         }
     
+        console.log("WebSocket is connected. websocketRef.current:", websocketRef.current);
         const pingInterval = setInterval(() => {
             console.log("Sending ping to WebSocket server...");
             try {
@@ -81,6 +119,7 @@ function Home() {
             clearInterval(pingInterval);
         };
     }, [websocketRef]);
+    */
 
         useEffect(() => {
             const handleMessage = (data: WebSocketMessageProps) => {
