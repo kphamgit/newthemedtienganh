@@ -10,30 +10,22 @@ const WebSocketContext = createContext<WebSocketContextType | undefined>(undefin
 
 export const WebSocketProvider: React.FC<{ 
   wsUrl: string;
-  //shouldConnect: boolean;
-  children: React.ReactNode }> = ({ wsUrl, children }) => {
+  shouldConnect: boolean;
+  children: React.ReactNode }> = ({ wsUrl,shouldConnect, children }) => {
   const websocketRef = useRef<WebSocket | null>(null);
-  const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventEmitter = useRef<EventEmitter>(new EventEmitter()).current;
 
   useEffect(() => {
     // Initialize WebSocket connection
-   // if (!shouldConnect) {
-   //   return;
-   // }
+    if (!shouldConnect) {
+      return;
+    }
 
     //console.log("WebSocketProvider: Establishing WebSocket connection to:", wsUrl);
     websocketRef.current = new WebSocket(wsUrl);  // make a connection to the wsUrl RIGHT HERE
 
     websocketRef.current.onopen = () => {
       console.log("WebSocket connection opened");
-      // 2. Start the heartbeat only when the connection opens
-      heartbeatTimerRef.current = setInterval(() => {
-        if (websocketRef.current?.readyState === WebSocket.OPEN) {
-          websocketRef.current.send(JSON.stringify({ message_type: 'ping' }));
-          console.log("Global Heartbeat Sent");
-        }
-      }, 30000);
     };
 
     websocketRef.current.onmessage = (e) => {
@@ -61,16 +53,11 @@ export const WebSocketProvider: React.FC<{
 
     websocketRef.current.onclose = () => {
       console.log("WebSocket connection closed");
-      // 3. Clear timer if the socket closes (e.g., server goes down)
-      if (heartbeatTimerRef.current) {
-        clearInterval(heartbeatTimerRef.current);
-      }
     };
 
     // Cleanup WebSocket connection when the component unmounts
     
     return () => {
-      if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
       if (websocketRef.current) {
         websocketRef.current.close();
         console.log("WebSocket connection cleaned up");
@@ -79,7 +66,7 @@ export const WebSocketProvider: React.FC<{
     
    
 
-  }, [wsUrl, eventEmitter]);
+  }, [wsUrl, shouldConnect, eventEmitter]);
 
  
   return (

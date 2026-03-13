@@ -46,7 +46,7 @@ function Home() {
 
     //const {userRows, setUserRows, liveQuizId, setLiveQuizId} = useUserConnections();
 
-    const {eventEmitter, websocketRef} = useWebSocket();
+    const {eventEmitter} = useWebSocket();
   
     const {setUserRows, setLiveQuizId, setLiveQuestionNumber} = useUserConnections();
     
@@ -55,6 +55,7 @@ function Home() {
 
     //useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
 
+    /*
     const [lastSent, setLastSent] = useState<string>('Never');
   const [status, setStatus] = useState<string>('Initializing...');
 
@@ -90,7 +91,7 @@ function Home() {
       console.log('Test interval cleared');
     };
   }, [websocketRef]);
-
+*/
     /*
  useEffect(() => {
         console.log("Home: Setting up WebSocket ping interval...");
@@ -232,14 +233,7 @@ function Home() {
 
     return (
             <>
-            <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h3>WebSocket Periodic Test</h3>
-      <p><strong>Status:</strong> {status}</p>
-      <p><strong>Last Sent:</strong> {lastSent}</p>
-      <div style={{ fontSize: '12px', color: '#666' }}>
-        Checking every 20 seconds...
-      </div>
-    </div>
+           
                 <div className="text-red-800 mx-10 my-8">Welcome
                     <span className="font-bold"> {name}</span> to
                     <span className="text-blue-600"> tienganhphuyen.com</span>

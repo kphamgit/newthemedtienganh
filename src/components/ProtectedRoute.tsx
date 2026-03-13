@@ -97,7 +97,7 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
 
     return (
         isAuthorized ? (
-          <WebSocketProvider shouldConnect={isAuthorized} wsUrl={wsUrl}>
+          <WebSocketProvider wsUrl={wsUrl}>
               <UserConnectionsProvider>
             {children}
             </UserConnectionsProvider>
@@ -109,11 +109,3 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
 }
 
 export default ProtectedRoute;
-
-/*
-  return ( 
-        <WebSocketProvider shouldConnect={isAuthorized} wsUrl={wsUrl}>
-        isAuthorized ? children : <Navigate to="/login" />
-        </WebSocketProvider>
-    )
-*/
