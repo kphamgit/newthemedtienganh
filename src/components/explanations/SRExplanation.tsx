@@ -17,7 +17,7 @@ const SRExplanation = ({ content, answer_key, processQuestionResults }: Props) =
    return (
     <>
       <div>{answer_key}</div>
-      <div className="mt-3 text-amber-700">Score: {processQuestionResults?.score}</div>
+    
  
   </>
   )

@@ -7,7 +7,7 @@ type Props = {
   processQuestionResults?: QuestionAttemptAssesmentResultsProps
 };
 
-const SentenceScramble = ({ content,  processQuestionResults }: Props) => {
+const SentenceScramble = ({ content }: Props) => {
 
   const [contentArray, setContentArray] = useState<string[]>([]);
 
@@ -34,7 +34,7 @@ const SentenceScramble = ({ content,  processQuestionResults }: Props) => {
         }
 
       </div>
-      <div className="mt-4 text-blue-500">Score: {processQuestionResults?.score}</div>
+    
  
   </>
   )

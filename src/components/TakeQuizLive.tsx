@@ -180,9 +180,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             api.post<ProcessQuestionAttemptResultsProps>(url, { user_name: name, format: question?.format , user_answer: childRef.current?.getAnswer(), answer_key: question?.answer_key })
               .then((res) => {     
                 const { assessment_results } = res.data;
-               
                 setQuestionAttemptAssessmentResults(assessment_results);
-
                 setTotalScore((prevTotalScore) => prevTotalScore + assessment_results.score);
                
                 setMyLiveScore({ 

@@ -7,12 +7,12 @@ type Props = {
   processQuestionResults?: QuestionAttemptAssesmentResultsProps
 };
 
-const RadioExplanation = ({ answer_key,  processQuestionResults }: Props) => {
+const RadioExplanation = ({ answer_key }: Props) => {
    
    return (
     <>
       <div>{answer_key}</div>
-      <div>Score: {processQuestionResults?.score}</div>
+   
  
   </>
   )

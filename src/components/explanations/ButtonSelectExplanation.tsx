@@ -3,15 +3,17 @@ import type { QuestionAttemptAssesmentResultsProps } from "../shared/types";
 
 type Props = {
   content: string;
+  answer_key: string;
   processQuestionResults?: QuestionAttemptAssesmentResultsProps
 };
 
-const ButtonSelectExplanation = ({ processQuestionResults }: Props) => {
+const ButtonSelectExplanation = ({ answer_key }: Props) => {
  
    
    return (
     <>
-      <div>Score: {processQuestionResults?.score}</div>
+      <div>{answer_key}</div>
+   
  
   </>
   )

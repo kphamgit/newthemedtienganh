@@ -8,7 +8,7 @@ type Props = {
   processQuestionResults?: QuestionAttemptAssesmentResultsProps
 };
 
-const CheckboxExplanation = ({ answer_key,  processQuestionResults }: Props) => {
+const CheckboxExplanation = ({ answer_key }: Props) => {
 
     const[answerKeyArray, setAnswerKeyArray] =  useState<string[]>([]);
 
@@ -35,7 +35,7 @@ const CheckboxExplanation = ({ answer_key,  processQuestionResults }: Props) => 
         }
 
       </div>
-      <div className="mt-4 text-blue-500">Score: {processQuestionResults?.score}</div>
+     
  
   </>
   )
