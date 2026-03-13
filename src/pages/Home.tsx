@@ -56,7 +56,7 @@ function Home() {
     //useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
 
     useEffect(() => {
-        console.log("Home: Setting up WebSocket ping interval...");
+        console.log("Home....: Setting up WebSocket ping interval...");
         if (!websocketRef.current) {
           console.warn("WebSocket is not connected.");
           return;
@@ -69,13 +69,13 @@ function Home() {
               message_type: "ping",
             })
           );
-        }, 10000);
+        }, 5000);
     
         // Cleanup the interval on unmount
         return () => {
           clearInterval(pingInterval);
         };
-      }, [websocketRef, 10000]);
+      }, [websocketRef]);
 
         useEffect(() => {
             const handleMessage = (data: WebSocketMessageProps) => {
