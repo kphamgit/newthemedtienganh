@@ -48,9 +48,9 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
   return (
 
     <div 
-    className="fixed inset-x-150 inset-y-70 bg-green-200 bg-opacity-50 flex items-center justify-center z-10"
+    className="fixed inset-x-100 inset-y-90 p-4 bg-green-300 bg-opacity-50 flex items-center justify-center z-10"
 >
-    <div className="bg-white rounded-lg shadow-lg p-6 w-auto h-auto text-center">
+    <div className="bg-gray-200 rounded-lg shadow-lg p-11 w-auto h-auto text-center">
         <div className="mb-4 text-green-900">{explanation}</div>
         <Explanation>
             {(format === 1 || format == 2 ) && <ClozeExplanation content={content} processQuestionResults={processQuestionResults} />}

@@ -67,15 +67,26 @@ const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
           })
   }, [content, processQuestionResults ])
   
-   return (
+  return (
     <>
-      { arrayOfInputFields?.map((sentence_array, index) => (
+      {arrayOfInputFields?.map((sentence_array, index) => (
         <div key={index} className="mt-3 text-green-700">
           {sentence_array.map((field) => {
             if (field.type === 'input') {
               return (
                 <span key={field.id} className={field.error ? 'text-red-700 font-bold' : 'text-blue-800 font-bold'}>
-                  {field.value}
+                  {field.value.includes('/') ? (
+                    field.value.split('/').map((part, partIndex, array) => (
+                      <span key={`${field.id}-${partIndex}`}>
+                        {part}
+                        {partIndex < array.length - 1 && (
+                          <span className="text-blue-600"> / </span> // Color the slash blue
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    <span>{field.value}</span> // Render the string as-is if no slash
+                  )}
                 </span>
               );
             } else {
@@ -86,7 +97,7 @@ const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
       ))
       }
 
-  </>
+    </>
   )
 };
 export default ClozeExplanation;

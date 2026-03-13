@@ -51,7 +51,7 @@ function Home() {
     const {setUserRows, setLiveQuizId, setLiveQuestionNumber} = useUserConnections();
     
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
-    const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/${name}/`;   
+    //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/${name}/`;   
 
     useWebSocketPing(websocketRef, 30000); // send ping every 30 seconds (30000 milliseconds)
 
