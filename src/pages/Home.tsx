@@ -14,7 +14,7 @@ import AudioRecorder from "../components/shared/AudioRecorder";
 import HomeAdmin from "./HomeAdmin";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import MessageController from "./MessageController";
-import useWebSocketPing from "../hooks/useWebSocketPing";
+//import useWebSocketPing from "../hooks/useWebSocketPing";
 import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 
 
@@ -53,8 +53,29 @@ function Home() {
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/${name}/`;   
 
-    useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
+    //useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
 
+    useEffect(() => {
+        console.log("Home: Setting up WebSocket ping interval...");
+        if (!websocketRef.current) {
+          console.warn("WebSocket is not connected.");
+          return;
+        }
+    
+        const pingInterval = setInterval(() => {
+          console.log("Sending ping to WebSocket server...");
+          websocketRef.current?.send(
+            JSON.stringify({
+              message_type: "ping",
+            })
+          );
+        }, 10000);
+    
+        // Cleanup the interval on unmount
+        return () => {
+          clearInterval(pingInterval);
+        };
+      }, [websocketRef, 10000]);
 
         useEffect(() => {
             const handleMessage = (data: WebSocketMessageProps) => {
