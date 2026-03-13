@@ -56,26 +56,31 @@ function Home() {
     //useWebSocketPing(websocketRef, 10000); // send ping every 30 seconds (30000 milliseconds)
 
     useEffect(() => {
-        console.log("Home....: Setting up WebSocket ping interval...");
+        console.log("Home: Setting up WebSocket ping interval...");
         if (!websocketRef.current) {
-          console.warn("WebSocket is not connected.");
-          return;
+            console.warn("WebSocket is not connected. websocketRef.current:", websocketRef.current);
+            return;
         }
     
         const pingInterval = setInterval(() => {
-          console.log("Sending ping to WebSocket server...");
-          websocketRef.current?.send(
-            JSON.stringify({
-              message_type: "ping",
-            })
-          );
+            console.log("Sending ping to WebSocket server...");
+            try {
+                websocketRef.current?.send(
+                    JSON.stringify({
+                        message_type: "ping",
+                    })
+                );
+            } catch (error) {
+                console.error("Error sending ping:", error);
+            }
         }, 5000);
     
         // Cleanup the interval on unmount
         return () => {
-          clearInterval(pingInterval);
+            console.log("Cleaning up WebSocket ping interval...");
+            clearInterval(pingInterval);
         };
-      }, [websocketRef]);
+    }, [websocketRef]);
 
         useEffect(() => {
             const handleMessage = (data: WebSocketMessageProps) => {
