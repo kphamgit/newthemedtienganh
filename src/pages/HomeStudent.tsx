@@ -15,6 +15,7 @@ import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import { Outlet } from "react-router-dom";
+// import useWebSocketPing from "../hooks/useWebSocketPing";
 //import UserConnections from "./UserConnections";
 //import AudioRecorder from "../components/shared/AudioRecorder";
 //import OpenAI_TTS from "../components/shared/OpenAI_TTS";
@@ -24,7 +25,7 @@ function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
  
-    const {liveQuizId, myLiveQuestionNumber, setLiveQuizId} = useUserConnections();
+    const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
 
     const {eventEmitter, websocketRef} = useWebSocket();
 
@@ -33,30 +34,11 @@ function HomeStudent() {
 
 // send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
 // Heroku has a 55 seconds timeout for idle connections, so sending a ping every 30 seconds is a common strategy to keep the connection alive without overwhelming the server with too many pings. This way, even if there's no activity from the user, the WebSocket connection will remain open and responsive. 
-useEffect(() => {
-        //const socket = new WebSocket(SOCKET_URL);
-    
-        const pingInterval = setInterval(() => {
-            if (!websocketRef.current) {
-                alert("WebSocket is not connected.");
-                return;
-            }
-            // if there's no quiz id passed in from props, alert and return
-            // console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
-            websocketRef.current.send(JSON.stringify({
-                message_type: "ping",
-            }));
-
-            /*
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'ping' }));
-            }
-                */
-
-        }, 30000); // 30 seconds is the "sweet spot" for Heroku
-    
-        return () => clearInterval(pingInterval);
-    }, []);
+   
+   // useWebSocketPing(websocketRef, 30000); // send ping every 30 seconds (30000 milliseconds)
+   useEffect(() => {
+        console.log("HomeStudent: liveQuizId or liveQuestionNumber changed, current liveQuizId:", liveQuizId, " current liveQuestionNumber:", liveQuestionNumber);
+   }, [liveQuizId, liveQuestionNumber]);
 
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
@@ -122,44 +104,6 @@ useEffect(() => {
     // KPHAM: this logic works in conjunction with ProtecedRoute component
     // in which, upon component mount, the loggedin state of the use is checked before 
     // attempting to authorize access to protected routes
-/*
-    useEffect(() => {
-       //console.log("HomeStudent: Setting up storage event listener for logout detection across tabs...");
-        const handleStorageChange = (event: StorageEvent) => {
-           //console.log("Storage event detected:", event);
-            if (event.key === "persist:root") {
-               //console.log("LocalStorage &&&&&& changed by redux-persist:", event.newValue);
-                // this is what you see in localStorage when redux-persist saves the state
-                //persist:root = `{"user":"{\"name\":null,\"isLoggedIn\":false}","_persist":"{\"version\":-1,\"rehydrated\":true}"}`;
-                // Parse the new value of persist:root
-                if (event.newValue) {
-                    const persistedState = JSON.parse(event.newValue);
-                    //console.log("Parsed persisted state:", persistedState);
-                    const userState = JSON.parse(persistedState.user || "{}");
-                    //console.log("Updated user state from localStorage:", userState);
-                    // check isLoggedIn value, if false, meaning user logged out from another tab,
-                    // then reload this tab to reflect the logout state
-                    if (userState.isLoggedIn === false) {
-                       //console.log("User logged out in another tab, reloading this tab...");
-                        // reload the page which will redirect to login page
-                        window.location.reload();
-                    }
-
-                    // You can perform additional actions here, such as updating the component state
-                    // or triggering a Redux action if needed.
-                }
-
-            }
-        };
-        // Add the event listener
-        window.addEventListener("storage", handleStorageChange);
-        // Cleanup the event listener on component unmount
-        return () => {
-           //console.log("HomeStudent: Cleaning up storage event listener...");
-            window.removeEventListener("storage", handleStorageChange);
-        };
-    }, []);
-*/
     const live_question_attempt_finished = () => {
        //console.log("HomeStudent: ****************** live_question_attempt_finished called, clearing liveQuestionNumber");
        // setLiveQuestionNumber(undefined);  // reset this so that the next time a new question is received, 
@@ -181,7 +125,7 @@ useEffect(() => {
                             <TakeQuizLive
                                 parent_callback={live_question_attempt_finished}
                                 live_quiz_id={liveQuizId}
-                                live_question_number={myLiveQuestionNumber?.toString()}
+                                live_question_number={liveQuestionNumber?.toString()}
                             />
                         </div>
                     </div>

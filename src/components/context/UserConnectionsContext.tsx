@@ -15,8 +15,8 @@ type UserConnectionsContextType = {
   setUserRows: React.Dispatch<React.SetStateAction<UserRowProps[]>>;
   liveQuizId: string | null; // Add live_quiz_id state
   setLiveQuizId: React.Dispatch<React.SetStateAction<string | null>>; // Add setter for live_quiz_id
-  myLiveQuestionNumber?: number; // Optional state for the user's own live question number
-  setMyLiveQuestionNumber?: React.Dispatch<React.SetStateAction<number | undefined>>; // Optional setter for the user's own live question number
+  liveQuestionNumber?: number; // Optional state for the user's own live question number
+  setLiveQuestionNumber?: React.Dispatch<React.SetStateAction<number | undefined>>; // Optional setter for the user's own live question number
 };
 
 // Create the context
@@ -26,11 +26,11 @@ const UserConnectionsContext = createContext<UserConnectionsContextType | undefi
 export const UserConnectionsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userRows, setUserRows] = useState<UserRowProps[]>([]);
   const [liveQuizId, setLiveQuizId] = useState<string | null>(null); // Add state for live_quiz_id
-  const [myLiveQuestionNumber, setMyLiveQuestionNumber] = useState<number | undefined>(undefined); // Add state for the user's own live question number
+  const [liveQuestionNumber, setLiveQuestionNumber] = useState<number | undefined>(undefined); // Add state for the user's own live question number
  
 
   return (
-    <UserConnectionsContext.Provider value={{ userRows, setUserRows, liveQuizId, setLiveQuizId, myLiveQuestionNumber, setMyLiveQuestionNumber }}>
+    <UserConnectionsContext.Provider value={{ userRows, setUserRows, liveQuizId, setLiveQuizId, liveQuestionNumber, setLiveQuestionNumber }}>
       {children}
     </UserConnectionsContext.Provider>
   );

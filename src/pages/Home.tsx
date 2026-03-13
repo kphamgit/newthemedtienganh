@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 //import { useSelector } from "react-redux";
 import ChatPage, { type ChatPageRefProps, type ChatProps } from "../components/chat/ChatPage";
-import { WebSocketProvider } from "../components/context/WebSocketContext";
+import { useWebSocket } from "../components/context/WebSocketContext";
 import { useSelector } from 'react-redux';
 //import MessageControl from "./MessageControl";
 //import type { WebSocketMessageProps } from "../components/shared/types";
@@ -12,8 +12,10 @@ import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
 import AudioRecorder from "../components/shared/AudioRecorder";
 import HomeAdmin from "./HomeAdmin";
-import { UserConnectionsProvider } from "../components/context/UserConnectionsContext";
+import { useUserConnections } from "../components/context/UserConnectionsContext";
 import MessageController from "./MessageController";
+import useWebSocketPing from "../hooks/useWebSocketPing";
+import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
 
 
 
@@ -27,7 +29,7 @@ function Home() {
     //const { name, isLoggedIn } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
     //const rehydrated = useSelector((state: RootState) => state._persist?.rehydrated); //
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
-    const shouldConnect = !!name
+
 
     const [isChatOpen, setIsChatOpen] = useState<boolean | null>(true);
 
@@ -44,12 +46,69 @@ function Home() {
 
     //const {userRows, setUserRows, liveQuizId, setLiveQuizId} = useUserConnections();
 
-    //useEffect(() => {
-      //  liveQuestionNumberRef.current = liveQuestionNumber;
-    //}, [liveQuestionNumber]);
+    const {eventEmitter, websocketRef} = useWebSocket();
+  
+    const {setUserRows, setLiveQuizId, setLiveQuestionNumber} = useUserConnections();
     
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
     const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/${name}/`;   
+
+    useWebSocketPing(websocketRef, 30000); // send ping every 30 seconds (30000 milliseconds)
+
+
+        useEffect(() => {
+            const handleMessage = (data: WebSocketMessageProps) => {
+                //console.log("HOME: handleMessage called with data:", data);
+                if (data.message_type === "welcome_message") {
+                    //console.log("MessageController: welcome_message ALLLLLL connected_users:", data.connected_users);
+                    const connectedUsersFromServer = data.connected_users as ReceivedConnectedUserDataProps[];
+                    // git console.log("MessageController: welcome_message, other connected_users from server:", connectedUsersFromServer);
+                    // set user rows using connectedUsersFromServer,
+                    setUserRows(connectedUsersFromServer.map((user) => ({ name: user.name })));
+                    if (data.live_quiz_id) {
+                        //console.log("************ MessageController: welcome_message live_quiz_id:", data.live_quiz_id);
+                        setLiveQuizId(data.live_quiz_id);
+                    }
+                    if (data.live_question_number) {
+                        //console.log("************ HOME: welcome_message live_question_number:", data.live_question_number);
+                        setLiveQuestionNumber?.(Number(data.live_question_number));
+                    }
+                } //
+                else if (data.message_type === "user_disconnected") {
+                    //console.log("MessageController: Received user_disconnected message from server for user:", data.user_name);
+                    const dropped_user = data.user_name;
+                    // remove dropped_user from userRows,
+                    setUserRows((prevRows) => prevRows.filter((row) => row.name !== dropped_user));
+                    
+                }
+                if (data.message_type === "another_user_joined") {
+                    setUserRows((prevRows) => {
+                            //console.log("MessageController: Adding new user to the list:", data.user_name);
+                            return [...prevRows, { name: data.user_name}]; // add new user to the list with is_logged_in set to true  
+                    })
+                }
+                if (data.message_type === "chat") {
+                    //console.log("MessageController: Received chat message from server:. ");
+                    setIsChatOpen((prevIsChatOpen) => {
+                        if (!prevIsChatOpen) {
+                            //console.log("Home: Chat box is closed. Opening chat box to display new message.");
+                            return true; // Open the chat box
+                        }
+                        return prevIsChatOpen; // Keep the current state
+                    });
+                    //console.log("Home: Received chat message from server, setting chatMessage state to:", { text: data.content, user_name: data.user_name });
+                    setChatMessage({ text: data.content, user_name: data.user_name });
+                }
+            }
+            // Subscribe to the "message" event
+            eventEmitter?.on("message", handleMessage);
+            // Cleanup the event listener on unmount
+            return () => {
+                eventEmitter?.off("message", handleMessage);
+            };
+        }, [eventEmitter]); // Only include eventEmitter in the dependency array
+
+
 
     useEffect(() => {
        //console.log("Home: Setting up storage event listener for logout detection across tabs...");
@@ -96,41 +155,18 @@ function Home() {
     
     const renderHomeContent = () => {
         if (name === 'admin') {
-          return <HomeAdmin  />;
+            return <HomeAdmin  />;
         }
         else if (name === "teacher") {
-          
             return <HomeTeacher />;
-            }
+        }
         else {  //name is student
-            //console.log('Home: Rendering HomeStudent with otherConnectedUsers:', otherConnectedUsers)
-            //if (otherConnectedUsers.length > 0) {
-            //   console.log('Home: Rendering HomeStudent with otherConnectedUsers:', otherConnectedUsers) 
-                return <HomeStudent />;
-            //}
-            //else {
-              //  return <div>Loading other connected users...</div>;
-            //}
+            return <HomeStudent />;
         }
       };
 
-      const processChatMessage = (data: ChatProps) => {
-        setIsChatOpen((prevIsChatOpen) => {
-            if (!prevIsChatOpen) {
-                //console.log("Home: Chat box is closed. Opening chat box to display new message.");
-                return true; // Open the chat box
-            }
-            return prevIsChatOpen; // Keep the current state
-        });
-        setChatMessage(data);
-        
-    };
-
- 
     return (
-        <WebSocketProvider shouldConnect={shouldConnect} wsUrl={wsUrl}>
-
-            <UserConnectionsProvider>
+            <>
                 <div className="text-red-800 mx-10 my-8">Welcome
                     <span className="font-bold"> {name}</span> to
                     <span className="text-blue-600"> tienganhphuyen.com</span>
@@ -143,12 +179,14 @@ function Home() {
                         <AudioRecorder />
                     </span>
                 </div>
-                <MessageController parentCallback = {processChatMessage}/>
+                <div className="flex flex-row justify-left mb-2 ml-10 items-center bg-cyan-200 px-2">
+                    <span className="text-lg bg-green-200 text-red-800 font-bold">{name}</span>
+                    <MessageController />
 
-                <div>
-                    <span className="text-lg text-red-500">{name}</span> is connected to WebSocket <span className="opacity-35">at: {wsUrl}</span>
                 </div>
              
+               
+      
                 {renderHomeContent()
 
                 }
@@ -162,8 +200,8 @@ function Home() {
                </button>
            </div>
 
-            </UserConnectionsProvider>
-        </WebSocketProvider>
+            </>
+       
     );
 }
 

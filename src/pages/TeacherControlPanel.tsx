@@ -4,12 +4,12 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import useSendNotification from "../hooks/useSendNotification";
 //import api from "../api";
 //import type { RootState } from "../redux/store";
-import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
+import type { WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
-
-import ManageConnections from "./ManageConnections";
-import {toast, ToastContainer} from 'react-toastify';
+import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useUserConnections } from "../components/context/UserConnectionsContext";
+import DisplayRecordings from "./DisplayRecordings";
 
 
 export interface TeacherControlRefProps {
@@ -43,9 +43,8 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         //  which indicates that the live quiz has been saved in the cache.
         const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
-        const [testReceiver, setTestReceiver] = useState("all");
-
-        const [studentRecordings, setStudentRecordings] = useState<{file_key: string, audio_url: string}[]>([]);
+        const {userRows} = useUserConnections();
+         
 
     useEffect(() => {
         if (live_quiz_id) {
@@ -59,59 +58,13 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
-            if (data.message_type === "welcome_message") {
-                      console.log("TeacherControlPanel: Received welcome_message from server for user:", data.user_name);
-                      //console.log("TeacherControlPanel: welcome_message pending data:", data.pending_data);
-               }
-            else if (data.message_type === "live_quiz_terminated") {
+            if (data.message_type === "live_quiz_terminated") {
                 //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
                 setActiveLiveQuizId(null);
                 setShowTerminateLiveQuizButton(false);
             }
-            if (data.message_type === "REDIS_DATA") {
-                console.log("TeacherControl: Received REDIS DATA RESPONSE from server, data = :",data) ;
-                /*
-{
-    "message_type": "REDIS_DATA",
-    "content": {
-        "users": [
-            {
-                "name": "teacher",
-                "live_question_number": 0,
-                "live_total_score": 999,
-                "is_logged_in": "true"
-            }
-        ],
-        "live_quiz_id": null,
-        "live_question_number": null
-    }
-}
-            */
-
-                /*
-                console.log("REDIS_DATA content:", data.content);
-                console.log("REDIS_DATA users:", data.content.users);
-                console.log("REDIS_DATA live_quiz:", data.content.live_quiz_id);
-                console.log("REDIS_DATA live_question_number", data.content.live_question_number);
-                */
-               // the field is_logged_in is string "true" or "false", convert it to boolean true or false
-                data.content.users = data.content.users.map((user: ReceivedConnectedUserDataProps) => {
-                    return {
-                        ...user,
-                        is_logged_in: user.is_logged_in === "true" ? true : false,
-                    }
-                });
-
-               // const parsedData = JSON.parse(data.content);
-                
-                //console.log("Parsed REDIS_DATA from server:", parsedData);
-                //alert("Received TEST_RESPONSE from server: " + JSON.stringify(data));
-            }
-            if (data.message_type === "another_user_joined") {
-                //console.log("TeacherControl: Received connection_established message from server for user:", data);
-            }
-  
           }
+  
           // Subscribe to the "message" event
           eventEmitter?.on("message", handleMessage);
           // Cleanup the event listener on unmount
@@ -219,39 +172,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         setQuestionNumber("");
     };
 
-
-     const sendRedisUsersDataRequest = () => {
-        console.log("Sending request to get Redis users data: ");
-        //console.log("sendCacheQuery: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        //console.log("Key for cache query:", keyForCacheQuery);
-        //console.log("Requesting Redis users data for user:", testReceiver);
-        websocketRef.current.send(JSON.stringify({
-            message_type: "GET_REDIS_USER_DATA",
-            message: "GET_REDIS_USER_DATA",  // query key
-            user_name: testReceiver,    // identify sender, which is teacher
-        }));
-        
-    };
-
-    const clearRedisStore = () => {
-        //console.log("sendCacheQuery: ");
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        //console.log("Key for cache query:", keyForCacheQuery);
-        websocketRef.current.send(JSON.stringify({
-            message_type: "CLEAR_REDIS_STORE",
-            message: "CLEAR_REDIS_STORE",  // query key
-            user_name: testReceiver,    // identify sender, which is teacher
-        }));
-        
-    };
-
     const handleTerminateLiveQuiz = () => {
         websocketRef.current?.send(JSON.stringify({
             message_type: "terminate_live_quiz",
@@ -261,80 +181,17 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
     }
     
     const onUserNameClick = (userName: string) => {
+        console.log("User name clicked:", userName);
         setTargetUserName(userName);
     }
 
-    const get_recordings = () => {
-        api.get(`/api/get_recordings/`)
-        .then(response => {
-            console.log("Response from server after getting recordings:", response.data);
-            //console.log("Recordings: " + JSON.stringify(response.data));
-            //audio_urls
-            setStudentRecordings(response.data.recordings);
-        }
-        )
-        .catch(error => {
-            console.error("Error getting recordings:", error);
-            alert("Error getting recordings. " + error.response?.data.error);
-        });
-    }
-
-    const delete_s3_audio = (file_key: string) => {
-        console.log("Deleting s3 audio with file key:", file_key);  
-        api.post(`/api/delete-audio/`, {
-            file_key: file_key,
-        })        
-        .then(() => {
-            //console.log("Response from server after deleting s3 audio:", response.data);
-            //alert("Audio deleted successfully.");
-             toast.success('Okay!', {
-                    position: 'bottom-center',
-                    autoClose: 1000, // Auto close after 2 seconds
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                  });
-            // remove the deleted recording from the studentRecordings state to update the UI
-            setStudentRecordings(prevRecordings => prevRecordings.filter(recording => recording.file_key !== file_key));
-        })
-    }
-
-    const create_azure_audio = () => {
-        api.post(`/api/create-azure-audio/`, {
-            text: "hello this world",
-            blob_name: "hello this world"
-        })
-        .then((response) => {
-            console.log("Response from server after creating azure audio:", response.data);
-            toast.success('Azure audio created successfully!', {
-                    position: 'bottom-center',
-                    autoClose: 1000, // Auto close after 2 seconds
-                    hideProgressBar: true,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                  });
-        })
-         .catch(error => {
-            console.error("Error creating azure audio:", error);
-            alert("Error creating azure audio. " + error.response?.data.error);
-        });
-    }
-
-
-    //   { inputLiveQuizId !== "" &&
-//  <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." value={quizId} onChange={(e) => setQuizId(e.target.value)} />
   return (
     <div className="m-10">
   
     <div>TeacherControlPanel
       
     </div>
-    <div className="mt-2 bg-gray-200">
-        <button onClick={create_azure_audio}>Create azure audio</button>
+    <div className="mt-2 bg-green-200">
         <div>
             Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
             { showTerminateLiveQuizButton &&
@@ -390,49 +247,31 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             onChange={e => setTargetUserName(e.target.value)} value={targetUserName} 
             />
         </span>
-        <ManageConnections parentCallback={onUserNameClick} />
         <div className='flex flex-row justify-end gap-2 mt-2'>
-       
     </div>
-        
-   
    </div>
-   <div className="mt-2 bg-amber-200 p-2"> 
-            <div className="flex flex-row justify-start mt-4">
-                <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="all" value={testReceiver} onChange={(e) => setTestReceiver(e.target.value)} />
+
+   <div className="bg-green-300 p-2 mb-2">
+                <div><button className='bg-amber-700 text-white hover:bg-amber-900 p-1 rounded-md mb-2'
+                 onClick={() => {onUserNameClick('everybody')}}>Everybody</button></div>
+                {userRows && userRows.length > 0 &&
+                    userRows.map((user, index) => (
+                        <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
+                               <div
+                                className={`text-blue-800 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
+                                    }`}
+                            >    
+                                <button className='bg-green-700 text-white hover:bg-green-900 p-1 rounded-md'
+                                    onClick={() => { onUserNameClick(user.name)} }
+                                >{user.name}
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                }
+                <DisplayRecordings />
             </div>
-            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-green-500" onClick={sendRedisUsersDataRequest}>GET REDIS USERS DATA</div>
-            <div className="bg-green-300 p-2 flex flex-row justify-start m-3 hover:bg-red-400" onClick={clearRedisStore}>CLEAR REDIS STORE</div>
 
-   </div>
-
-   <div>
-        <button className="bg-blue-400 p-2 rounded-md hover:bg-blue-600" onClick={get_recordings}>Get Recordings</button>
-   </div>
-          {studentRecordings.length > 0 &&
-              <div className="mt-4">
-                  <h3 className="text-lg font-bold mb-2">Student Recordings:</h3>
-                  <ul className="list-disc list-inside">
-                    {
-                      studentRecordings.map((recording, index) => (
-                            <li key={index}>
-                                <p>{recording.file_key}</p>
-                                { recording.file_key.includes(".webm") &&
-                                <>
-                                        <audio controls>
-                                           <source src={recording.audio_url} type="audio/webm" />
-                                           Your browser does not support the audio element.
-                                       </audio>
-                                       <button onClick={() => delete_s3_audio(recording.file_key)}>Delete</button>
-                                       </>
-                                }
-                            </li>
-                        ))
-                        
-                    }
-                  </ul>
-              </div>
-          }
       <ToastContainer />
     </div>
   )
@@ -440,23 +279,4 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
 
 export default TeacherControlPanel
 
-/*
-    {studentRecordings.length > 0 &&
-              <div className="mt-4">
-                  <h3 className="text-lg font-bold mb-2">Student Recordings:</h3>
-                  <ul className="list-disc list-inside">
-                      {studentRecordings.map((recordingUrl, index) => (
-                          <li key={index}>
-
-                              <audio controls>
-                                  <source src={recordingUrl} type="audio/webm" />
-                                  Your browser does not support the audio element.
-                              </audio>
-                          </li>
-                      ))}
-                  </ul>
-              </div>
-          }
-
-*/
 

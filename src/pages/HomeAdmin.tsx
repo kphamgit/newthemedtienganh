@@ -6,6 +6,7 @@ import "../styles/Home.css"
 import { useWebSocket } from "../components/context/WebSocketContext";
 
 import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
+
 //import ManageConnections from "./ManageConnections";
 //import ScoreBoard from "./ScoreBoard";
 //import { useDispatch } from "react-redux";
@@ -48,6 +49,7 @@ function HomeAdmin() {
 
     const [automaticDataRefreshEnabled, setAutomaticDataRefreshEnabled] = useState(false);
 
+    
     // Listen for user logging out in other tabs. If that happends, reload this tab to reflect the logout state
     // which effectively logs out this tab as well and redirects to login page
 
@@ -89,27 +91,7 @@ function HomeAdmin() {
         };
     }, []);
 
-    useEffect(() => {
-        const pingInterval = setInterval(() => {
-            if (!websocketRef.current) {
-                alert("WebSocket is not connected.");
-                return;
-            }
-            // if there's no quiz id passed in from props, alert and return
-            //console.log("HomeStudent: Sending ping to Heroku's NodeJS server to keep WebSocket connection alive...");
-            websocketRef.current.send(JSON.stringify({
-                message_type: "ping",
-            }));
-            /*
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'ping' }));
-            }
-                */
-        }, 30000); // 30 seconds is the "sweet spot" for Heroku
-    
-        return () => clearInterval(pingInterval);
-    }, []);
-
+   
     useEffect(() => {
         // set a interval to send request for Redis users data every 10 seconds 
         if (!automaticDataRefreshEnabled) {

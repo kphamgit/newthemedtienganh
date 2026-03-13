@@ -4,7 +4,10 @@ import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
 import { useState, useEffect, type JSX } from "react";
 import { useSelector } from "react-redux";
+import { WebSocketProvider } from "./context/WebSocketContext";
+import { UserConnectionsProvider } from "./context/UserConnectionsContext";
 
+// youtube: https://www.youtube.com/watch?v=c-QsfbznSXI&t=5717s
 
 function ProtectedRoute({ children: children }: { children: JSX.Element }) {
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
@@ -13,8 +16,9 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
 
     // kpham: this component deals with ACCESS TOKEN expiration and refresh only,
     // it has nothing to do with login status which is handled by redux store
+    const name = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user.name);
     // see explanation below in the first useEffect
-
+    const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/${name}/`;   
 
     useEffect(() => {
         // KPHAM: only check auth if user is logged in
@@ -91,7 +95,25 @@ function ProtectedRoute({ children: children }: { children: JSX.Element }) {
         return <div>Loading...</div>;
     }
 
-    return isAuthorized ? children : <Navigate to="/login" />;
+    return (
+        isAuthorized ? (
+          <WebSocketProvider shouldConnect={isAuthorized} wsUrl={wsUrl}>
+              <UserConnectionsProvider>
+            {children}
+            </UserConnectionsProvider>
+          </WebSocketProvider>
+        ) : (
+          <Navigate to="/login" />
+        )
+      );
 }
 
 export default ProtectedRoute;
+
+/*
+  return ( 
+        <WebSocketProvider shouldConnect={isAuthorized} wsUrl={wsUrl}>
+        isAuthorized ? children : <Navigate to="/login" />
+        </WebSocketProvider>
+    )
+*/
