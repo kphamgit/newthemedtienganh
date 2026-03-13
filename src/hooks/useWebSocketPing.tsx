@@ -8,7 +8,7 @@ const useWebSocketPing = (websocketRef: React.MutableRefObject<WebSocket | null>
     }
 
     const pingInterval = setInterval(() => {
-      //console.log("Sending ping to WebSocket server...");
+      console.log("Sending ping to WebSocket server...");
       websocketRef.current?.send(
         JSON.stringify({
           message_type: "ping",
