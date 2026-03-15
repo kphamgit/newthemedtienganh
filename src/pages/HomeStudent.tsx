@@ -15,6 +15,7 @@ import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import { Outlet } from "react-router-dom";
+
 // import useWebSocketPing from "../hooks/useWebSocketPing";
 //import UserConnections from "./UserConnections";
 //import AudioRecorder from "../components/shared/AudioRecorder";
@@ -30,6 +31,7 @@ function HomeStudent() {
     const {eventEmitter, websocketRef} = useWebSocket();
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+//CoundownTimerHandleProps
 
 
 // send a ping every 30 seconds to keep the WebSocket connection alive, which is especially important for hosting services like Heroku that may terminate idle connections after 55 seconds
@@ -111,12 +113,13 @@ function HomeStudent() {
     }
 //https://www.youtube.com/watch?v=ivg_Yc-YDYo
 // const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/`;
-    
+   
    
     return (
 
         <div className="bg-cyan-300 h-full w-full">
             <div className="opacity-20">HOME STUDENT</div>
+        
             <div>
                 {liveQuizId ?
                     <div>

@@ -31,6 +31,8 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
+import CountdownTimer, { type CountdownTimerHandleProps } from "../components/CountdownTimer";
+
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
 export interface ChildRef {
@@ -38,6 +40,8 @@ export interface ChildRef {
   }
 
 const TakeQuiz: React.FC = () => {
+
+  const timerRef = useRef<CountdownTimerHandleProps>(null);
 
     //const [questionAttemptData, setQuestionAttemptData] = useState<QuestionAttemptDataProps>();
     const [showQuestion, setShowQuestion] = useState(false); // work in conjunction with questionAttemptData 
@@ -133,7 +137,8 @@ const TakeQuiz: React.FC = () => {
                     setQuestion(quizAttemptData.question);
                     setQuestionAttemptId(quizAttemptData.question_attempt_id);
                     setShowQuestion(true);
-                    //setTimerDuration(quizAttemptData.question.timeout);
+                    // start timer
+                  
                     
                     //start_question_attempt(quizAttemptData.question, quizAttemptData.question_attempt_id);
                     //return; // exit here
@@ -155,6 +160,8 @@ const TakeQuiz: React.FC = () => {
                 //counterRef.current?.start(); // start counter for first question
             }
             // start counter using timeout as 5000 miliseconds
+            console.log("Starting timer for continued quiz attempt. question timeout:", quizAttemptData.question.timeout);
+            timerRef.current?.start();
     
         }
         //console.log("Starting 5 second timer for question display.");
@@ -265,13 +272,10 @@ const TakeQuiz: React.FC = () => {
     }
 //
 
-    
-    /*
-  <div className='flex flex-row justify-center mb-3'>
-      <CountdownTimer initialSeconds={timerDuration} onComplete={handdleTimerComplete} ref={counterRef} />
-      </div>
-  
-    */
+   
+const timerCompletedCallback = () => {
+  console.log("TakeQuiz: Countdown timer completed. You can implement any additional logic here if needed.");
+}
 
     function SafeHTML({ content }: { content: string }) {
         const sanitizedContent = DOMPurify.sanitize(content, {
@@ -284,7 +288,7 @@ const TakeQuiz: React.FC = () => {
 //<div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instruction ?? '' }}></div>
     return (
     <div className="mx-20 my-5 bg-cyan-200">
-     
+       <CountdownTimer initialSeconds={10} onComplete={timerCompletedCallback} ref={timerRef} />
       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <ModalForIncorrect 
         parentCallback={handleInCorrectModalClose} 

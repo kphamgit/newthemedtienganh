@@ -6,7 +6,7 @@ import { useEffect, useImperativeHandle, useState } from "react";
 //import type { RootState } from "../redux/store";
 import type { WebSocketMessageProps } from "../components/shared/types";
 import api from "../api";
-import {ToastContainer} from 'react-toastify';
+import {toast, ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import DisplayRecordings from "./DisplayRecordings";
@@ -128,6 +128,15 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             content: inputVideoSegmentNumber,  // query key
             user_name: name,    // identify sender, which is teacher
         }));
+          toast.success('Okay!', {
+                position: 'top-right',
+                autoClose: 2000, // Auto close after 2 seconds
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+              });
     };
 
     const sendQuestionNumber = () => {

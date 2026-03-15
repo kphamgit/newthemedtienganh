@@ -42,7 +42,6 @@ function HomeTeacher() {
 
     //const wsUrl = `${import.meta.env.VITE_WS_PROTOCOL}://${import.meta.env.VITE_WS_URL}/ws/socket-server/${name}/`;
 
-    //useWebSocketPing(websocketRef, 30000); // send ping every 30 seconds (30000 milliseconds)
     // Listen for user logging out in other tabs. If that happends, reload this tab to reflect the logout state
     // which effectively logs out this tab as well and redirects to login page
 
@@ -64,22 +63,4 @@ function HomeTeacher() {
 }
 
 export default HomeTeacher;
-
-/*
-   return (
-   
-            <div className="grid grid-cols-[2fr_1fr] bg-gray-100 mx-10 my-0 h-screen">
-                <div className="col-span-8 bg-white rounded-lg shadow-md p-4 m-4 flex flex-col">
-                    <TeacherControlPanel ref = {teacherControlPanelRef}/>
-                    <Outlet />
-                </div>
-                <div className="col-span-4 bg-red-300 rounded-lg shadow-md p-4 m-4">
-                    <ScoreBoard />
-                
-                </div>
-            </div>
- 
-    );
-
-*/
 

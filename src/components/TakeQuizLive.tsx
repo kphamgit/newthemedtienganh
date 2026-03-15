@@ -29,6 +29,7 @@ import LiveVideoPlayer from './LiveVideoPlayer';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ScoreBoard from '../pages/ScoreBoard';
+import chimeSound from '../assets/chime.mp3';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -69,6 +70,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const chimeAduioRef = useRef<HTMLAudioElement | null>(null);
+
     const { name } = useSelector((state: RootState) => state.user);
 
      const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
@@ -84,17 +87,27 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
     useEffect(() => {
         if (live_question_number) {
-          //console.log("TakeQuizLive: live_question_number prop is set to:", live_question_number);
-          //console.log("TakeQuizLive: This happens when user logs in while a live quiz is in progress with an unfinished question.");
+          //console.log("TakeQuizLive: live_question_number prop changed, updating liveQuestionNumber state to ", live_question_number);
           setLiveQuestionNumber(live_question_number);
+  
         }
     }, [live_question_number]);
   
+    useEffect(() => {
+      chimeAduioRef.current = new Audio(chimeSound);
+    }, []);
+
 
     useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         if (data.message_type === "live_question_number") {
+          //console.log("TakeQuizLive: Received live_question_number message from server, question number:", data.content);
             setLiveQuestionNumber(data.content);
+            if (chimeAduioRef.current) {
+              chimeAduioRef.current.play().catch((error) => {
+                  console.error("Error playing chime sound:", error);
+              });
+          }
         }
       }
       // Subscribe to the "message" event
@@ -267,7 +280,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
   }
 
   return (
-    <>
+    <> 
+    <div>TEAKE QUI LIVE</div>
       <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5">
         {/* Left Column */}
         <div className="bg-cyan-200 py-2 px-10 h-screen">

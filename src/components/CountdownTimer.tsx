@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle } from 'react';
 
 // Define the props type for the component
-export interface CoundownTimerHandleProps {
+export interface CountdownTimerHandleProps {
   start: () => void;
   stop: () => void;
 }
@@ -9,17 +9,22 @@ export interface CoundownTimerHandleProps {
 interface CountdownTimerProps {
   initialSeconds: number;
   onComplete: () => void;
-  ref: React.Ref<CoundownTimerHandleProps>;
+  ref: React.Ref<CountdownTimerHandleProps>;
 }
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ initialSeconds, onComplete,  ref }) => {
   const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
-  const [isRunning, setIsRunning] = useState<boolean>(true);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
   useEffect(() => {
     //alert("Initial seconds changed to " + initialSeconds);
-    if (initialSeconds >= 0)
-    setTimeLeft(initialSeconds);
+    if (initialSeconds >= 0) {
+      //console.log("Resetting timer to new initial seconds:", initialSeconds);
+      setTimeLeft(initialSeconds);
+    }
+    else {
+      console.warn("Invalid initialSeconds value:", initialSeconds);
+    }
   }, [initialSeconds]);
 
   useImperativeHandle(ref, () => ({
@@ -34,10 +39,11 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ initialSeconds, onCompl
 
   useEffect(() => {
     // Exit early if the timer is paused or has reached zero
+    //console.log("useEffect triggered: isRunning =", isRunning, ", timeLeft =", timeLeft);
     if (!isRunning || timeLeft <= 0) {
       if (timeLeft === 0) {
         // Optional: Perform an action when the countdown finishes
-        //console.log("Countdown finished!");
+        console.log("Countdown finished!");
         onComplete && onComplete();
       }
       return;
@@ -46,6 +52,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ initialSeconds, onCompl
   
     // Set up the interval
     const intervalId = setInterval(() => {
+      // console.log("Timer tick: time left =", timeLeft);
       setTimeLeft(prevTime => prevTime - 1);
     }, 1000); // Update every second
 
