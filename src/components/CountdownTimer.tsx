@@ -1,88 +1,79 @@
 import React, { useState, useEffect, useImperativeHandle } from 'react';
 
-// Define the props type for the component
 export interface CountdownTimerHandleProps {
   start: () => void;
   stop: () => void;
+  reset: (newInitialSeconds: number) => void;
 }
 
 interface CountdownTimerProps {
   initialSeconds: number;
   onComplete: () => void;
-  ref: React.Ref<CountdownTimerHandleProps>;
+  // In React 19, ref is a standard prop and doesn't require forwardRef
+  ref?: React.Ref<CountdownTimerHandleProps>;
 }
 
-const CountdownTimer: React.FC<CountdownTimerProps> = ({ initialSeconds, onComplete,  ref }) => {
+const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
+  initialSeconds, 
+  onComplete, 
+  ref 
+}) => {
   const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
   const [isRunning, setIsRunning] = useState<boolean>(false);
 
+  // Sync state when initialSeconds changes (e.g., from a parent update)
   useEffect(() => {
-    //alert("Initial seconds changed to " + initialSeconds);
     if (initialSeconds >= 0) {
-      //console.log("Resetting timer to new initial seconds:", initialSeconds);
       setTimeLeft(initialSeconds);
-    }
-    else {
-      console.warn("Invalid initialSeconds value:", initialSeconds);
     }
   }, [initialSeconds]);
 
+  // Expose methods to the parent via ref
   useImperativeHandle(ref, () => ({
-    start: () => {
-      setIsRunning(true);
-    },
-    stop: () => {
-      setIsRunning(false);
+    start: () => setIsRunning(true),
+    stop: () => setIsRunning(false),
+    reset: (newInitialSeconds: number) => {
+      if (newInitialSeconds >= 0) {
+        setTimeLeft(newInitialSeconds);
+        setIsRunning(true);
+      }
     },
   }));
 
-
+  // Effect 1: The Ticking Mechanism
+  // This only handles the math of counting down.
   useEffect(() => {
-    // Exit early if the timer is paused or has reached zero
-    //console.log("useEffect triggered: isRunning =", isRunning, ", timeLeft =", timeLeft);
-    if (!isRunning || timeLeft <= 0) {
-      if (timeLeft === 0) {
-        // Optional: Perform an action when the countdown finishes
-        console.log("Countdown finished!");
-        onComplete && onComplete();
-      }
-      return;
-    }
+    if (!isRunning || timeLeft <= 0) return;
 
-  
-    // Set up the interval
     const intervalId = setInterval(() => {
-      // console.log("Timer tick: time left =", timeLeft);
-      setTimeLeft(prevTime => prevTime - 1);
-    }, 1000); // Update every second
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
 
-    // Cleanup function to clear the interval when the component unmounts
-    // or when the dependencies (isRunning, timeLeft) change
     return () => clearInterval(intervalId);
-  }, [isRunning, timeLeft]); // Rerun the effect if isRunning or timeLeft changes
+  }, [isRunning, timeLeft]);
 
-  // Format time (e.g., 5 -> "05")
+  // Effect 2: The Completion Watcher
+  // This ensures onComplete is only called once when the threshold is crossed.
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      setIsRunning(false); // Stop the "engine" immediately
+      onComplete?.();
+    }
+  }, [timeLeft, isRunning, onComplete]);
+
   const formatTime = (time: number): string => {
     return time < 10 ? `0${time}` : String(time);
   };
 
-  //const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
-
-  //<span>{formatTime(minutes)}</span>:<span>{formatTime(seconds)}</span>
-  /* keep this for reference later. kpham
-    <button onClick={() => setIsRunning(!isRunning)}>
-        {isRunning ? 'Pause' : 'Start'}
-      </button>
-  */
 
   return (
     <div className="countdown-timer-container">
       <p>
         Time Remaining: 
-        <span className='text-red-600 font-bold'> {formatTime(seconds)}</span><span> seconds.</span>
+        <span className="text-red-600 font-bold"> {formatTime(seconds)}</span>
+        <span> seconds.</span>
       </p>
-  
     </div>
   );
 };

@@ -32,6 +32,7 @@ import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
 import CountdownTimer, { type CountdownTimerHandleProps } from "../components/CountdownTimer";
+import TimeoutModal from './TImeOutModal';
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
@@ -57,6 +58,7 @@ const TakeQuiz: React.FC = () => {
     //const [fetchQuizAttemptEnabled, setFetchQuizAttemptEnabled] = useState(true)  // only fetch quiz once
     const { quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
+    const [showTimeoutModal, setShowTimeoutModal] = useState(false);  
     //const [showStartModal, setShowStartModal] = useState<boolean | null>(null); // null means no need to show start modal
 
     // this state helps to fix a bug where handleTimerComplete event fires at the very begining of quiz attempt
@@ -64,6 +66,7 @@ const TakeQuiz: React.FC = () => {
     const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
     //const endOfQuiz = useRef<boolean>(false);
 
+    
 
     const childRef = useRef<ChildRef>(null);
 
@@ -75,6 +78,8 @@ const TakeQuiz: React.FC = () => {
         useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    let questionTimedoutModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { name } = useSelector((state: RootState) => state.user);
 
@@ -170,13 +175,13 @@ const TakeQuiz: React.FC = () => {
 
     const createNextQuestionAttempt = async (quizAttemptId: number, questionId: number | null) => {
       const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
-      //console.log("fetchNextQuestion POSTing to url =", url);
+      console.log("fetchNextQuestion POSTing to url =", url);
     
       try {
         const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
           question_id: questionId,
         });
-        //onsole.log("Received response from create_next_question_attempt:", response.data);
+        console.log("Received response from create_next_question_attempt:", response.data);
     
         const { question_attempt_id, question } = response.data;
         setQuestion(question);
@@ -185,6 +190,7 @@ const TakeQuiz: React.FC = () => {
         //setTimerDuration(question.timeout);
         //counterRef.current?.start(); // Start the countdown timer for the next question
         nextQuestionId.current = null; // Reset nextQuestionId
+        timerRef.current?.reset(30); // Start the countdown timer for the next question
       } catch (error) {
         console.error("Error creating next question attempt:", error);
       }
@@ -221,11 +227,41 @@ const TakeQuiz: React.FC = () => {
           if (correctModalTimerRef.current) {
             clearTimeout(correctModalTimerRef.current);
           }
+          if (questionTimedoutModalTimerRef.current) {
+            clearTimeout(questionTimedoutModalTimerRef.current);
+          }
         };
       }, [endOfQuiz]);
 
+      const handleTimeout = () => {
+        setShowQuestion(false); //
+        timerRef.current?.stop();
+        // stop countdown timer
+        //counterRef.current?.stop();
+        //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
+        const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
+        
+        api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format })
+          .then((res) => {     
+            // server returns the next question id (if any), together with assessment results 
+            const { next_question_id } = res.data;
+            // update quizAttemptData.quiz_attempt
+            //alert("Score for this question: " + JSON.stringify(assessment_results) );
+            nextQuestionId.current = next_question_id ?? null;
+            if (nextQuestionId.current !== null) {
+              createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
+          }
+   
+        })
+          .catch((error) => {
+            console.error("Error processing question attempt:", error);
+          });
+        
+    }
+
     const handleSubmit = () => {
         setShowQuestion(false); //
+        timerRef.current?.stop();
         // stop countdown timer
         //counterRef.current?.stop();
         //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
@@ -274,7 +310,25 @@ const TakeQuiz: React.FC = () => {
 
    
 const timerCompletedCallback = () => {
-  console.log("TakeQuiz: Countdown timer completed. You can implement any additional logic here if needed.");
+  setShowTimeoutModal(true);
+  /*
+  questionTimedoutModalTimerRef.current = setTimeout(() => {
+    setShowTimeoutModal(false);
+    // show next question if available by checking next_question_data
+    handleTimeout();
+        // handle end of quiz scenario here
+    }, 2000); // Close modal after 2 seconds
+    */
+
+  //alert("Time's up! Move on to next question.");
+  //handleTimeout();
+  //setShowTimeoutModal(true);
+  //console.log("TakeQuiz: Countdown timer completed. You can implement any additional logic here if needed.");
+}
+
+const timeoutModalCallback = () => {
+  setShowTimeoutModal(false);
+  handleTimeout();
 }
 
     function SafeHTML({ content }: { content: string }) {
@@ -298,6 +352,9 @@ const timerCompletedCallback = () => {
         explanation={question?.explanation ?? ""}
         processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />
+      }
+      { showTimeoutModal && <TimeoutModal parentCallback={timeoutModalCallback} />
+
       }
    
       { quizStarted && (
