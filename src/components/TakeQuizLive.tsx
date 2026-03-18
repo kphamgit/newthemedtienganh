@@ -30,6 +30,8 @@ import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ScoreBoard from '../pages/ScoreBoard';
 import chimeSound from '../assets/chime.mp3';
+//import { User } from 'microsoft-cognitiveservices-speech-sdk';
+import type { UserRowProps } from './context/UserConnectionsContext';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -80,9 +82,17 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
     const [allVideoSegments, setAllVideoSegments] = useState<VideoSegment[]>([]);
     const [videoUrl, setVideoUrl] = useState<string>("");
  
+    /*
     const [myLiveScore, setMyLiveScore] = useState<{
        question_number: number | undefined, score: number | undefined, total_score: number | undefined}>(
       {question_number: undefined, score: undefined, total_score: undefined});
+  */
+    const [myLiveScore, setMyLiveScore] = useState<UserRowProps>({ 
+      name: name || '', 
+      live_question_number: undefined, 
+      live_score: undefined, 
+      live_total_score: undefined });
+
     const [totalScore, setTotalScore] = useState<number>(0);
 
     useEffect(() => {
@@ -154,7 +164,11 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
           setShowQuestion(true);
           setPendingQuestionAttempt(true);
           // set question number in myLiveScore state to keep track of which question I am on for scoring purposes
-            setMyLiveScore((prev) => ({ ...prev, question_number: Number(liveQuestionNumber), score: undefined }));
+          setMyLiveScore((prev) => ({
+            ...prev,
+            live_question_number: Number(liveQuestionNumber),
+            live_score: undefined, // reset live score for the new question
+          }));
         })
         .catch(err => console.error("Fetch failed", err));
     });
@@ -194,14 +208,16 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
               .then((res) => {     
                 const { assessment_results } = res.data;
                 setQuestionAttemptAssessmentResults(assessment_results);
-                setTotalScore((prevTotalScore) => prevTotalScore + assessment_results.score);
-               
-                setMyLiveScore({ 
-                    question_number: Number(liveQuestionNumber), 
-                    score: assessment_results.score, 
-                    total_score: totalScore + assessment_results.score 
-                });
-                
+                //setTotalScore((prevTotalScore) => prevTotalScore + assessment_results.score);
+                const new_total_score = (totalScore || 0) + (assessment_results.score || 0);
+                setTotalScore(new_total_score);
+                setMyLiveScore((prev) => ({
+                  ...prev,
+                  live_score: assessment_results.score,
+                  live_total_score: new_total_score,
+                 
+                }));
+
                 if (assessment_results.error_flag === false) {
                   //alert("Answer is correct.");
                   setShowCorrectModal(true);
@@ -281,7 +297,6 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
   return (
     <> 
-    <div>TEAKE QUI LIVE</div>
       <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5">
         {/* Left Column */}
         <div className="bg-cyan-200 py-2 px-10 h-screen">
@@ -327,7 +342,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
         {/* Right Column */}
         <div className="bg-blue-200">
-          <ScoreBoard myLiveScore={myLiveScore} />
+          <ScoreBoard my_row = {myLiveScore} />
         </div>
         {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
 
@@ -346,6 +361,12 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 }
 
 export default TakeQuizLive
+
+/*
+      <div className="bg-blue-200">
+          <ScoreBoard myLiveScore={myLiveScore} />
+        </div>
+*/
 
 /*
           <div>

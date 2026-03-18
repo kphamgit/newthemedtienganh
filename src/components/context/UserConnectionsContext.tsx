@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState } from 'react';
 
-type UserRowProps = {
+export type UserRowProps = {
   name: string;
   is_logged_in?: boolean;
   live_score?: number;
   live_total_score?: number;
   live_question_number?: number;
+  live_user_answer?: string;
   recording_received?: boolean;
   recording_presigned_url?: string;
 };

@@ -43,6 +43,7 @@ interface BaseWebSocketMessageProps {
   "user_disconnected" |
   "chat" | 
   "live_score" |
+  "live_user_answer" |
   "live_quiz_id" | 
   "live_question_number" | 
   "video_segment_number" |
