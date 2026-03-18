@@ -165,7 +165,7 @@ const TakeQuiz: React.FC = () => {
                 //counterRef.current?.start(); // start counter for first question
             }
             // start counter using timeout as 5000 miliseconds
-            console.log("Starting timer for continued quiz attempt. question timeout:", quizAttemptData.question.timeout);
+            //console.log("Starting timer for continued quiz attempt. question timeout:", quizAttemptData.question.timeout);
             timerRef.current?.start();
     
         }
@@ -175,13 +175,13 @@ const TakeQuiz: React.FC = () => {
 
     const createNextQuestionAttempt = async (quizAttemptId: number, questionId: number | null) => {
       const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
-      console.log("fetchNextQuestion POSTing to url =", url);
+      // console.log("fetchNextQuestion POSTing to url =", url);
     
       try {
         const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
           question_id: questionId,
         });
-        console.log("Received response from create_next_question_attempt:", response.data);
+        //console.log("Received response from create_next_question_attempt:", response.data);
     
         const { question_attempt_id, question } = response.data;
         setQuestion(question);
@@ -190,7 +190,7 @@ const TakeQuiz: React.FC = () => {
         //setTimerDuration(question.timeout);
         //counterRef.current?.start(); // Start the countdown timer for the next question
         nextQuestionId.current = null; // Reset nextQuestionId
-        timerRef.current?.reset(30); // Start the countdown timer for the next question
+        timerRef.current?.reset(question.timeout/1000); // Timeout is in milliseconds, but CountdownTimer expects seconds
       } catch (error) {
         console.error("Error creating next question attempt:", error);
       }
