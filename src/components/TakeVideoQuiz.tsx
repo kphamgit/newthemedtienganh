@@ -401,7 +401,7 @@ const handleModalClose = async () => {
                     <div className='mb-2'>Question: {question?.question_number}</div>
                     </div>
                     <div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instructions ?? '' }}></div>
-                    <div className='m-2 text-textColorQuestionPrompt'>{question?.prompt}</div>
+                    <textarea className='m-2 text-textColorQuestionPrompt'>{question?.prompt}</textarea>
                 
                     <div>
                         {(question?.audio_str && question.audio_str.trim().length > 0) &&
