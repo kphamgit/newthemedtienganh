@@ -317,9 +317,9 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
               </div>
               {SafeHTML({ content: question.instructions ?? "" })}
               {question?.prompt && (
-                <textarea className="mb-3 mt-5 text-amber-700">
+                <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
                   {question.prompt}
-                </textarea>
+                </div>
               )
               }
               <div>

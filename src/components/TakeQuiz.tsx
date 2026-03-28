@@ -374,9 +374,9 @@ const timeoutModalCallback = () => {
             {SafeHTML({ content: question.instructions ?? "" })}
 
             {question?.prompt && (
-              <textarea className="mb-3 mt-5 text-amber-800">
+              <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
                 {question.prompt}
-              </textarea>
+              </div>
             )
             }
 
