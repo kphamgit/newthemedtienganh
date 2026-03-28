@@ -166,6 +166,7 @@ const TakeQuiz: React.FC = () => {
             }
             // start counter using timeout as 5000 miliseconds
             //console.log("Starting timer for continued quiz attempt. question timeout:", quizAttemptData.question.timeout);
+            timerRef.current?.reset(quizAttemptData.question.timeout/1000); 
             timerRef.current?.start();
     
         }
@@ -281,8 +282,6 @@ const TakeQuiz: React.FC = () => {
                 score: res.data.quiz_attempt.score,
               },
             }));
-
-          
             setQuestionAttemptAssessmentResults(assessment_results);
             //alert("Score for this question: " + JSON.stringify(assessment_results) );
             nextQuestionId.current = next_question_id ?? null;
