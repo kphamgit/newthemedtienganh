@@ -65,14 +65,15 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
     return time < 10 ? `0${time}` : String(time);
   };
 
+  const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   return (
     <div className="countdown-timer-container">
       <p>
-        Time Remaining: 
-        <span className="text-red-600 font-bold"> {formatTime(seconds)}</span>
-        <span> seconds.</span>
+        Time Remaining:
+        <span className="text-red-600 font-bold"> {minutes > 0 ? `${minutes}:${formatTime(seconds)}` : formatTime(seconds)}</span>
+        <span> {minutes > 0 ? '' : 'seconds.'}</span>
       </p>
     </div>
   );

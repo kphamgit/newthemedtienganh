@@ -38,7 +38,7 @@ type ClozeAnswerResultsProps = {
 */
 
 
-function ModalForIncorrect({ parentCallback, format, answer_key, content, explanation,  processQuestionResults }: Props) {
+function IncorrectModal({ parentCallback, format, answer_key, content, explanation,  processQuestionResults }: Props) {
 
     const handleCloseModal = () => {
         // Continue the quiz from where the user left off
@@ -48,7 +48,7 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
   return (
 
     <div 
-    className="fixed inset-x-100 inset-y-90 p-4 bg-green-300 bg-opacity-50 flex items-center justify-center z-10"
+      className="fixed inset-x-100 inset-y-90 p-4 bg-green-300 bg-opacity-50 flex items-center justify-center z-10"
 >
     <div className="bg-gray-200 rounded-lg shadow-lg p-11 w-auto h-auto text-center">
         <div className="mb-4 font-bold text-lg text-green-900">Score: {processQuestionResults?.score}</div>
@@ -78,4 +78,4 @@ function ModalForIncorrect({ parentCallback, format, answer_key, content, explan
   )
 }
 
-export default ModalForIncorrect
+export default IncorrectModal

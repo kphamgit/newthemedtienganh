@@ -1,19 +1,39 @@
+import { useEffect } from "react";
+import api from "../api";
+import type { ProcessQuestionAttemptResultsProps } from "./shared/types";
+
 export interface Props {
     // Add any props if needed
     //parentCallback: (action: string ) => void;
     message?: string;
+    questionAttemptId: number;
     parentCallback: () => void;
 }
 
+/*
+ const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
+    api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format })
+      .then(() => {     
+        // server returns the next question id (if any), together with assessment results 
+    })
+*/
 
-function TimeoutModal({ message, parentCallback}: Props) {
-
+function TimeoutModal({ message, questionAttemptId, parentCallback}: Props) {
+    useEffect(() => {
+        const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
+        api.post<ProcessQuestionAttemptResultsProps>(url)
+          .then(() => { 
+            console.log("Timeout processed successfully");    
+            // server returns the next question id (if any), together with assessment results 
+        })
+    }, [questionAttemptId])
     
     return (
 
         <div
             className="fixed inset-100 inset-x-1/3 rounded-mdbg-opacity-0 flex flex-col items-center justify-center z-10"
         >
+         
             <div className="bg-green-300 bg-opacity-50 rounded-md p-6 w-auto h-auto text-center">
             <div className="bg-gray-100 rounded-lg shadow-lg p-6 w-auto h-auto text-center">
                 <p className="text-lg font-bold mb-4">Sorry. Time's up!</p>

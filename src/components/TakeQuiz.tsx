@@ -9,10 +9,10 @@ import { useState, useRef, useEffect } from 'react';
 import CorrectModal from './CorrectModal';
 
 import { useParams } from 'react-router-dom';
-import { type ProcessQuestionAttemptResultsProps, type QuestionAttemptAssesmentResultsProps, type QuestionProps, type QuizAttemptCreatedProps } from './shared/types';
+import { type ProcessQuestionAttemptResultsProps, type QuestionAttemptAssesmentResultsProps, type QuestionProps, type QuizAttemptProps } from './shared/types';
 //import { processQuestion } from './processQuestion';
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
-import ModalForIncorrect from './ModalForIncorrect';
+import IncorrectModal from './IncorrectModel';
 import api from '../api';
 import { ButtonSelect } from "./questions/ButtonSelect";
 import { RadioQuestion } from "./questions/RadioQuestion";
@@ -31,8 +31,10 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 
-import CountdownTimer, { type CountdownTimerHandleProps } from "../components/CountdownTimer";
-import TimeoutModal from './TImeOutModal';
+//import CountdownTimer, { type CountdownTimerHandleProps } from "../components/CountdownTimer";
+//import TimeoutModal from './TImeOutModal';
+
+
 
 //import CountdownTimer, { type CoundownTimerHandleProps } from './CountdownTimer';
 
@@ -40,311 +42,386 @@ export interface ChildRef {
     getAnswer: () => string | undefined;
   }
 
+  interface IncorrectQuestionsResponse {
+    incorrect_questions: IncorrectQuestionProps[];
+    quiz_attempt_id: number;
+  }
+  
+  interface IncorrectQuestionProps {
+    question: QuestionProps;
+    question_attempt_id: number;
+    question_attempt_number: number;
+  }
+  
 const TakeQuiz: React.FC = () => {
 
-  const timerRef = useRef<CountdownTimerHandleProps>(null);
 
-    //const [questionAttemptData, setQuestionAttemptData] = useState<QuestionAttemptDataProps>();
-    const [showQuestion, setShowQuestion] = useState(false); // work in conjunction with questionAttemptData 
-    // to control when to show question. Start with true to show question when quiz starts
-    const [question, setQuestion] = useState<QuestionProps | null>(null);
-    const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
-
-    const nextQuestionId = useRef<number | null>(null);
-
-    const [showCorrectModal, setShowCorrectModal] = useState(false);
-    //const [counterKey, setCounterKey] = useState(0); // Key to force Counter re-render
-    //const counterRef = useRef<CounterHandleRefProps>(null);
-    //const [fetchQuizAttemptEnabled, setFetchQuizAttemptEnabled] = useState(true)  // only fetch quiz once
-    const { quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
-    const [showIncorrectModal, setShowIncorrectModal] = useState(false);
-    const [showTimeoutModal, setShowTimeoutModal] = useState(false);  
-    //const [showStartModal, setShowStartModal] = useState<boolean | null>(null); // null means no need to show start modal
-
-    // this state helps to fix a bug where handleTimerComplete event fires at the very begining of quiz attempt
-    //const [quizAttemptInProgress, setQuizAttemptInProgress] = useState<boolean>(false);
-    const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
-    //const endOfQuiz = useRef<boolean>(false);
-
-    
-
-    const childRef = useRef<ChildRef>(null);
-
-    const [quizAttemptData, setQuizAttemptData] = useState<QuizAttemptCreatedProps>(null as any);
-
-    const [quizStarted, setQuizStarted] = useState(false);
-
-    const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
-        useState<QuestionAttemptAssesmentResultsProps | null>(null);
-
-    let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    let questionTimedoutModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const { name } = useSelector((state: RootState) => state.user);
-
-    //const [timerDuration, setTimerDuration] = useState<number>(0); // default 20 seconds
-    //const counterRef = useRef<CoundownTimerHandleProps>(null);
-
-    /*
-    const { data: quizAttemptData } = useQuizAttempt(
-        quiz_id ? quiz_id : "",
-        null,
-        "2",  // use a fixed user id for now
-        fetchQuizAttemptEnabled
-    );
-    */
-
-    useEffect(() => {
-      const baseURL = import.meta.env.VITE_API_URL
-      const url = `${baseURL}/api/quiz_attempts/get_or_create/${quiz_id}/`;
-      //console.log("Fetching quiz attempt data from url =", url);
-      api.post(url, { user_name: name })  // use a fixed user id for now
-        .then((response) => {
-          //console.log("Fetched quiz attempt data:", response.data);
-          setQuizAttemptData(response.data);
-        })
-        .catch((error) => {
-          console.error("Error fetching quiz attempt data:", error);
-        });
-
-    },[quiz_id])
-
-
- 
-    //const { seconds, isRunning, start, stop, reset } = useCountdown(10000, handleComplete);
+  const [reviewMode, setReviewMode] = useState<boolean>(false); // State to manage the flow of reviewing incorrectly answered questions after finishing the quiz. We start in the "initial" state where we show the end of quiz screen with the final score and a button to review incorrectly answered questions. When the user clicks the button to review incorrectly answered questions, we transition to the "reviewing_incorrect" state where we load and show incorrectly answered questions one by one with a button to go to the next question until there are no more incorrectly answered questions to review, at which point we transition to the "completed" state where we show a message that the review is complete and a button to navigate back to the unit screen.
   
-    useEffect(() => {
-        if (quizAttemptData && quizStarted === false) {
-            //setFetchQuizAttemptEnabled(false); // disable further fetching for quiz_attempt
-            setQuizStarted(true); // mark quiz as started to prevent re-entry
-           // Destructure the fields from quizAttemptData
-            const { created } = quizAttemptData || {};  
-            //setQuizAttempt(quizAttemptData.quiz_attempt);         
-           // if a quiz attempt already exists, show a pop up modal to ask if the user wants to continue or start over
-           if (created === false) {
-                //console.log(" quiz attempt already exists. Show modal to continue or start over.");
-                //console.log(" Existing quiz attempt. quizAttemptData:", quizAttemptData);
-                //alert("You have already started this quiz. Do you want to continue where you left off or start over?");
-                // Implement modal with options to continue or start over
-                //console.log(" quiz attempt already exists. quizAttemptData:", quizAttemptData);
-                // quizAttemptData contains the quiz attempt info
-                // quizAttemptData ALSO contains the last question attempt ID
-                // and question data if applicable (in case the server detected
-                // that the last question unfinished IS the first question of the quiz)
-                // check if quizAttemptData.question is present
-                if (quizAttemptData.question) { // the last quesion unfinished is the first question of the quiz
-                  //console.log(" Continuing from quizAttemptData:", quizAttemptData);
-                    //console.log(" There is a last question to continue from. question data:", quizAttemptData.question);
-                    //setShowStartModal(null); // no need to show start modal
-                    //setQuestionAttemptData({question_attempt_id: quizAttemptData.question_attempt_id, question: quizAttemptData.question});
-                    
-                    setQuestion(quizAttemptData.question);
-                    setQuestionAttemptId(quizAttemptData.question_attempt_id);
-                    setShowQuestion(true);
-                    // start timer
-                  
-                    
-                    //start_question_attempt(quizAttemptData.question, quizAttemptData.question_attempt_id);
-                    //return; // exit here
-                }
-                else {
-                    alert(" Existing quiz attempt found but no question to continue from.");
-                }
-            } else {
-                //console.log("useEffect quizAttemptData CREATED:", quizAttemptData);
-                
-                setQuestion(quizAttemptData.question);
-                setQuestionAttemptId(quizAttemptData.question_attempt_id);
-                setShowQuestion(true); // show question when quiz attempt is created
-                //setTimerDuration(quizAttemptData.question.timeout);
-                
-                //alert("New quiz attempt started. First question loaded.");
-                //alert("Quiz attempt started. First question loaded.");
-               
-                //counterRef.current?.start(); // start counter for first question
+  //const timerRef = useRef<CountdownTimerHandleProps>(null);
+
+  const childRef = useRef<ChildRef>(null);
+
+  const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
+  const [question, setQuestion] = useState<QuestionProps | undefined>(undefined) // State to hold the current question data
+  const [quizAttempt, setQuizAttempt] = useState<QuizAttemptProps>(null as any);
+  const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
+
+  const { quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
+
+  const { name } = useSelector((state: RootState) => state.user);
+
+  const [showCorrectModal, setShowCorrectModal] = useState(false);
+  const [showIncorrectModal, setShowIncorrectModal] = useState(false);
+
+  const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
+  useState<QuestionAttemptAssesmentResultsProps | null>(null);
+
+  const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
+ 
+  //const [quizHasErrors, setQuizHasErrors] = useState<boolean>(false); // state to track if there are any incorrectly answered questions in the quiz attempt, which we can use to determine whether to show the button to review incorrectly answered questions on the end of quiz screen, and also to determine whether to mark the quiz attempt as completed immediately after finishing the quiz (if there are no errors) or wait until the user finishes reviewing incorrectly answered questions and then mark the quiz attempt as completed (if there are errors).
+  const quizHasErrors = useRef<boolean>(false);
+
+  let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isFetching = useRef(false);
+
+  useEffect(() => {
+    api.post(`/api/quiz_attempts/get_or_create/${quiz_id}/`, { user_name: name, number_of_questions_to_preload: 3 })
+     .then((response) => {
+        //console.log("Received response from get_or_create_react_native endpoint:", response.data);
+        const all_questions_loaded = response.data.questions;
+        const first_question = all_questions_loaded.length > 0 ? all_questions_loaded[0] : null;
+        setRemainingQuestions(all_questions_loaded.slice(1).map((q: QuestionProps) => ({ question: q })));
+        setQuestion(first_question);
+        setQuizAttempt(response.data.quiz_attempt);
+     
+     })
+     .catch((error) => {
+       console.error("Error fetching quiz attempt data:", error);
+      
+     });
+ },[quiz_id])
+
+ const createQuestionAttempt = async (quizAttemptId: number) => {
+  const url = `/api/quiz_attempts/${quizAttemptId}/create_question_attempt/`;
+  try {
+    const response = await api.post<{ question_attempt_id: number, question_attempt_number: number }>(url, {
+      question_id: question?.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
+      review_state: reviewMode
+    });
+    if (response.data && response.data.question_attempt_id) {
+      const { question_attempt_id } = response.data;
+      //setQuestionAttemptId(question_attempt_id);
+      //console.log("Created question attempt with id:", question_attempt_id, " for question id:", question?.id, " quiz attempt id:", quizAttemptId);
+      setQuestionAttemptId(question_attempt_id);
+    }
+  } catch (error) {
+    console.error("Error creating next question attempt:", error);
+  }
+    
+};
+
+ useEffect(() => {
+    if (question) {
+      //console.log("Question id:", question.id, " question number:", question.question_number, " content:", question.content);
+      createQuestionAttempt(quizAttempt.id);
+    }
+ }, [question])
+
+ useEffect(() => {
+  if (!endOfQuiz) return;
+  api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
+    .catch(err => console.error("Error marking quiz attempt as completed.", err));
+}, [endOfQuiz]);
+
+ const handleFeedbackModalClose = () => {
+  if (showCorrectModal) {
+    setShowCorrectModal(false);
+  }
+  if (showIncorrectModal) {
+    setShowIncorrectModal(false);
+  }
+  //setQuestion(remainingQuestions.length > 0 ? remainingQuestions[0].question : undefined);
+  // console.log("handleCorrectModalTimeout. Remaining questions length:", remainingQuestions.length);
+  if (remainingQuestions.length > 0) {
+        //console.log("handleCorrectModalTimeout There are remaining questions in state, showing next question immediately for a smooth user experience while waiting for the server response to create the next question attempt. Remaining questions length:", remainingQuestions.length, " Next question id:", remainingQuestions[0].question.id);
+        // remove the next question to display from the remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
+        const nextQuestion = remainingQuestions[0].question;
+        //console.log("handleCorrectModalTimeout Next question", nextQuestion);
+        setQuestion(nextQuestion);
+        //console.log(" removing next question from remaining questions")
+        // remove the question we just set as current question from the remainingQuestions array, so that the next time we show the correct modal after answering the next question, we will show the following question in the remainingQuestions array (if there is one) instead of showing the same question again. We do this by slicing the remainingQuestions array from index 1 to the end, which effectively removes the first element (the question we just set as current question) from the array.
+        setRemainingQuestions(prev => prev.slice(1));
+        //createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
+        //console.log("handleCorrectModalTimeout. After removing question, remaining questions are;");
+        //remainingQuestions.forEach(q => console.log("Question id:", q.question.id, " question number:", q.question.question_number, " content:", q.question.content));
+        
+        if (remainingQuestions.length === 1 && !isFetching.current) {
+          isFetching.current = true;
+      
+          if (!reviewMode) {
+            //console.log("\nNormal state. Remaining questions size is 1, fetching more questions from server. Remaining questions length:", remainingQuestions.length);
+            const last_question_remaining = remainingQuestions[remainingQuestions.length - 1];
+            api.post(`/english/quizzes/${quiz_id}/questions/${last_question_remaining?.question.question_number + 1}`,
+              { quiz_attempt_id: quizAttempt?.id },
+            )  // send the current question number
+              .then((response) => {
+                //console.log("More fetched questions from server:");
+                //response.data.questions.forEach((q: QuestionProps) => console.log("Question id:", q.id, " question number:", q.question_number, " content:", q.content));
+                //console.log("---- has_more flag from server:", response.data.has_more);
+                setRemainingQuestions(prev => [...prev, ...response.data.questions.map((q: QuestionProps) => ({ question: q }))]);
+                //setHasMoreNormalQuestions(response.data.has_more);
+                isFetching.current = false;
+              })
+              .catch(() => { isFetching.current = false; });
             }
-            // start counter using timeout as 5000 miliseconds
-            //console.log("Starting timer for continued quiz attempt. question timeout:", quizAttemptData.question.timeout);
-            timerRef.current?.reset(quizAttemptData.question.timeout/1000); 
-            timerRef.current?.start();
-    
+            else {
+              //console.log("\nIn REVIEW state. Remaining questions size is 1, need to replenish more incorrectly answered questions from server if there are more to review. Remaining questions length:", remainingQuestions.length);
+   
+              const questionAttemptNumber = remainingQuestions[remainingQuestions.length - 1].question_attempt_number;
+              //console.log("In REVIEW state. The question attempt number of the last remaining question is:", questionAttemptNumber);
+              if (questionAttemptNumber !== undefined) {
+                //console.log("In REVIEW state.questionAttemptNumber is NOT undefined. Calling replenishIncorrectQuestions to fetch more incorrectly answered questions from server to review, starting from question attempt number:", questionAttemptNumber);
+                replenishIncorrectQuestions(questionAttemptNumber);
+              } else {
+                console.error("?????????? ??Question attempt number for last question in remaingingQuestion is undefined.");
+              }
+            }
+
+
         }
-        //console.log("Starting 5 second timer for question display.");
-    }, [quizAttemptData]);
 
 
-    const createNextQuestionAttempt = async (quizAttemptId: number, questionId: number | null) => {
-      const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
-      // console.log("fetchNextQuestion POSTing to url =", url);
-    
-      try {
-        const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
-          question_id: questionId,
-        });
-        //console.log("Received response from create_next_question_attempt:", response.data);
-    
-        const { question_attempt_id, question } = response.data;
-        setQuestion(question);
-        setQuestionAttemptId(question_attempt_id);
-        setShowQuestion(true); // Show the next question
-        //setTimerDuration(question.timeout);
-        //counterRef.current?.start(); // Start the countdown timer for the next question
-        nextQuestionId.current = null; // Reset nextQuestionId
-        timerRef.current?.reset(question.timeout/1000); // Timeout is in milliseconds, but CountdownTimer expects seconds
-      } catch (error) {
-        console.error("Error creating next question attempt:", error);
+
+        //for a smooth user experience while waiting for the server response to create the next question attempt. Next question id:", remainingQuestions[0].question.id);
+  }
+  else if (remainingQuestions.length == 0) { 
+      // no next question id means end of quiz reached
+      //console.log("handleCorrectModalTimeout. No more remaining questions. QuizHasErrors:", quizHasErrors.current);
+      if (quizHasErrors.current) {
+        console.log(" No more question, but quiz has errors");
+        setReviewMode(true);
+        //setEndOfQuiz(true); //test only
       }
-    };
+      else {
+        //console.log(" NO more question, and no errors in quiz attempt, marking quiz attempt as completed in server and setting endOfQuiz to true to show end of quiz screen. Quiz attempt id:", quizAttempt.id);
+         setEndOfQuiz(true);
+      }
+      //alert("You have completed the quiz!");
+  }
+  else {
+      console.error("????????????? Unexpected state: remainingQuestions length is negative:", remainingQuestions.length);
+  }
+};
 
-    const handleInCorrectModalClose = () => {
-        setShowIncorrectModal(false);
-        if (nextQuestionId.current !== null) {
-            createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
-        }
-        else {
-            // no next question id means end of quiz reached
-            setEndOfQuiz(true);
-            //alert("You have completed the quiz!");
-        }
-      };
 
-    const handleCorrectModalTimeout = () => {
+useEffect(() => {
+  if (reviewMode) {
+   //console.log(" Entering review state, loading incorrectly answered questions to review from server.");
+   const loadQuestions = async () => {
+     //console.log("Calling loadIncorrectQuestions to Load incorrectly answered questions from server to review. Quiz attempt id:", quizAttempt.id);
+     const result = await loadIncorrectQuestions();
+     if (result) {
+       //console.log(" loadIncorrectQuestions returns a question to review. Question id:", result.question.id, " question number:", result.question.question_number, " content:", result.question.content);
+       const { question } = result;
+       setQuestion(question);
+       //console.log(" first question to review loaded from server:", question);
+     }
+     else {
+       console.log(" loadIncorrectQuestions returns no questions"); 
+   };
+  
+  }
+  loadQuestions();
+  }
+}, [reviewMode]);
+
+ const handleSubmit = () => {
+  //setShowQuestion(false); //
+  //timerRef.current?.stop();
+  const url = `/api/question_attempts/${questionAttemptId}/process/`;
+  const uanswer = childRef.current?.getAnswer();  
+  const aKey = question?.answer_key;
+  
+  api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format, user_answer: uanswer, answer_key: aKey })
+  .then((res) => {
+    // server returns the next question id (if any), together with assessment results 
+    //console.log("---->>>> Received response from server after processing question attempt:", res.data);
+    setQuestion(undefined)
+    const { assessment_results, quiz_attempt_has_errors } = res.data;
+    //console.log("Assessment results from server:", assessment_results);
+    quizHasErrors.current = quiz_attempt_has_errors;
+    setQuestionAttemptAssessmentResults(assessment_results);
+    if (assessment_results.error_flag === false) {
+      //alert("Answer is correct.");
+      setShowCorrectModal(true);
+      correctModalTimerRef.current = setTimeout(() => {
         setShowCorrectModal(false);
-        if (nextQuestionId.current !== null) {
-            createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
-        }
-        else {
-            // no next question id means end of quiz reached
-            setEndOfQuiz(true);
-            //alert("You have completed the quiz!");
-        }
-      };
-    
-      useEffect(() => {
-
-        return () => {
-          // Cleanup on unmount
-          if (correctModalTimerRef.current) {
-            clearTimeout(correctModalTimerRef.current);
-          }
-          if (questionTimedoutModalTimerRef.current) {
-            clearTimeout(questionTimedoutModalTimerRef.current);
-          }
-        };
-      }, [endOfQuiz]);
-
-      const handleTimeout = () => {
-        setShowQuestion(false); //
-        timerRef.current?.stop();
-        // stop countdown timer
-        //counterRef.current?.stop();
-        //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
-        const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
-        
-        api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format })
-          .then((res) => {     
-            // server returns the next question id (if any), together with assessment results 
-            const { next_question_id } = res.data;
-            // update quizAttemptData.quiz_attempt
-            //alert("Score for this question: " + JSON.stringify(assessment_results) );
-            nextQuestionId.current = next_question_id ?? null;
-            if (nextQuestionId.current !== null) {
-              createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
-          }
-   
-        })
-          .catch((error) => {
-            console.error("Error processing question attempt:", error);
-          });
-        
-    }
-
-    const handleSubmit = () => {
-        setShowQuestion(false); //
-        timerRef.current?.stop();
-        // stop countdown timer
-        //counterRef.current?.stop();
-        //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
-        const url = `/api/question_attempts/${questionAttemptId}/process/`;
-        const uanswer = childRef.current?.getAnswer();  
-        const aKey = question?.answer_key;
-        
-        api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: uanswer, answer_key: aKey})
-          .then((res) => {     
-            // server returns the next question id (if any), together with assessment results 
-            const { assessment_results, next_question_id } = res.data;
-            // update quizAttemptData.quiz_attempt
-            setQuizAttemptData((prevData) => ({
-              ...prevData,
-              quiz_attempt: {
-                ...prevData.quiz_attempt,
-                score: res.data.quiz_attempt.score,
-              },
-            }));
-            setQuestionAttemptAssessmentResults(assessment_results);
-            //alert("Score for this question: " + JSON.stringify(assessment_results) );
-            nextQuestionId.current = next_question_id ?? null;
-            if (assessment_results.error_flag === false) {
-              //alert("Answer is correct.");
-              setShowCorrectModal(true);
-              correctModalTimerRef.current = setTimeout(() => {
-              setShowCorrectModal(false);
-              // show next question if available by checking next_question_data
-              handleCorrectModalTimeout();
-                  // handle end of quiz scenario here
-              }, 2000); // Close modal after 2 seconds
-          }
-          else {
-              //alert("Answer is incorrect. Please try again.");
-              setShowIncorrectModal(true);
-          }
-        })
-          .catch((error) => {
-            console.error("Error processing question attempt:", error);
-          });
-        
-    }
-//
-
-   
-const timerCompletedCallback = () => {
-  setShowTimeoutModal(true);
-  /*
-  questionTimedoutModalTimerRef.current = setTimeout(() => {
-    setShowTimeoutModal(false);
-    // show next question if available by checking next_question_data
-    handleTimeout();
+        // show next question if available by checking next_question_data
+        handleFeedbackModalClose();
         // handle end of quiz scenario here
-    }, 2000); // Close modal after 2 seconds
-    */
+      }, 1000); // Close modal after 2 seconds
+    }
+    else {
+       setShowIncorrectModal(true);
+    }
+  
 
-  //alert("Time's up! Move on to next question.");
-  //handleTimeout();
-  //setShowTimeoutModal(true);
-  //console.log("TakeQuiz: Countdown timer completed. You can implement any additional logic here if needed.");
+  })
+  .catch((err) => {
+    console.error("Error processing question attempt:", err);
+  });
+  
 }
+ const displayQuestion = (format: number, content: string) => {
+  return (
+    <div className='my-5'>
+      { format === 1 && <DynamicWordInputs content={content} ref={childRef} /> }
+      { format === 2 && <ButtonSelectCloze content={content} choices={question?.button_cloze_options} ref={childRef} /> }
+      { format === 3 && <ButtonSelect content={content} ref={childRef} /> }
+      { format === 4 && <RadioQuestion content={content} ref={childRef} /> }
+      { format === 5 && <CheckboxQuestion content={content} ref={childRef} /> }
+      { format === 6 && <DragDrop content={content} ref={childRef} /> }
+      { format === 7 && <SRNonContinuous content={content} ref={childRef} /> }
+      { format === 8 && <WordsSelect content={content} ref={childRef} /> }
+      { format === 10 && <DropDowns content={content} ref={childRef} /> }
+      { format === 12 && <SentenceScramble content={content} ref={childRef} /> }
+    </div>
+  );
+};
 
-const timeoutModalCallback = () => {
-  setShowTimeoutModal(false);
-  handleTimeout();
-}
+const loadIncorrectQuestions = async (): Promise<{question: QuestionProps, question_attempt_number: number} | null> => {
+  isFetching.current = true;
+  console.log("Fetching incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
+  try {
+    const response = await api.post<IncorrectQuestionsResponse>(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_questions/`, {
+      starting_question_attempt_number: 1,   // start searching for incorrectly answered questions from the first question attempt in the quiz attempt. 
+      number_of_questions_to_load: 2, // adjust this number to your taste
+    });
+    //console.log("Incorrect questions LOADED: response data:", response.data);
+    // add loaded questions to remainingQuestions state, excluding the first question
+    // which will be set as the current question to review, 
+    // add loaded questions to remainingQuestions state.
+    const first_of_all_loaded_questions = response.data.incorrect_questions.length > 0 ? response.data.incorrect_questions[0] : null;
+    const all_loaded_questions_except_first = response.data.incorrect_questions.slice(1).map((item: IncorrectQuestionProps) => ({
+      question: item.question,
+      question_attempt_number: item.question_attempt_number,
+    }));
+    setRemainingQuestions(prev => [...prev, ...all_loaded_questions_except_first]);
 
-    function SafeHTML({ content }: { content: string }) {
-        const sanitizedContent = DOMPurify.sanitize(content, {
-          USE_PROFILES: { html: true },
-          ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br', 'span', 'div', 'img'],
-          ALLOWED_ATTR: ['href', 'target', 'rel']
-        });
-        return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
+    if (response.data.incorrect_questions.length > 0) {
+      console.log("RETURN First incorrectly answered question loaded from server to review. Question id:", first_of_all_loaded_questions?.question.id, " question number:", first_of_all_loaded_questions?.question.question_number, " content:", first_of_all_loaded_questions?.question.content);
+      return {
+        question: first_of_all_loaded_questions?.question ?? {} as QuestionProps,
+        question_attempt_number: first_of_all_loaded_questions?.question_attempt_number ?? 0,
       }
-//<div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instruction ?? '' }}></div>
+    }
+    else {
+      return null;
+    }
+    //return response.data.incorrect_questions.length > 0 ? response.data.incorrect_questions[0].question : null; // Return the first incorrectly answered question to review, or null if there are no incorrectly answered questions
+    
+  } catch (error) {
+    console.error("Error fetching incorrectly answered questions:", error);
+    return null;
+  } finally {
+    isFetching.current = false;
+  }
+}
+
+const replenishIncorrectQuestions = async (starting_question_attempt_number: number): Promise<{question: QuestionProps, question_attempt_number: number} | null> => {
+  // const replenishIncorrectQuestions = async (starting_question_attempt_number: number) => {
+    //console.log("------>>>>><<<<<<<<<< replenishIncorrectQuestions <<<<called for starting question att number", starting_question_attempt_number);
+    isFetching.current = true;
+    //console.log("replenish_incorrect_questions incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
+    try {
+      const response = await api.post<IncorrectQuestionsResponse>(`/api/quiz_attempts/${quizAttempt?.id}/replenish_incorrect_questions/`, {
+        starting_question_attempt_number,   // start searching for incorrectly answered questions from the first question attempt in the quiz attempt. 
+        number_of_questions_to_load: 2, // adjust this number to your taste
+      });
+      console.log("replenishIncorrectQuestions, Incorrect questions LOADED:");
+      //response.data.incorrect_questions.forEach((item: IncorrectQuestionProps) => {
+       // console.log(" Question id:", item.question.id, " Question attempt number:", item.question_attempt_number, " content:", item.question.content);
+      //});
+      // add loaded questions to remainingQuestions state, excluding the first question
+      // which will be set as the current question to review, 
+      // add loaded questions to remainingQuestions state.
+      const first_of_all_loaded_questions = response.data.incorrect_questions.length > 0 ? response.data.incorrect_questions[0] : null;
+      const all_loaded_questions_except_first = response.data.incorrect_questions.slice(1).map((item: IncorrectQuestionProps) => ({
+        question: item.question,
+        question_attempt_number: item.question_attempt_number,
+      }));
+      setRemainingQuestions(prev => [...prev, ...all_loaded_questions_except_first]);
+  
+      if (response.data.incorrect_questions.length > 0) {
+        //console.log("replenishIncorrectQuestions RETURN First incorrectly answered question loaded from server to review. Question id:", first_of_all_loaded_questions?.question.id, " question number:", first_of_all_loaded_questions?.question.question_number, " content:", first_of_all_loaded_questions?.question.content);
+        return {
+          question: first_of_all_loaded_questions?.question ?? {} as QuestionProps,
+          question_attempt_number: first_of_all_loaded_questions?.question_attempt_number ?? 0,
+        }
+      }
+      else {
+        return null;
+      }
+      //return response.data.incorrect_questions.length > 0 ? response.data.incorrect_questions[0].question : null; // Return the first incorrectly answered question to review, or null if there are no incorrectly answered questions
+      
+    } catch (error) {
+      console.error("Error fetching incorrectly answered questions:", error);
+      return null;
+    } finally {
+      isFetching.current = false;
+    }
+   
+  }
+
+  function SafeHTML({ content }: { content: string }) {
+    const sanitizedContent = DOMPurify.sanitize(content, {
+      USE_PROFILES: { html: true },
+      ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br', 'span', 'div', 'img'],
+      ALLOWED_ATTR: ['href', 'target', 'rel']
+    });
+    return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
+  }
+  
+  if (endOfQuiz) {
     return (
-    <div className="mx-20 my-5 bg-cyan-200">
-       <CountdownTimer initialSeconds={10} onComplete={timerCompletedCallback} ref={timerRef} />
-      {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
-      {showIncorrectModal && <ModalForIncorrect 
-        parentCallback={handleInCorrectModalClose} 
+      <div className='text-center mt-10'>
+        <h2 className='text-2xl font-bold mb-4'>Quiz Completed!</h2>
+        <p className='text-lg'>Congratulations on completing the quiz. Your final score is: {questionAttemptAssessmentResults?.score}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center bg-amber-100 mx-40">
+   
+      { question && (
+          <>
+          {SafeHTML({ content: question.instructions ?? "" }) }
+
+          {question?.prompt && (
+          <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
+            {question.prompt}
+          </div>
+        )}
+        <div>
+        {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                  <OpenAIStream sentence={question.audio_str} />
+        }
+        </div>
+
+            {displayQuestion(question.format, question.content)}
+            <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+                onClick={() => handleSubmit()}
+            >
+                Submit
+                </button>
+          </>
+      )}
+       {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
+       {showIncorrectModal && <IncorrectModal 
+        parentCallback={handleFeedbackModalClose} 
         format={question?.format ?? 1}
         content={question?.content ?? ""}
         answer_key={question?.answer_key ?? ""}
@@ -352,112 +429,25 @@ const timeoutModalCallback = () => {
         processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />
       }
-      { showTimeoutModal && <TimeoutModal parentCallback={timeoutModalCallback} />
-
-      }
-   
-      { quizStarted && (
-        <div className='mb-1 text-center'>
-          <div>Total score: <span className='text-blue-200 font-bold'>{quizAttemptData.quiz_attempt.score}</span></div>
-          { endOfQuiz && 
-              <div className='text-green-600 text-lg'>End Of Quiz</div>
-          }
-          </div>
-      )
-      }
-          {question && questionAttemptId && showQuestion && (
-            <div className="col-span-8 mx-10 my-5 p-10 border-2 border-gray-400 rounded-md ">
-              <div className="mb-3 text-lg font-bold">
-                Question: {question?.question_number}
-              </div>
-
-            {SafeHTML({ content: question.instructions ?? "" })}
-
-            {question?.prompt && (
-              <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
-                {question.prompt}
-              </div>
-            )
-            }
-
-            <div>
-                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
-                             <OpenAIStream sentence={question.audio_str} />
-                        }                 
-              </div>
-
-              <div className='my-5'>
-              { question?.format === 1 &&
-                <DynamicWordInputs content={question.content} ref={childRef} />
-              }
-              { question?.format === 2 &&
-                <ButtonSelectCloze content={question.content} choices={question.button_cloze_options} ref={childRef} />
-              }
-              { question?.format === 3 &&
-                <ButtonSelect content={question.content} ref={childRef} />
-              }
-              { question?.format === 4 &&
-                <RadioQuestion content={question.content} ref={childRef} />
-              }
-              { question?.format === 5 &&
-                <CheckboxQuestion content={question.content} ref={childRef} />
-              }
-              { question?.format === 6 &&
-                <DragDrop content={question.content} ref={childRef} />
-              }
-              { question?.format === 7 &&
-                <SRNonContinuous content={question.content} ref={childRef} />
-              }
-              { question?.format === 8 &&
-                <WordsSelect content={question.content} ref={childRef} />
-              }
-              { question?.format === 10 &&
-                <DropDowns content={question.content} ref={childRef} />
-              } 
-              { question?.format === 12 &&
-                <SentenceScramble content={question.content} ref={childRef} />
-              }
-              </div>
-
-              <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
-                onClick={() => handleSubmit()}
-            >
-                Submit
-                </button>
-            </div>
-          )}
-        
-  
-      </div>
-    );
+    </div>
+  );
   };
   
   export default TakeQuiz;
-  
 
   /*
-export interface Props {
-    parentCallback: (action: string ) => void;
-    format: number;
-    content: string;
-    processQuestionResults?: ProcessQuestionResultsProps;
-}
+          <div>Question Id: {question.id}</div>
+          <div>Question Attempt Id: {questionAttemptId}</div>
+   <div>Review: {reviewMode.toString()}</div>
+      <div>QuizHasErrors: {quizHasErrors.current.toString()}</div>
+      <div>Remaining Questions: 
+        {remainingQuestions.map((q, index) => (
+          <div key={index}>
+            <span>Question id: {q.question.id}</span>
+            <span>Question attempt number: {q.question_attempt_number}</span>
+        </div>
+        ))}
+      </div>
   */
 
-/*
-/*
-export interface ProcessQuestionResultsProps {
-  answer: string | undefined,
-  score: number,
-  error_flag: boolean,
-  cloze_question_results?: ClozeAnswerResultsProps[] | undefined,
-}
-
-type ClozeAnswerResultsProps = {
-  user_answer: string,
-  answer_key: string,
-  score: number,
-  error_flag: boolean,
-}
-
-*/
+  

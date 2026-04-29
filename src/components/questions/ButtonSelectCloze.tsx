@@ -12,29 +12,9 @@ type SentenceToken =
   | { type: 'text'; content: string }
   | { type: 'blank'; blankIndex: number };
 
-// 2. Sample Data (e.g., for 'Learning English is great fun')
-/*
-const initialWordBank: WordBankItem[] = [
-  { id: 'opt1', text: 'is' },
-  { id: 'opt2', text: 'fun' },
-  { id: 'opt3', text: 'great' },
-  { id: 'opt4', text: 'challenging' }, // Extra option
-];
-*/
-
-/*
-const initialSentence: SentenceToken[] = [
-  { type: 'text', content: 'Learning English' },
-  { type: 'blank', blankIndex: 0 }, // First blank (needs 'is')
-  { type: 'text', content: 'very' },
-  { type: 'blank', blankIndex: 1 }, // Second blank (needs 'great')
-  { type: 'text', content: '.' },
-];
-*/
-
 interface Props {
   content: string | undefined;
-  choices?: string; //
+  choices?: string; // string of options separated by slash, e.g. "is/fun/great/challenging"
   ref: React.Ref<ChildRef>;
 }
 // 3. Animation Settings (Shared Layout is key)
@@ -48,14 +28,6 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
 
   const [answer, setAnswer] = useState<string[] | undefined>(undefined);
 
-  // State: Words placed into the sentence blanks (mapped by blankIndex)
-  /*
-  const [placedWords, setPlacedWords] = useState<Record<number, WordBankItem | null>>({
-    0: null,
-    1: null,
-  });
-*/
-  
   const [placedWords, setPlacedWords] = useState<Record<number, WordBankItem | null>>({});
 
   // Handle clicking a word from the bank
@@ -66,7 +38,6 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
     // If no blanks are empty, ignore the click
     if (targetBlankIndex === undefined) return;
 
-    //console.log("Selected item: ", selectedItem, " Target blank index: ", targetBlankIndex);
     const audioUrl =`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${selectedItem.text}.mp3`;
     const audio = new Audio(audioUrl);
     audio.play().catch((error) => {
@@ -97,11 +68,30 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
   }));
 
   useEffect(() => {
-    // Inside your component
     if (!choices) return;
-    const parsedChoices = choices.split('/').map(choice => choice.trim());
+    setAnswer(undefined);
+    setPlacedWords({});
+
+    const regex0 = /\[(.*?)\]/g;
+    //console.log("question_content = ", questionContent)
+    const matches = content?.match(regex0);
+    // kpham: save the choices prop in a variable, add the matches to it, and assign the
+    // the result to allChoices, which will be used to create the word bank. 
+    // don't try to modify the choices prop directly because it will cause an infinite loop of re-rendering 
+    // and useEffect calls since choices is a dependency of this useEffect.
+    let allChoices = choices;
+    if (matches && matches.length > 0) {
+        matches.forEach((match_with_brackets) => {
+          const match_text = match_with_brackets.replace(/[\[\]]/g, '');
+          allChoices = allChoices + '/' + match_text;
+        })
+    }
+    console.log("ButtonSelectCloze: content =", content, " choices = ", allChoices);
+
+
+    const parsedChoices = allChoices.split('/').map(choice => choice.trim());
     const wordBankItems = parsedChoices.map((choice, index) => ({
-      id: `opt${index + 1}`,
+      id: `${content?.slice(0, 20)}_opt${index + 1}`,
       text: choice,
     }));
     setWordBank(wordBankItems);
@@ -142,18 +132,9 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
 
   }, [choices, content]);
 
-  /*
-// split choices by slash and trim whitespace, then set initialWordBank based on that
-    const parsedChoices = choices ? choices.split('/').map(choice => choice.trim()) : [];
-    const longest_word = initialWordBank.reduce((a, b) => 
-    a.text.length > b.text.length ? a : b
-    ).text;
-    setLongestWord(longest_word);
-  */
-
   return (
     // 'LayoutGroup' scope allows layoutId to work across components
-    <motion.div layout id="scramble-group" className="p-8 space-y-10 bg-white rounded-xl shadow-lg border border-gray-500 max-w-4xl mx-auto">
+    <div className="p-8 space-y-10 bg-white rounded-xl shadow-lg border border-gray-500 max-w-4xl mx-auto">
       <h2 className="text-xl font-bold text-gray-800 text-center">Complete the Sentence</h2>
 
       {/* --- The Sentence Area --- */}
@@ -203,7 +184,7 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
       <div className="pt-8 border-t border-gray-100">
        
         <div className="flex flex-wrap gap-4 min-h-14 items-center">
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {wordBank.map((item) => (
               <motion.button
                 key={item.id}
@@ -213,10 +194,6 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
                 className="px-6 py-3 text-lg font-semibold bg-green-300 text-gray-800 rounded-md shadow hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                 whileHover={{ y: -3, scale: 1.05 }}
                 whileTap={{ scale: 0.97 }}
-                
-                // Entrance and Exit animations for the bank
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
               >
                 {item.text}
@@ -225,6 +202,6 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
           </AnimatePresence>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

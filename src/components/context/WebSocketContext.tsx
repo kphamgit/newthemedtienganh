@@ -31,7 +31,7 @@ export const WebSocketProvider: React.FC<{
       heartbeatTimerRef.current = setInterval(() => {
         if (websocketRef.current?.readyState === WebSocket.OPEN) {
           websocketRef.current.send(JSON.stringify({ message_type: 'ping' }));
-          console.log("Global Heartbeat Sent");
+          //console.log("Global Heartbeat Sent");
         }
       }, 30000);
     };

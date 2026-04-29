@@ -194,7 +194,7 @@ Jim [was(to be)] looking out his window. He [saw(see)] two men in his neighbor's
   }
   return (
     <>
-    <div className=' text-textColor1'>
+    <div className='bg-gray-200 p-3 rounded-md text-red-700 w-full mx-0'>
         { arrayOfInputFields?.length &&
         arrayOfInputFields?.map((sentence_fields, sentence_index) => 
         { return (

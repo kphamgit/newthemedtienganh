@@ -16,7 +16,7 @@ import SentenceScramble from './questions/SentenceScramble';
 import DOMPurify from 'dompurify';
 import type { ChildRef } from './TakeQuiz';
 import CorrectModal from './CorrectModal';
-import ModalForIncorrect from './ModalForIncorrect';
+import IncorrectModal from './IncorrectModel';
 
 import { useSelector } from 'react-redux';
 import { type RootState } from '../redux/store';
@@ -346,7 +346,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         </div>
         {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
 
-        {showIncorrectModal && <ModalForIncorrect
+        {showIncorrectModal && <IncorrectModal
           parentCallback={handleModalClose}
           format={question?.format ?? 1}
           content={question?.content ?? ""}

@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux';
 import type { ChildRef } from './TakeQuiz';
 
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
-import ModalForIncorrect from './ModalForIncorrect';
+import IncorrectModal from './IncorrectModel';
 import { ButtonSelect } from "./questions/ButtonSelect";
 import { RadioQuestion } from "./questions/RadioQuestion";
 import { CheckboxQuestion } from "./questions/CheckboxQuestion";
@@ -386,7 +386,7 @@ const handleModalClose = async () => {
   </>
 }
   {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
-      {showIncorrectModal && <ModalForIncorrect 
+      {showIncorrectModal && <IncorrectModal 
         parentCallback={handleModalClose} 
         format={question?.format ?? 1}
         content={question?.content ?? ""}

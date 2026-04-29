@@ -117,7 +117,7 @@ function HomeStudent() {
    
     return (
 
-        <div className="bg-cyan-300 h-full w-full">
+        <div className="bg-amber-100 h-full w-full">
             <div className="opacity-20">HOME STUDENT</div>
         
             <div>

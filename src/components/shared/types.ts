@@ -7,6 +7,7 @@ export interface ProcessQuestionAttemptResultsProps {
       score: number,
   }
   next_question_id? : number,
+  quiz_attempt_has_errors: boolean,
 }
 
 export interface QuestionAttemptAssesmentResultsProps {
@@ -102,6 +103,7 @@ export interface QuestionProps {
     created_at: string,
     updated_at: string,
     completion_status: string,
+    review_state: boolean
   }
 
   export interface QuizAttemptCreatedProps {
