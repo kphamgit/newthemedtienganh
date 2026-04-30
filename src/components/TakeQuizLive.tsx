@@ -273,7 +273,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
       case 1:
         return <DynamicWordInputs content={question?.content ?? ""} ref={childRef} />;
       case 2:
-        return <ButtonSelectCloze content={question?.content ?? ""} choices={question?.button_cloze_options ?? ""} ref={childRef} />;
+        return <ButtonSelectCloze content={question?.content ?? ""} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options ?? ""} ref={childRef} />;
       case 3:
         return <ButtonSelect content={question?.content ?? ""} ref={childRef} />;
       case 4:
@@ -281,7 +281,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
       case 5:
         return <CheckboxQuestion content={question?.content ?? ""} ref={childRef} />;
       case 6:
-        return <DragDrop content={question?.content ?? ""} ref={childRef} />;
+        return <DragDrop content={question?.content ?? ""} content_language={question?.content_language ?? ""} ref={childRef} />;
       case 7:
         return <SRNonContinuous content={question?.content ?? ""} ref={childRef} />
       case 8:

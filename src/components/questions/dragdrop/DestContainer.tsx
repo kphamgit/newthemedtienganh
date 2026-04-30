@@ -50,7 +50,7 @@ export default function DestinationContainer(props: ContainerProps) {
         {items.map((item) => { 
           //console.log("container id = ", id, "key = item id=", item.id);
           return (
-          <SortableItem key={item.id} id={item.id} label={item.label} disable={item.disable} parent_function={handdleSortableItemClick} />
+          <SortableItem key={item.id} id={item.id} label={item.label} language={item.language} disable={item.disable} parent_function={handdleSortableItemClick} />
         )}
         
         )

@@ -83,6 +83,7 @@ export interface QuestionProps {
     quiz_id: number,
     question_number: number,
     content: string,
+    content_language: string,
     format: number,
     answer_key: string,
     instructions?: string,

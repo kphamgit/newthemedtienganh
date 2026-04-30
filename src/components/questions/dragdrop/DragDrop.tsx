@@ -13,7 +13,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import Container from "./container";
-import { Item, type ItemProps } from "./SortableItem";
+import { Item, type SortableItemProps } from "./SortableItem";
 import DestinationContainer from "./DestContainer";
 //import Announcements from "./announcements";
 
@@ -27,6 +27,7 @@ const wrapperStyle: React.CSSProperties = {
 
 interface Props {
   content: string | undefined;
+  content_language: string; // e.g. "en" or "fr", used for TTS audio URL construction
 }
 
 
@@ -38,7 +39,7 @@ const DragDrop = forwardRef<DragAndDropRefProps, Props>((props, ref) => {
 
 //export default function DragDrop() {
  
-const [allItems, setAllItems] = useState<{ [key: string]: ItemProps[] }>({
+const [allItems, setAllItems] = useState<{ [key: string]: SortableItemProps[] }>({
   root: [],
   destination_container: []
 });
@@ -72,7 +73,7 @@ const [allItems, setAllItems] = useState<{ [key: string]: ItemProps[] }>({
         [array[i], array[j]] = [array[j], array[i]];
       }
     }  // { id: uuidv4(), label: "Item 2", disable: false }, 
-      let myArray = props.content?.split('/').map((str) => ({ id: uuidv4(), label: str, disable: false }));
+      let myArray = props.content?.split('/').map((str) => ({ id: uuidv4(), label: str, language: props.content_language, disable: false }));
       //console.log(" myArray : ", myArray)
       shuffle(myArray)
       if (myArray) {
@@ -84,7 +85,7 @@ const [allItems, setAllItems] = useState<{ [key: string]: ItemProps[] }>({
      
       }   
     
-  },[props.content])
+  },[props.content, props.content_language])
 
   const getAnswer = () => {
     //get the label of the items in the destination_container array
@@ -172,7 +173,7 @@ const [allItems, setAllItems] = useState<{ [key: string]: ItemProps[] }>({
             items={allItems.root} 
             parent_function={handleSortableItemClick} /></div>
         </div>
-        <DragOverlay>{activeId && activeLabel ? <Item id={activeId} label={activeLabel} /> : null}</DragOverlay>
+        <DragOverlay>{activeId && activeLabel ? <Item id={activeId} label={activeLabel} language={props.content_language}/> : null}</DragOverlay>
       </DndContext>
     </div>
   );
@@ -186,7 +187,7 @@ const [allItems, setAllItems] = useState<{ [key: string]: ItemProps[] }>({
 
     //return Object.keys(items).find((key) => (items[key as keyof typeof items] as string[]).includes(id));
     return Object.keys(allItems).find((key) => 
-      (allItems[key as keyof typeof allItems] as ItemProps[]).some((item) => item.id === id)
+      (allItems[key as keyof typeof allItems] as SortableItemProps[]).some((item) => item.id === id)
     );
     // return Object.keys(items).find((key) => items[key].includes(id));
   }

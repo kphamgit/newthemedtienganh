@@ -40,7 +40,7 @@ export interface ChildRef {
     getAnswer: () => string | undefined;
   }
 
-const TakeQuizSave: React.FC = () => {
+const TakeQuizWithTimer: React.FC = () => {
 
   const timerRef = useRef<CountdownTimerHandleProps>(null);
 
@@ -262,8 +262,6 @@ const TakeQuizSave: React.FC = () => {
     const handleSubmit = () => {
         setShowQuestion(false); //
         timerRef.current?.stop();
-        // stop countdown timer
-        //counterRef.current?.stop();
         const url = `/api/question_attempts/${questionAttemptId}/process/`;
         const uanswer = childRef.current?.getAnswer();  
         const aKey = question?.answer_key;
@@ -389,7 +387,7 @@ const timeoutModalCallback = () => {
                 <DynamicWordInputs content={question.content} ref={childRef} />
               }
               { question?.format === 2 &&
-                <ButtonSelectCloze content={question.content} choices={question.button_cloze_options} ref={childRef} />
+                <ButtonSelectCloze content={question.content} content_language={question.content_language} choices={question.button_cloze_options} ref={childRef} />
               }
               { question?.format === 3 &&
                 <ButtonSelect content={question.content} ref={childRef} />
@@ -401,7 +399,7 @@ const timeoutModalCallback = () => {
                 <CheckboxQuestion content={question.content} ref={childRef} />
               }
               { question?.format === 6 &&
-                <DragDrop content={question.content} ref={childRef} />
+                <DragDrop content={question.content} content_language={question.content_language} ref={childRef} />
               }
               { question?.format === 7 &&
                 <SRNonContinuous content={question.content} ref={childRef} />
@@ -430,4 +428,4 @@ const timeoutModalCallback = () => {
     );
   };
   
-  export default TakeQuizSave;
+  export default TakeQuizWithTimer;

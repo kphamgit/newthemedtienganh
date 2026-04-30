@@ -14,12 +14,13 @@ type SentenceToken =
 
 interface Props {
   content: string | undefined;
+  content_language: string; // e.g. "en" or "fr", used for TTS audio URL construction
   choices?: string; // string of options separated by slash, e.g. "is/fun/great/challenging"
   ref: React.Ref<ChildRef>;
 }
 // 3. Animation Settings (Shared Layout is key)
 // We need a wrapper to give the shared layout a scope.
-export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
+export const ButtonSelectCloze = ({ content, content_language,  choices, ref }: Props) => {
   // State: Words remaining in the bank below
   //const [wordBank, setWordBank] = useState<WordBankItem[]>(initialWordBank);
   const [initialSentence, setInitialSentence] = useState<SentenceToken[]>([]);
@@ -33,12 +34,15 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
   // Handle clicking a word from the bank
   const handleWordSelect = (selectedItem: WordBankItem) => {
     // 1. Find the first empty blank
-    const targetBlankIndex = [0, 1].find(index => placedWords[index] === null);
+    const targetBlankIndex = Object.keys(placedWords).map(Number).find(index => placedWords[index] === null);
 
     // If no blanks are empty, ignore the click
     if (targetBlankIndex === undefined) return;
 
-    const audioUrl =`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${selectedItem.text}.mp3`;
+    let audioUrl =`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${selectedItem.text}.mp3`;
+    if (content_language && content_language === "fr") {
+      audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/fr_${selectedItem.text}.mp3`;
+    }
     const audio = new Audio(audioUrl);
     audio.play().catch((error) => {
         console.error("Error playing audio:", error);
@@ -72,13 +76,14 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
     setAnswer(undefined);
     setPlacedWords({});
 
-    const regex0 = /\[(.*?)\]/g;
+    //const regex0 = /\[(.*?)\]/g;
     //console.log("question_content = ", questionContent)
-    const matches = content?.match(regex0);
+    // const matches = content?.match(regex0);
     // kpham: save the choices prop in a variable, add the matches to it, and assign the
     // the result to allChoices, which will be used to create the word bank. 
     // don't try to modify the choices prop directly because it will cause an infinite loop of re-rendering 
     // and useEffect calls since choices is a dependency of this useEffect.
+    /*
     let allChoices = choices;
     if (matches && matches.length > 0) {
         matches.forEach((match_with_brackets) => {
@@ -86,10 +91,8 @@ export const ButtonSelectCloze = ({ content, choices, ref }: Props) => {
           allChoices = allChoices + '/' + match_text;
         })
     }
-    console.log("ButtonSelectCloze: content =", content, " choices = ", allChoices);
-
-
-    const parsedChoices = allChoices.split('/').map(choice => choice.trim());
+        */
+    const parsedChoices = choices.split('/').map(choice => choice.trim());
     const wordBankItems = parsedChoices.map((choice, index) => ({
       id: `${content?.slice(0, 20)}_opt${index + 1}`,
       text: choice,

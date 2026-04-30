@@ -417,7 +417,11 @@ const handleModalClose = async () => {
                 <DynamicWordInputs content={question.content} ref={childRef} />
               }
               { question?.format === 2 &&
-                  <ButtonSelectCloze content={question.content} choices={question.button_cloze_options} ref={childRef} />
+                  <ButtonSelectCloze 
+                  content={question.content} 
+                  content_language={question.content_language}
+                  choices={question.button_cloze_options} 
+                  ref={childRef} />
               }
               { question?.format === 3 &&
                 <ButtonSelect content={question.content} ref={childRef} />
@@ -429,7 +433,7 @@ const handleModalClose = async () => {
                 <CheckboxQuestion content={question.content} ref={childRef} />
               }
               { question?.format === 6 &&
-                <DragDrop content={question.content} ref={childRef} />
+                <DragDrop content={question.content} content_language={question.content_language} ref={childRef} />
               }
               { question?.format === 7 &&
                 <SRNonContinuous content={question.content} ref={childRef} />

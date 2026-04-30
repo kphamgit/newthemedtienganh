@@ -83,6 +83,7 @@ const TakeQuiz: React.FC = () => {
   const quizHasErrors = useRef<boolean>(false);
 
   let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const incorrectModalQuestion = useRef<QuestionProps | undefined>(undefined);
 
   const isFetching = useRef(false);
 
@@ -92,6 +93,7 @@ const TakeQuiz: React.FC = () => {
         //console.log("Received response from get_or_create_react_native endpoint:", response.data);
         const all_questions_loaded = response.data.questions;
         const first_question = all_questions_loaded.length > 0 ? all_questions_loaded[0] : null;
+        // console.log(" First question loaded from server:", first_question);
         setRemainingQuestions(all_questions_loaded.slice(1).map((q: QuestionProps) => ({ question: q })));
         setQuestion(first_question);
         setQuizAttempt(response.data.quiz_attempt);
@@ -112,8 +114,6 @@ const TakeQuiz: React.FC = () => {
     });
     if (response.data && response.data.question_attempt_id) {
       const { question_attempt_id } = response.data;
-      //setQuestionAttemptId(question_attempt_id);
-      //console.log("Created question attempt with id:", question_attempt_id, " for question id:", question?.id, " quiz attempt id:", quizAttemptId);
       setQuestionAttemptId(question_attempt_id);
     }
   } catch (error) {
@@ -152,11 +152,7 @@ const TakeQuiz: React.FC = () => {
         setQuestion(nextQuestion);
         //console.log(" removing next question from remaining questions")
         // remove the question we just set as current question from the remainingQuestions array, so that the next time we show the correct modal after answering the next question, we will show the following question in the remainingQuestions array (if there is one) instead of showing the same question again. We do this by slicing the remainingQuestions array from index 1 to the end, which effectively removes the first element (the question we just set as current question) from the array.
-        setRemainingQuestions(prev => prev.slice(1));
-        //createNextQuestionAttempt(quizAttemptData!.quiz_attempt.id, nextQuestionId.current);
-        //console.log("handleCorrectModalTimeout. After removing question, remaining questions are;");
-        //remainingQuestions.forEach(q => console.log("Question id:", q.question.id, " question number:", q.question.question_number, " content:", q.question.content));
-        
+        setRemainingQuestions(prev => prev.slice(1));       
         if (remainingQuestions.length === 1 && !isFetching.current) {
           isFetching.current = true;
       
@@ -200,7 +196,7 @@ const TakeQuiz: React.FC = () => {
       // no next question id means end of quiz reached
       //console.log("handleCorrectModalTimeout. No more remaining questions. QuizHasErrors:", quizHasErrors.current);
       if (quizHasErrors.current) {
-        console.log(" No more question, but quiz has errors");
+        //console.log(" No more question, but quiz has errors");
         setReviewMode(true);
         //setEndOfQuiz(true); //test only
       }
@@ -264,10 +260,11 @@ useEffect(() => {
       }, 1000); // Close modal after 2 seconds
     }
     else {
+      // make a snapshot of question for incorrect model because
+      // question is undefined when passed as a prop to IncorrectModal.
+       incorrectModalQuestion.current = question;
        setShowIncorrectModal(true);
     }
-  
-
   })
   .catch((err) => {
     console.error("Error processing question attempt:", err);
@@ -278,22 +275,22 @@ useEffect(() => {
   return (
     <div className='my-5'>
       { format === 1 && <DynamicWordInputs content={content} ref={childRef} /> }
-      { format === 2 && <ButtonSelectCloze content={content} choices={question?.button_cloze_options} ref={childRef} /> }
+      { format === 2 && <ButtonSelectCloze content={content} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options} ref={childRef} /> }
       { format === 3 && <ButtonSelect content={content} ref={childRef} /> }
       { format === 4 && <RadioQuestion content={content} ref={childRef} /> }
       { format === 5 && <CheckboxQuestion content={content} ref={childRef} /> }
-      { format === 6 && <DragDrop content={content} ref={childRef} /> }
+      { format === 6 && <DragDrop content={content}  content_language={question?.content_language ?? "en"} ref={childRef} /> }
       { format === 7 && <SRNonContinuous content={content} ref={childRef} /> }
       { format === 8 && <WordsSelect content={content} ref={childRef} /> }
       { format === 10 && <DropDowns content={content} ref={childRef} /> }
-      { format === 12 && <SentenceScramble content={content} ref={childRef} /> }
+      { format === 12 && <SentenceScramble content={content}  ref={childRef} /> }
     </div>
   );
 };
 
 const loadIncorrectQuestions = async (): Promise<{question: QuestionProps, question_attempt_number: number} | null> => {
   isFetching.current = true;
-  console.log("Fetching incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
+  // console.log("Fetching incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
   try {
     const response = await api.post<IncorrectQuestionsResponse>(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_questions/`, {
       starting_question_attempt_number: 1,   // start searching for incorrectly answered questions from the first question attempt in the quiz attempt. 
@@ -311,7 +308,7 @@ const loadIncorrectQuestions = async (): Promise<{question: QuestionProps, quest
     setRemainingQuestions(prev => [...prev, ...all_loaded_questions_except_first]);
 
     if (response.data.incorrect_questions.length > 0) {
-      console.log("RETURN First incorrectly answered question loaded from server to review. Question id:", first_of_all_loaded_questions?.question.id, " question number:", first_of_all_loaded_questions?.question.question_number, " content:", first_of_all_loaded_questions?.question.content);
+      // console.log("RETURN First incorrectly answered question loaded from server to review. Question id:", first_of_all_loaded_questions?.question.id, " question number:", first_of_all_loaded_questions?.question.question_number, " content:", first_of_all_loaded_questions?.question.content);
       return {
         question: first_of_all_loaded_questions?.question ?? {} as QuestionProps,
         question_attempt_number: first_of_all_loaded_questions?.question_attempt_number ?? 0,
@@ -420,12 +417,12 @@ const replenishIncorrectQuestions = async (starting_question_attempt_number: num
           </>
       )}
        {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
-       {showIncorrectModal && <IncorrectModal 
-        parentCallback={handleFeedbackModalClose} 
-        format={question?.format ?? 1}
-        content={question?.content ?? ""}
-        answer_key={question?.answer_key ?? ""}
-        explanation={question?.explanation ?? ""}
+       {showIncorrectModal && <IncorrectModal
+        parentCallback={handleFeedbackModalClose}
+        format={incorrectModalQuestion.current?.format ?? 1}
+        content={incorrectModalQuestion.current?.content ?? ""}
+        answer_key={incorrectModalQuestion.current?.answer_key ?? ""}
+        explanation={incorrectModalQuestion.current?.explanation ?? ""}
         processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />
       }

@@ -3,23 +3,26 @@ import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 
+/*
 export interface ItemProps {
   id: string;
   label: string;
   disable?: boolean;
   parent_function?: (item_id: string) => void;
 }
+*/
 
 export interface SortableItemProps {
   id: string;
   label: string;
+  language: string;
   disable?: boolean;
   parent_function?: (item_id: string) => void;
 }
 
 
-export function Item(props: ItemProps) {
-  const { id, label, disable } = props;
+export function Item(props: SortableItemProps) {
+  const { id, label,  disable } = props;
 
   const [disableState, setDisableState] = useState(disable);
 
@@ -32,19 +35,6 @@ export function Item(props: ItemProps) {
     props.parent_function?.(id);
   };
 
-  /*
-  const style = {
-    width: "100%",
-    height: 50,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid black",
-    margin: "10px 0",
-    background: "white"
-  };
-  //return <button className="flex flex-row justify-center bg-red-300 m-1 p-2 rounded-md" 
-  */
  return <button 
    className={clsx(
     "px-4 py-2 rounded",
@@ -80,7 +70,11 @@ export default function SortableItem(props: SortableItemProps) {
    //console.log("in SortableItem handleItemClick, item id = ", props.id);
     //console.log("in SortableItem handleItemClick, calling parent function from container");
     //console.log("******* Playing audio for label: ", props.label);
-    const audioUrl =`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${props.label}.mp3`;
+    // console.log("******* Playing audio for label: ", props.label, " language: ", props.language);
+    let audioUrl =`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${props.label}.mp3`;
+    if (props.language === "fr") {
+      audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/fr_${props.label}.mp3`;
+    }
       const audio = new Audio(audioUrl);
       audio.play().catch((error) => {
           console.error("Error playing audio:", error);

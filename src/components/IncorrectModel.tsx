@@ -11,6 +11,7 @@ import DropDown from "./explanations/DropDown";
 import SentenceScramble from "./explanations/SentenceScramble";
 import SRExplanation from "./explanations/SRExplanation";
 
+
 export interface Props {
     parentCallback: (action: string ) => void;
     format: number;
@@ -48,13 +49,13 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
   return (
 
     <div 
-      className="fixed inset-x-100 inset-y-90 p-4 bg-green-300 bg-opacity-50 flex items-center justify-center z-10"
+      className="fixed inset-x-100 inset-y-90 p-4 bg-transparent flex items-center justify-center z-10"
 >
     <div className="bg-gray-200 rounded-lg shadow-lg p-11 w-auto h-auto text-center">
         <div className="mb-4 font-bold text-lg text-green-900">Score: {processQuestionResults?.score}</div>
         <Explanation>
             {(format === 1 || format == 2 ) && 
-                             <ClozeExplanation  content={content} processQuestionResults={processQuestionResults} />}
+                <ClozeExplanation  content={content} processQuestionResults={processQuestionResults} />}
             {format === 3 && <ButtonSelectExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 4 && <RadioExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 5 && <CheckboxExplanation content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
@@ -63,8 +64,9 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
             {format === 8 && <WordsSelect content={content} answer_key={answer_key} processQuestionResults={processQuestionResults} />}
             {format === 10 && <DropDown content={content} processQuestionResults={processQuestionResults} />}
             {format === 12 && <SentenceScramble content={content} processQuestionResults={processQuestionResults} />}
-
+            { explanation &&
             <div className="bg-cyan-200 mt-3 p-2">{explanation}</div>
+          }
         </Explanation>
         <button 
             className="px-4 py-2 mt-5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium"
