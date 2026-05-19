@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import api from '../api';
-import {  MediaPlayer, MediaProvider, useMediaRemote, useMediaStore } from '@vidstack/react';
+import {  MediaPlayer, MediaProvider, useMediaRemote, useMediaStore, type MediaPlayerInstance } from '@vidstack/react';
 //import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from './shared/types';
 import { useSelector } from 'react-redux';
@@ -47,7 +47,7 @@ interface VideoSegment {
 export default function TakeVideoQuiz() {
     const location = useLocation();
     const { video_url, quiz_id, video_segments } = location.state || {};
-    const playerRef = React.useRef(null);
+    const playerRef = React.useRef<MediaPlayerInstance>(null);
 
     //const stopTime = useRef<number>(0);
     const [stopTime, setStopTime] = useState<number>(0);
@@ -243,7 +243,7 @@ export default function TakeVideoQuiz() {
         
        });
    },[quiz_id, video_segments, name])
-     
+   
     const fetchQuestionAttempt = useCallback(async (question: QuestionProps): Promise<boolean> => {
         if (!quizAttempt) {
             console.error("Quiz attempt is null.");

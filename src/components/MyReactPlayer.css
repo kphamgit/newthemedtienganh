@@ -1,0 +1,19 @@
+
+
+  .player-overlay {
+    position: absolute;
+    background-color: transparent;
+    width: 120%;
+    height: 40%;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+
+  .player-wrapper {
+    
+    width: 720px;
+    aspect-ratio: 16 / 9;
+    background: rgba(0, 0, 0, .1);
+    margin-bottom: 10px;
+  }
