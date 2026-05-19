@@ -91,9 +91,10 @@ export default function TakeVideoQuiz() {
     // component when it changes
     //const { paused } = useMediaStore(playerRef);
     //const { paused, started } = useMediaStore(playerRef);
-    const { paused } = useMediaStore(playerRef);
-
     const [showVideoPlayer, setShowVideoPlayer] = useState<boolean>(true);
+
+    const mediaStore = useMediaStore(playerRef);
+    const paused = showVideoPlayer ? mediaStore.paused : false;
 
     /*
     useEffect(() => {
@@ -140,70 +141,9 @@ export default function TakeVideoQuiz() {
     useEffect(() => {
 
       // load all questions in first video segment
-      console.log("************************ TakeVideoQuiz: useEffect on component mount, video_segments =", video_segments);
-/*
-[
-  {
-    "id": 1,
-    "quiz_id": 2,
-    "segment_number": 1,
-    "start_time": "0:00:000",
-    "end_time": "0:10:500",
-    "question_numbers": "2, 3, 136"
-  },
-  {
-    "id": 2,
-    "quiz_id": 2,
-    "segment_number": 2,
-    "start_time": "0:10:500",
-    "end_time": "0:17:500",
-    "question_numbers": ""
-  },
-  {
-    "id": 4,
-    "quiz_id": 2,
-    "segment_number": 3,
-    "start_time": "0:17:500",
-    "end_time": "0:24:500",
-    "question_numbers": ""
-  },
-  {
-    "id": 5,
-    "quiz_id": 2,
-    "segment_number": 4,
-    "start_time": "0:24:700",
-    "end_time": "0:28:200",
-    "question_numbers": ""
-  },
-  {
-    "id": 6,
-    "quiz_id": 2,
-    "segment_number": 5,
-    "start_time": "0:28:300",
-    "end_time": "0:31:800",
-    "question_numbers": ""
-  },
-  {
-    "id": 7,
-    "quiz_id": 2,
-    "segment_number": 6,
-    "start_time": "0:31:900",
-    "end_time": "0:39:000",
-    "question_numbers": ""
-  },
-  {
-    "id": 8,
-    "quiz_id": 2,
-    "segment_number": 7,
-    "start_time": "0:39:000",
-    "end_time": "0:46:000",
-    "question_numbers": ""
-  }
-]
-*/
-
+      // console.log("************************ TakeVideoQuiz: useEffect on component mount, video_segments =", video_segments);
       const first_video_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === 1);
-      console.log("TakeVideoQuiz: first_video_segment =", first_video_segment);
+      // console.log("TakeVideoQuiz: first_video_segment =", first_video_segment);
       const question_numbers = first_video_segment ? first_video_segment.question_numbers.split(",").map((num: string) => parseInt(num.trim())) : [];
       const number_of_questions = question_numbers.length;
 
@@ -213,7 +153,7 @@ export default function TakeVideoQuiz() {
           number_of_questions_to_preload: number_of_questions
         })
        .then((response) => {
-          console.log("Received response from get_or_create_react_native endpoint:", response.data);
+          //console.log("Received response from get_or_create_react_native endpoint:", response.data);
           //const all_questions_loaded = response.data.questions;
 
           /*
@@ -224,24 +164,6 @@ export default function TakeVideoQuiz() {
           //setRemainingQuestions(all_questions_loaded.slice(1).map((q: QuestionProps) => ({ question: q })));
           //setQuestion(first_question);
           setQuizAttempt(response.data.quiz_attempt);
-          const segment1 = video_segments.find((seg: VideoSegment) => seg.segment_number === 1);
-          console.log("TakeVideoQuiz: segment 1 data", segment1);
-          if (segment1) {
-              const [minutes_start, seconds_start, milliseconds_start] = segment1.start_time.split(":").map(Number); // Split and convert to numbers
-              const [minutes_end, seconds_end, milliseconds_end] = segment1.end_time.split(":").map(Number); // Split and convert to numbers
-      
-              const startTimeInSeconds = (minutes_start * 60 + seconds_start + milliseconds_start / 1000);
-              const stopTimeInSeconds = (minutes_end * 60 + seconds_end + milliseconds_end / 1000);
-              
-              console.log("TakeVideoQuiz: segment 1 startTimeInSeconds =", startTimeInSeconds);
-              console.log("TakeVideoQuiz: segment 1 stopTimeInSeconds =", stopTimeInSeconds);
-              
-          } else {
-              console.warn("TakeVideoQuiz: segment 1 not found ");
-              //remote.seek(0);
-              //remote.play();
-          }
-        
        
        })
        .catch((error) => {
@@ -272,17 +194,17 @@ export default function TakeVideoQuiz() {
     }, [quizAttempt]);
 
     const onPaused = useEffectEvent(async () => {
-        console.log(" ****** video paused. Active segment number:", activeSegmentNumber);
+        //console.log(" ****** video paused. Active segment number:", activeSegmentNumber);
         const unfinished_questions = questionsBank.filter(q => q.finished === false);
         if (unfinished_questions.length === 0 && quizAttempt) {
-            console.log("TakeVideoQuiz: video is paused and no remaining questions in state. Fetching questions for current segment from server.");
+            //console.log("TakeVideoQuiz: video is paused and no remaining questions in state. Fetching questions for current segment from server.");
             const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-            console.log("TakeVideoQuiz: >>>>>>>>>>>>>>>>>>>>>>>>> current_segment =", current_segment);
+            //console.log("TakeVideoQuiz: >>>>>>>>>>>>>>>>>>>>>>>>> current_segment =", current_segment);
             if (current_segment) {
                 const url = `/api/video_segments/${current_segment.id}/get_questions/`;
                 try {
                     const response = await api.get<{ questions: QuestionProps[] }>(url);
-                    console.log("TakeVideoQuiz: Received response from server for questions in current segment:", response.data);
+                    //console.log("TakeVideoQuiz: Received response from server for questions in current segment:", response.data);
                     const questions_in_segment = response.data.questions;
                     setQuestionsBank(prev => [...prev, ...questions_in_segment.map(q => ({ ...q, finished: false }))]);
                     if (questions_in_segment.length > 0) {
@@ -342,7 +264,7 @@ export default function TakeVideoQuiz() {
  }
 
   const handlePlay = () => {
-    console.log("TakeVideoQuiz: Play button clicked active video segment: ", video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber));
+    //console.log("TakeVideoQuiz: Play button clicked active video segment: ", video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber));
     const active_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
     //const start_time = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber)?.start_time ?? "00:00:00";
     //console.log("TakeVideoQuiz: start_time to seek to =", start_time);
@@ -353,8 +275,8 @@ export default function TakeVideoQuiz() {
     const startTimeInSeconds = (minutes_start * 60 + seconds_start + milliseconds_start / 1000);
     const stopTimeInSeconds = (minutes_end * 60 + seconds_end + milliseconds_end / 1000);
 
-    console.log("TakeVideoQuiz: seeking to start time in seconds =", startTimeInSeconds);
-    console.log("TakeVideoQuiz: setting stop time to =", stopTimeInSeconds);
+    //console.log("TakeVideoQuiz: seeking to start time in seconds =", startTimeInSeconds);
+    //console.log("TakeVideoQuiz: setting stop time to =", stopTimeInSeconds);
 
     //stopTime.current = parseFloat(stopTimeInSeconds);
     setStopTime(stopTimeInSeconds);
@@ -362,7 +284,7 @@ export default function TakeVideoQuiz() {
     // set stop time for later use in handleTimeUpdate
     
     remote.seek(startTimeInSeconds);
-    console.log("TakeVideoQuiz: Playing video from segment start time");
+    //console.log("TakeVideoQuiz: Playing video from segment start time");
     // set showQuestion to false. No questions should be shown while video is playing. Questions will only be shown when video is paused (handleTimeUpdate will set showQuestion to true when video is paused)
     setShowQuestion(false);
     remote.play();
@@ -412,7 +334,7 @@ export default function TakeVideoQuiz() {
   }
 
 const handleModalClose = useEffectEvent(async () => {
-  console.log("handleModalCloze")
+  //("handleModalCloze")
   if (showCorrectModal) {
     setShowCorrectModal(false);
   }
@@ -422,15 +344,15 @@ const handleModalClose = useEffectEvent(async () => {
   //setQuestion(remainingQuestions.length > 0 ? remainingQuestions[0].question : undefined);
   //console.log("handleModalClose. Remaining questions length:", remainingQuestions.length);
   const unfinished_questions = questionsBank.filter(q => q.finished === false);
-  console.log("handleModalClose. Unfinished questions:");
-  unfinished_questions.forEach(q => console.log(`Question id: ${q.id}, finished: ${q.finished}`));
+  //console.log("handleModalClose. Unfinished questions:");
+  //unfinished_questions.forEach(q => console.log(`Question id: ${q.id}, finished: ${q.finished}`));
   //if (remainingQuestions.length > 0) {
   if (unfinished_questions.length > 0) {
         //console.log("handleCorrectModalTimeout There are remaining questions in state, showing next question immediately for a smooth user experience while waiting for the server response to create the next question attempt. Remaining questions length:", remainingQuestions.length, " Next question id:", remainingQuestions[0].question.id);
         // remove the next question to display from the remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
         // const nextQuestion = remainingQuestions[0].question;
         const nextQuestion = unfinished_questions[0];
-        console.log(" handleModalCloze next question to attempt:", nextQuestion);
+        //console.log(" handleModalCloze next question to attempt:", nextQuestion);
         const success = await fetchQuestionAttempt(nextQuestion);
         if (success) {
             setQuestion(nextQuestion);
@@ -443,20 +365,20 @@ const handleModalClose = useEffectEvent(async () => {
   }
   else if (unfinished_questions.length == 0 ) { // else if (remainingQuestions.length == 0) { 
       // no next question id means end of quiz reached
-      console.log("handleModalTimeout. No more remaining questions:");
+      //console.log("handleModalTimeout. No more remaining questions:");
       // play the next video segment if there is one, otherwise end the quiz and show alert
-        const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-        console.log("TakeVideoQuiz: current_segment =", current_segment);
+        //const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
+        //console.log("TakeVideoQuiz: current_segment =", current_segment);
         const isLastSegment = activeSegmentNumber === video_segments.length;
         if (!isLastSegment) {
             // increment active segment number to move to next segment
-            console.log("TakeVideoQuiz: ******* ********* Moving to next segment.");
+            //console.log("TakeVideoQuiz: ******* ********* Moving to next segment.");
             const nextSegmentNumber = (activeSegmentNumber ?? 1) + 1;
-            console.log("TakeVideoQuiz: Moving to next segment, nextSegmentNumber =", nextSegmentNumber);
+            //console.log("TakeVideoQuiz: Moving to next segment, nextSegmentNumber =", nextSegmentNumber);
             setActiveSegmentNumber(nextSegmentNumber);
             // play next segment
             const next_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === nextSegmentNumber);
-            console.log("TakeVideoQuiz: next_segment =", next_segment);
+            //console.log("TakeVideoQuiz: next_segment =", next_segment);
             if (next_segment) {
                 setShowCorrectModal(false)
                 const [minutes_start, seconds_start, milliseconds_start] = next_segment.start_time.split(":").map(Number); // Split and convert to numbers
@@ -465,8 +387,8 @@ const handleModalClose = useEffectEvent(async () => {
                 const startTimeInSeconds = (minutes_start * 60 + seconds_start + milliseconds_start / 1000);
                 const stopTimeInSeconds = (minutes_end * 60 + seconds_end + milliseconds_end / 1000);
                 
-                console.log("TakeVideoQuiz: next segment startTimeInSeconds =", startTimeInSeconds);
-                console.log("TakeVideoQuiz: next segment stopTimeInSeconds =", stopTimeInSeconds);
+                //console.log("TakeVideoQuiz: next segment startTimeInSeconds =", startTimeInSeconds);
+                //console.log("TakeVideoQuiz: next segment stopTimeInSeconds =", stopTimeInSeconds);
                 
                 setStopTime(stopTimeInSeconds);
                 remote.seek(startTimeInSeconds);
@@ -474,14 +396,14 @@ const handleModalClose = useEffectEvent(async () => {
             }
         }
         else {
-            console.log("TakeVideoQuiz: This was the last segment. Quiz completed.");
+            //console.log("TakeVideoQuiz: This was the last segment. Quiz completed.");
            
             setShowCorrectModal(false);
             setShowVideoPlayer(false);
             if (quizAttempt) {
             api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
               .then(() => {
-                  console.log("Quiz attempt marked as completed on server.");
+                  //console.log("Quiz attempt marked as completed on server.");
                   setEndOfQuiz(true);
               })
             .catch(err => console.error("Error marking quiz attempt as completed.", err));
@@ -539,7 +461,7 @@ if (endOfQuiz) {
   </button>
   </>
 }
-<div>questions: {JSON.stringify(questionsBank)}</div>
+
   {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <IncorrectModal 
         parentCallback={handleModalClose} 
