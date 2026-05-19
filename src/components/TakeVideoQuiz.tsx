@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import api from '../api';
 import {  MediaPlayer, MediaProvider, useMediaRemote, useMediaStore, type MediaPlayerInstance } from '@vidstack/react';
@@ -43,6 +43,9 @@ interface VideoSegment {
 }
 */
 
+interface QuestionsBankProps extends QuestionProps {
+  finished: boolean; // whether the question has been attempted and processed by the server. Defaults to false.
+}
 
 export default function TakeVideoQuiz() {
     const location = useLocation();
@@ -76,7 +79,10 @@ export default function TakeVideoQuiz() {
     
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-    const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
+    //const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
+
+    const [questionsBank, setQuestionsBank] = useState<QuestionsBankProps[]>([]); // State to hold all questions in the quiz attempt, including those that have been attempted and those that have not been attempted yet. We use this to keep track of which questions have been attempted and which questions are remaining, and to determine when we are at the end of the quiz attempt.
+
 
     const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
 
@@ -265,69 +271,48 @@ export default function TakeVideoQuiz() {
         }
     }, [quizAttempt]);
 
-    useEffect(() => {
-        const run = async () => {
-            if (paused) {
-              console.log(" ****** video paused. Active segment number:", activeSegmentNumber);
-              // check if remainingQuestions is empty, if so, call api to load all questions of segment
-              //path("quizzes/<int:pk>/questions/<int:starting_question_number>/<int:number_of_questions>/", 
-              if (remainingQuestions.length === 0 && quizAttempt) {
-                console.log("TakeVideoQuiz: video is paused and no remaining questions in state. Fetching questions for current segment from server.");
-                const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-                console.log("TakeVideoQuiz: >>>>>>>>>>>>>>>>>>>>>>>>> current_segment =", current_segment);
-                if (current_segment) {
-                    const url = `/api/video_segments/${current_segment.id}/get_questions/`
-                    try {
-                        const response = await api.get<{ questions: QuestionProps[] }>(url);
-                        console.log("TakeVideoQuiz: Received response from server for questions in current segment:", response.data);
-                        const questions_in_segment = response.data.questions;
-                        setRemainingQuestions(questions_in_segment.map((q: QuestionProps) => ({ question: q })));
-                        if (questions_in_segment.length > 0) {
-                            const first_question = questions_in_segment[0];
-                            const success = await fetchQuestionAttempt(first_question);
-                            if (success) {
-                                setQuestion(first_question);
-                                setRemainingQuestions(prev => prev.slice(1));
-                                setShowQuestion(true);
-                            }
+    const onPaused = useEffectEvent(async () => {
+        console.log(" ****** video paused. Active segment number:", activeSegmentNumber);
+        const unfinished_questions = questionsBank.filter(q => q.finished === false);
+        if (unfinished_questions.length === 0 && quizAttempt) {
+            console.log("TakeVideoQuiz: video is paused and no remaining questions in state. Fetching questions for current segment from server.");
+            const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
+            console.log("TakeVideoQuiz: >>>>>>>>>>>>>>>>>>>>>>>>> current_segment =", current_segment);
+            if (current_segment) {
+                const url = `/api/video_segments/${current_segment.id}/get_questions/`;
+                try {
+                    const response = await api.get<{ questions: QuestionProps[] }>(url);
+                    console.log("TakeVideoQuiz: Received response from server for questions in current segment:", response.data);
+                    const questions_in_segment = response.data.questions;
+                    setQuestionsBank(prev => [...prev, ...questions_in_segment.map(q => ({ ...q, finished: false }))]);
+                    if (questions_in_segment.length > 0) {
+                        const first_question = questions_in_segment[0];
+                        const success = await fetchQuestionAttempt(first_question);
+                        if (success) {
+                            setQuestion(first_question);
+                            setQuestionsBank(prev => prev.map(q => q.id === first_question.id ? { ...q, finished: false } : q));
+                            setShowQuestion(true);
                         }
-                    } catch (error) {
-                        console.error("TakeVideoQuiz: Error fetching questions for current segment:", error);
                     }
+                } catch (error) {
+                    console.error("TakeVideoQuiz: Error fetching questions for current segment:", error);
                 }
-              }
-              else if (remainingQuestions.length > 0) {
-
-                  console.log("TakeVideoQuiz: video is paused. There are remaining questions in state, showing next question immediately for a smooth user experience while waiting for the server response to create the next question attempt. Remaining questions length:", remainingQuestions.length, " Next question id:", remainingQuestions[0].question.id);
-                  // remove the next question to display from the remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
-                  const nextQuestion = remainingQuestions[0].question;
-                  const success = await fetchQuestionAttempt(nextQuestion);
-                  if (success) {
-                      setQuestion(nextQuestion);
-                      setRemainingQuestions(prev => prev.slice(1));
-                      setShowQuestion(true);
-                  }
-  
-                }
-
-              /*
-                console.log("************* TakeVideoQuiz: video is paused. Fetching next question attempt ");
-                const question = remainingQuestions.length > 0 ? remainingQuestions[0].question : undefined;
-                if (question) {
-                    console.log("TakeVideoQuiz: current question in state =", question);
-                    const success = await fetchQuestionAttempt(question);
-                    if (success) {
-                        setQuestion(question);
-                        setRemainingQuestions(prev => prev.slice(1));
-                        setShowQuestion(true);
-                    }
-                } else {
-                    console.log("TakeVideoQuiz: no question currently in state");
-                }
-                    */
             }
-        };
-        run();
+        } else if (unfinished_questions.length > 0) {
+            const nextQuestion = unfinished_questions[0];
+            const success = await fetchQuestionAttempt(nextQuestion);
+            if (success) {
+                setQuestion(nextQuestion);
+                setQuestionsBank(prev => prev.map(q => q.id === nextQuestion.id ? { ...q, finished: false } : q));
+                setShowQuestion(true);
+            }
+        }
+    });
+
+    useEffect(() => {
+        if (paused) {
+            onPaused();
+        }
     }, [paused]);
 
 
@@ -401,6 +386,8 @@ export default function TakeVideoQuiz() {
       //console.log("Assessment results from server:", assessment_results);
       //quizHasErrors.current = quiz_attempt_has_errors;
       setQuestionAttemptAssessmentResults(assessment_results);
+      // search questionsBank and set the question with the same id as the current question as finished = true, 
+      setQuestionsBank(prev => prev.map(q => q.id === question?.id ? { ...q, finished: true } : q));
       if (assessment_results.error_flag === false) {
         //alert("Answer is correct.");
         setShowCorrectModal(true);
@@ -424,7 +411,7 @@ export default function TakeVideoQuiz() {
     
   }
 
-const handleModalClose = async () => {
+const handleModalClose = useEffectEvent(async () => {
   console.log("handleModalCloze")
   if (showCorrectModal) {
     setShowCorrectModal(false);
@@ -433,21 +420,28 @@ const handleModalClose = async () => {
     setShowIncorrectModal(false);
   }
   //setQuestion(remainingQuestions.length > 0 ? remainingQuestions[0].question : undefined);
-  console.log("handleModalClose. Remaining questions length:", remainingQuestions.length);
-  if (remainingQuestions.length > 0) {
+  //console.log("handleModalClose. Remaining questions length:", remainingQuestions.length);
+  const unfinished_questions = questionsBank.filter(q => q.finished === false);
+  console.log("handleModalClose. Unfinished questions:");
+  unfinished_questions.forEach(q => console.log(`Question id: ${q.id}, finished: ${q.finished}`));
+  //if (remainingQuestions.length > 0) {
+  if (unfinished_questions.length > 0) {
         //console.log("handleCorrectModalTimeout There are remaining questions in state, showing next question immediately for a smooth user experience while waiting for the server response to create the next question attempt. Remaining questions length:", remainingQuestions.length, " Next question id:", remainingQuestions[0].question.id);
         // remove the next question to display from the remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
-        const nextQuestion = remainingQuestions[0].question;
+        // const nextQuestion = remainingQuestions[0].question;
+        const nextQuestion = unfinished_questions[0];
+        console.log(" handleModalCloze next question to attempt:", nextQuestion);
         const success = await fetchQuestionAttempt(nextQuestion);
         if (success) {
             setQuestion(nextQuestion);
-            setRemainingQuestions(prev => prev.slice(1));
+            // setRemainingQuestions(prev => prev.slice(1));
+            // setQuestionsBank(prev => prev.map(q => q.id === nextQuestion.id ? { ...q, finished: true } : q));
             setShowQuestion(true);
         }
 
         //for a smooth user experience while waiting for the server response to create the next question attempt. Next question id:", remainingQuestions[0].question.id);
   }
-  else if (remainingQuestions.length == 0) { 
+  else if (unfinished_questions.length == 0 ) { // else if (remainingQuestions.length == 0) { 
       // no next question id means end of quiz reached
       console.log("handleModalTimeout. No more remaining questions:");
       // play the next video segment if there is one, otherwise end the quiz and show alert
@@ -492,15 +486,13 @@ const handleModalClose = async () => {
               })
             .catch(err => console.error("Error marking quiz attempt as completed.", err));
             }
-
-           
         }
       //alert("You have completed the quiz!");
   }
   else {
-      console.error("????????????? Unexpected state: remainingQuestions length is negative:", remainingQuestions.length);
+      console.error("handleModalClose: This should not happen. No remaining questions but also no end of quiz?");
   }
-};
+});
 
 if (endOfQuiz) {
   return (
@@ -547,7 +539,7 @@ if (endOfQuiz) {
   </button>
   </>
 }
-<div>Active Segment : {activeSegmentNumber ?? 1} , Active Segment: {JSON.stringify(video_segments[(activeSegmentNumber ?? 1) - 1])}</div>
+<div>questions: {JSON.stringify(questionsBank)}</div>
   {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
       {showIncorrectModal && <IncorrectModal 
         parentCallback={handleModalClose} 
