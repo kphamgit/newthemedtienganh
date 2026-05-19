@@ -44,7 +44,7 @@ interface VideoSegment {
 */
 
 
-export default function TakeVideoQuiz() {
+export default function TakeVideoQuizVidStack() {
     const location = useLocation();
     const { video_url, quiz_id, video_segments } = location.state || {};
     const playerRef = React.useRef(null);
@@ -243,7 +243,7 @@ export default function TakeVideoQuiz() {
         
        });
    },[quiz_id, video_segments, name])
-     
+   
     const fetchQuestionAttempt = useCallback(async (question: QuestionProps): Promise<boolean> => {
         if (!quizAttempt) {
             console.error("Quiz attempt is null.");
