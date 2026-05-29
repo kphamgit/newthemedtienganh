@@ -279,16 +279,16 @@ const handleReviewNo = () => {
  const displayQuestion = (format: number, content: string) => {
   return (
     <div className='my-5'>
-      { format === 1 && <DynamicWordInputs content={content} ref={childRef} /> }
+      { format === 1 && <DynamicWordInputs key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
       { format === 2 && <ButtonSelectCloze key={questionAttemptId ?? 0} content={content} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options} submitted={answerSubmitted} ref={childRef} /> }
-      { format === 3 && <ButtonSelect content={content} ref={childRef} /> }
-      { format === 4 && <RadioQuestion content={content} ref={childRef} /> }
-      { format === 5 && <CheckboxQuestion content={content} ref={childRef} /> }
-      { format === 6 && <DragDrop content={content}  content_language={question?.content_language ?? "en"} ref={childRef} /> }
+      { format === 3 && <ButtonSelect key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
+      { format === 4 && <RadioQuestion key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
+      { format === 5 && <CheckboxQuestion key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
+      { format === 6 && <DragDrop key={questionAttemptId ?? 0} content={content} content_language={question?.content_language ?? "en"} ref={childRef} /> }
       { format === 7 && <SRNonContinuous content={content} ref={childRef} /> }
-      { format === 8 && <WordsSelect content={content} ref={childRef} /> }
-      { format === 10 && <DropDowns content={content} ref={childRef} /> }
-      { format === 12 && <SentenceScramble content={content}  ref={childRef} /> }
+      { format === 8 && <WordsSelect key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
+      { format === 10 && <DropDowns key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
+      { format === 12 && <SentenceScramble key={questionAttemptId ?? 0} content={content}  ref={childRef} /> }
     </div>
   );
 };
