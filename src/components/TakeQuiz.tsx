@@ -323,9 +323,8 @@ const handleReviewNo = () => {
             <motion.div
               key={questionAttemptId ?? 0}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              animate={{ opacity: 1, transition: { duration: 0.9, ease: 'easeOut' } }}
+              exit={{ opacity: 0, transition: { duration: 0.4 } }}
               className="flex flex-col items-center w-full"
             >
               <div>Question Number: {question.question_number}</div>
