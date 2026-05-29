@@ -48,8 +48,8 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
 
   return (
 
-    <div 
-      className="fixed inset-x-100 inset-y-90 p-4 bg-transparent flex items-center justify-center z-10"
+    <div
+      className="p-4"
 >
     <div className="bg-gray-200 rounded-lg shadow-lg p-11 w-auto h-auto text-center">
         <div className="mb-4 font-bold text-lg text-green-900">Score: {processQuestionResults?.score}</div>

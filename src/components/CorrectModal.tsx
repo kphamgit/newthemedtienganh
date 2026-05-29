@@ -12,7 +12,7 @@ function CorrectModal({ message, score}: CorrectModalProps) {
     return (
 
         <div
-            className="fixed inset-100 inset-x-1/3 rounded-md bg-green-300 bg-opacity-50 flex items-center justify-center z-10"
+            className="rounded-md bg-green-300 bg-opacity-50 flex items-center justify-center"
         >
             <div className="bg-gray-100 rounded-lg shadow-lg p-6 w-auto h-auto text-center">
                 <p className="text-lg font-bold mb-4">Good job! Keep going!</p>
