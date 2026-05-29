@@ -2,6 +2,7 @@
 //import useCountdown from "../hooks/useCountdown";
 
 import { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 //import { type CounterHandleRefProps } from './Counter';
 //import RedoQuestionModal from './RedoQuestionModal';
 //import QuizStartModal from './QuizStartModal';
@@ -132,7 +133,7 @@ const TakeQuiz: React.FC = () => {
         //console.log("Reached end of quiz, but there are incorrectly answered questions in the quiz attempt, setting review mode to true to review incorrectly answered questions.");
         // setReviewMode(true);
         setIncorrectCount(number_of_incorrect_attempts);
-        setShowReviewPrompt(true);
+        setTimeout(() => setShowReviewPrompt(true), 800);
       }
       else {
         //console.log("Reached end of quiz, and there are no incorrectly answered questions in the quiz attempt, marking quiz attempt as completed and showing end of quiz screen.");
@@ -317,8 +318,16 @@ const handleReviewNo = () => {
 
       {/* Left: Question (2/3 width) */}
       <div className="col-span-2 flex flex-col items-center bg-green-200">
-        { question && (
-            <>
+        <AnimatePresence mode="wait">
+          { question && (
+            <motion.div
+              key={questionAttemptId ?? 0}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center w-full"
+            >
               <div>Question Number: {question.question_number}</div>
               <div>Incorrect Count: {incorrectCount}</div>
               {SafeHTML({ content: question.instructions ?? "" })}
@@ -338,8 +347,9 @@ const handleReviewNo = () => {
               >
                 Submit
               </button>
-            </>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Right: Feedback panel */}
