@@ -116,10 +116,7 @@ function HomeStudent() {
    
    
     return (
-
-        <div className="bg-amber-100 h-full w-full">
-            <div className="opacity-20">HOME STUDENT</div>
-        
+        <div className="bg-red-600 h-full w-full">       
             <div>
                 {liveQuizId ?
                     <div>
@@ -133,15 +130,18 @@ function HomeStudent() {
                         </div>
                     </div>
                     :
+                    <>
                     <div className="flex flex-col bg-cyan-200 py-2 px-10">
                         <div className='col-span-9 text-lg m-1'>
                             <Navbar role="student" levels={levels} />
                         </div>
                     </div>
+                         <Outlet />
+                    </>
                 }
             
             </div>
-                <Outlet />
+           
         </div>
 
     );

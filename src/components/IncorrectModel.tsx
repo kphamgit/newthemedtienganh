@@ -1,4 +1,5 @@
 
+import { useEffect, useRef, useState } from "react";
 import ClozeExplanation from "./explanations/ClozeExplanation";
 import Explanation from "./explanations/Explanation";
 import {type QuestionAttemptAssesmentResultsProps} from "./shared/types"
@@ -21,28 +22,27 @@ export interface Props {
     processQuestionResults?: QuestionAttemptAssesmentResultsProps;
 }
 
-/*
-export interface ProcessQuestionResultsProps {
-  answer: string | undefined,
-  score: number,
-  error_flag: boolean,
-  cloze_question_results?: ClozeAnswerResultsProps[] | undefined,
-}
-
-type ClozeAnswerResultsProps = {
-  user_answer: string,
-  answer_key: string,
-  score: number,
-  error_flag: boolean,
-}
-
-*/
-
-
 function IncorrectModal({ parentCallback, format, answer_key, content, explanation,  processQuestionResults }: Props) {
 
+    const [_timeLeft, setTimeLeft] = useState(10);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current!);
+                    parentCallback('');
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 2000);
+        return () => clearInterval(timerRef.current!);
+    }, []);
+
     const handleCloseModal = () => {
-        // Continue the quiz from where the user left off
+        clearInterval(timerRef.current!);
         parentCallback('');
     }
 

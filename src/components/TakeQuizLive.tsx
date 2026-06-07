@@ -299,11 +299,11 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
     <> 
       <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5">
         {/* Left Column */}
-        <div className="bg-cyan-200 py-2 px-10 h-screen">
+        <div className="bg-blue-200 py-2 px-10 h-full">
           <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
           <div className='bg-cyan-300 flex flex-row justify-center items-center mt-5 mb-3'>
             <span className='mx-3'>Quiz ID:</span>
-            <span className={`text-red-700 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
+            <span className={`text-red-300 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
             {displayShowQuestionStatus()}
           </div>
 
@@ -312,7 +312,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
           }
           {question && showQuestion && (
             <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
-              <div className="mb-3 text-lg text-blue-600 font-bold">
+              <div className="mb-3 text-lg text-blue-200 font-bold">
                 Question: {question?.question_number}
               </div>
               {SafeHTML({ content: question.instructions ?? "" })}
@@ -330,7 +330,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
               <div className='my-5'>
                 {displayQuestion(question.format)}
               </div>
-              <button className='bg-green-600 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+              <button className='bg-green-500 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-300'
                 onClick={() => handleSubmit()}
               >
                 Submit
@@ -341,20 +341,18 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         </div>
 
         {/* Right Column */}
-        <div className="bg-blue-200">
-          <ScoreBoard my_row = {myLiveScore} />
+        <div className="bg-blue-200 flex flex-col">
+          <ScoreBoard my_row={myLiveScore} />
+          {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
+          {showIncorrectModal && <IncorrectModal
+            parentCallback={handleModalClose}
+            format={question?.format ?? 1}
+            content={question?.content ?? ""}
+            answer_key={question?.answer_key ?? ""}
+            explanation={question?.explanation ?? ""}
+            processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+          />}
         </div>
-        {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
-
-        {showIncorrectModal && <IncorrectModal
-          parentCallback={handleModalClose}
-          format={question?.format ?? 1}
-          content={question?.content ?? ""}
-          answer_key={question?.answer_key ?? ""}
-          explanation={question?.explanation ?? ""}
-          processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
-        />
-        }
       </div>
     </>
   )
@@ -362,20 +360,3 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
 export default TakeQuizLive
 
-/*
-      <div className="bg-blue-200">
-          <ScoreBoard myLiveScore={myLiveScore} />
-        </div>
-*/
-
-/*
-          <div>
-                  Question finished: 
-                  { finishedLiveQuestion.status ? " Yes" : " No" }
-                  { finishedLiveQuestion.question_number !== '' &&
-                  
-                    <span> for question number: {finishedLiveQuestion.question_number} </span>
-                  }
-                  </div>
-           
-*/

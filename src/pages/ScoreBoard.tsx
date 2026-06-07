@@ -4,28 +4,38 @@ import { useWebSocket } from '../components/context/WebSocketContext';
 import { useEffect } from 'react';
 import type { WebSocketMessageProps } from '../components/shared/types';
 import { useUserConnections } from '../components/context/UserConnectionsContext';
-import StudentScoreRow from './StudentScoreRow';
 import { type UserRowProps } from '../components/context/UserConnectionsContext';
+import { FaSpinner } from 'react-icons/fa';
 
-//import { setUser } from '../redux/userSlice';
-//import { setUser } from '../redux/userSlice';
-//import { type LoggedInUserPendingDataProps } from '../components/shared/types';
-
-//interface Props {
-  // myLiveScore: {question_number: number | undefined, score: number | undefined, total_score: number | undefined};
-//}
-/*
-export type UserRowProps = {
-  name: string;
-  is_logged_in?: boolean;
-  live_score?: number;
-  live_total_score?: number;
-  live_question_number?: number;
-  live_user_answer?: string;
-  recording_received?: boolean;
-  recording_presigned_url?: string;
-};
-*/
+function StudentScoreRow({ user }: { user: UserRowProps }) {
+  return (
+    <div className='flex flex-row justify-start mb-2 items-center bg-cyan-100 px-2'>
+      <div>{user.name}</div>
+      {user.live_question_number !== undefined && (
+        <>
+          <div className={`${user.live_score === undefined ? "bg-amber-600" : "bg-green-600"} py-0 ml-1 px-2 rounded-full text-md text-white`}>
+            {user.live_question_number}
+          </div>
+          <div className='flex flex-row justify-center items-center ml-2'>
+            <div className='mx-2'>Score:</div>
+            <div>
+              {user.live_score === undefined
+                ? <FaSpinner className="animate-spin text-blue-500" size={17} />
+                : <span className="ml-2">{user.live_score}</span>
+              }
+            </div>
+          </div>
+          {user.live_total_score !== undefined && user.live_total_score !== 999 && (
+            <div className='flex flex-row justify-center items-center ml-2'>
+              <div className='p-1 mx-2'>Total:</div>
+              <span className="ml-2">{user.live_total_score}</span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 interface ScoreBoardProps {
     my_row: UserRowProps | null; // Expecting an array of UserRowProps
@@ -135,9 +145,11 @@ interface ScoreBoardProps {
         <>
         {my_row && <StudentScoreRow user={my_row} />}
        
-            <div className="bg-green-300 p-0 mt-10 mb-2">  
+            <div className="bg-blue-300 p-0 mt-10 mb-2 h-[100px] overflow-y-auto">
                 { userRows && userRows.length > 0 &&
-                    userRows.map((user, index) => (
+                    [...userRows]
+                    .sort((a, b) => (b.live_total_score ?? -1) - (a.live_total_score ?? -1))
+                    .map((user, index) => (
                         user.name !== "teacher" && user.name !== "admin" ) && (
                             <>
                             <StudentScoreRow key={index} user={user} />
