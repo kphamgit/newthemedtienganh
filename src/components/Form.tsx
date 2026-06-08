@@ -2,12 +2,10 @@ import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
-//import { useAppDispatch } from "../redux/store";
-
-
 import LoadingIndicator from "./LoadingIndicator"
 import { setUser } from "../redux/userSlice";
 import { useDispatch } from "react-redux";
+import AssignmentModal from "./AssignmentModal";
 
 interface FormProps {
     route: string;
@@ -24,6 +22,8 @@ function Form({ route, method }: FormProps) {
     const [username, setUsername] = useState(user_name_env);
     const [password, setPassword] = useState(password_env);
     const [loading, setLoading] = useState(false);
+    const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const navigate = useNavigate();
 
     const name = method === "login" ? "Login" : "Register";
@@ -31,22 +31,24 @@ function Form({ route, method }: FormProps) {
     const dispatch = useDispatch();
 
     const handleSubmit = async (e: any) => {
-        //alert("Submitting form...");
         setLoading(true);
         e.preventDefault();
 
         try {
             const res = await api.post(route, { username, password })
             if (method === "login") {
-                //console.log("Login successful:", res.data);
-                //localStorage.setItem(ACCESS_TOKEN, res.data.access);
-                //localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
                 localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-                /* store user name in redux store */
-                //console.log("********* Storing user in redux:********* ", username);
                 dispatch(setUser(username));
-                navigate("/")
+
+                const assignmentsRes = await api.get("/api/assignments/pending/");
+                const assignments = assignmentsRes.data.pending_assignments;
+                if (assignments && assignments.length > 0) {
+                    setPendingAssignments(assignments);
+                    setShowAssignmentModal(true);
+                } else {
+                    navigate("/");
+                }
             } else {
                 navigate("/login")
             }
@@ -58,27 +60,35 @@ function Form({ route, method }: FormProps) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="form-container">
-            <h1>{name}</h1>
-            <input
-                className="form-input"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-            />
-            <input
-                className="form-input"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-            />
-            {loading && <LoadingIndicator />}
-            <button className="form-button" type="submit">
-                {name}
-            </button>
-        </form>
+        <>
+            <form onSubmit={handleSubmit} className="form-container">
+                <h1>{name}</h1>
+                <input
+                    className="form-input"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
+                />
+                <input
+                    className="form-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                />
+                {loading && <LoadingIndicator />}
+                <button className="form-button" type="submit">
+                    {name}
+                </button>
+            </form>
+            {showAssignmentModal && (
+                <AssignmentModal
+                    assignments={pendingAssignments}
+                    onClose={() => { setShowAssignmentModal(false); navigate("/"); }}
+                />
+            )}
+        </>
     );
 }
 

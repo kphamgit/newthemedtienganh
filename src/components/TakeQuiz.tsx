@@ -79,14 +79,13 @@ const TakeQuiz: React.FC = () => {
   useEffect(() => {
     api.post(`/api/quiz_attempts/get_or_create/${quiz_id}/`, { user_name: name, number_of_questions_to_preload: 3 })
      .then((response) => {
-        //console.log("******* Received response from get_or_create:", response.data);
+        // console.log("******* Received response from get_or_create:", response.data);
         //const all_questions_loaded = response.data.questions;
         //const first_question = all_questions_loaded.length > 0 ? all_questions_loaded[0] : null;
         // console.log(" First question loaded from server:", first_question);
         //setRemainingQuestions(all_questions_loaded.slice(1).map((q: QuestionProps) => ({ question: q })));
-        
         setQuestion(response.data.question ? response.data.question : undefined);
-        setQuestionAttemptId(response.data.question_attempt ? response.data.question_attempt.id : null);
+        setQuestionAttemptId(response.data.question_attempt_id ? response.data.question_attempt_id : null);
         setQuizAttempt(response.data.quiz_attempt);
      
      })
@@ -315,8 +314,8 @@ const handleReviewNo = () => {
   return (
     <>
     <div className="grid grid-cols-3 bg-amber-100 gap-6 p-4 w-full">
-
       {/* Left: Question (2/3 width) */}
+      
       <div className="col-span-2 flex flex-col items-center bg-green-200">
         <AnimatePresence mode="wait">
           { question && (
@@ -328,6 +327,7 @@ const handleReviewNo = () => {
               className="flex flex-col items-center w-full"
             >
               <div>Question Number: {question.question_number}</div>
+              <div>Question Attempt Id: {questionAttemptId}</div>
               <div>Incorrect Count: {incorrectCount}</div>
               {SafeHTML({ content: question.instructions ?? "" })}
               {question?.prompt && (
