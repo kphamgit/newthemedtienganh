@@ -22,10 +22,11 @@ import DragDrop from "./questions/dragdrop/DragDrop";
 import { WordsSelect } from "./questions/WordsSelect";
 import SentenceScramble from "./questions/SentenceScramble";
 import { DropDowns } from "./questions/DropDowns";
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 //import type { RootState } from '../redux/store';
 import DOMPurify from 'dompurify';
 import type { RootState } from '../redux/store';
+import { removeAssignment } from '../redux/pendingAssignmentsSlice';
 // import { SRContinuous } from './questions/SRContinuous';
 import SRNonContinuous from './questions/SRNonContinuous';
 //import { AzureAudioPlayer } from './shared/AzureAudioPlayer';
@@ -60,6 +61,7 @@ const TakeQuiz: React.FC = () => {
   const { quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
 
   const { name } = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
 
   const [showCorrectModal, setShowCorrectModal] = useState(false);
   const [showIncorrectModal, setShowIncorrectModal] = useState(false);
@@ -77,6 +79,13 @@ const TakeQuiz: React.FC = () => {
   const [incorrectCount, setIncorrectCount] = useState(0);
 
   useEffect(() => {
+    // reset state when navigating to a different quiz (the component is reused, not remounted, by React Router)
+    setEndOfQuiz(false);
+    setReviewMode(false);
+    setShowReviewPrompt(false);
+    setShowCorrectModal(false);
+    setShowIncorrectModal(false);
+    setAnswerSubmitted(false);
     api.post(`/api/quiz_attempts/get_or_create/${quiz_id}/`, { user_name: name, number_of_questions_to_preload: 3 })
      .then((response) => {
         // console.log("******* Received response from get_or_create:", response.data);
@@ -158,6 +167,7 @@ const TakeQuiz: React.FC = () => {
   if (!endOfQuiz) return;
   api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
     .catch(err => console.error("Error marking quiz attempt as completed.", err));
+  if (quiz_id) dispatch(removeAssignment(Number(quiz_id)));
 }, [endOfQuiz]);
 
 const handleFeedbackModalClose = () => {
@@ -304,7 +314,7 @@ const handleReviewNo = () => {
   
   if (endOfQuiz) {
     return (
-      <div className='text-center mt-10'>
+      <div className='text-center bg-amber-50 mt-10'>
         <h2 className='text-2xl font-bold mb-4'>Quiz Completed!</h2>
         <p className='text-lg'>Congratulations on completing the quiz. Your final score is: {questionAttemptAssessmentResults?.score}</p>
       </div>
@@ -341,7 +351,7 @@ const handleReviewNo = () => {
                 }
               </div>
               {displayQuestion(question.format, question.content)}
-              <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700 transition-opacity duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
+              <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-300 transition-opacity duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
                 onClick={() => handleSubmit()}
               >
                 Submit

@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Assignment {
     assignment_id: number;
     quiz_id: number;
     quiz_name: string;
+    category_id: number;
     assigned_at: string;
 }
 
@@ -15,9 +17,15 @@ interface AssignmentModalProps {
 function AssignmentModal({ assignments, onClose }: AssignmentModalProps) {
     const navigate = useNavigate();
 
-    const handleStart = (quizId: number) => {
+    useEffect(() => {
+        console.log("********** AssignmentModal: Received assignments:", assignments);
+    }, [assignments]);
+
+    const handleStart = (categoryId: number, quizId: number) => {
         onClose();
-        navigate(`/quiz/${quizId}`);
+        const url = `/categories/${categoryId}/take_quiz/${quizId}`;    
+        console.log("AssignmentModal: Navigating to quiz with URL:", url);
+        navigate(url);
     };
 
     return (
@@ -31,7 +39,7 @@ function AssignmentModal({ assignments, onClose }: AssignmentModalProps) {
                             <span className="font-medium">{a.quiz_name}</span>
                             <button
                                 className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                onClick={() => handleStart(a.quiz_id)}
+                                onClick={() => handleStart(a.category_id, a.quiz_id)}
                             >
                                 Start
                             </button>

@@ -57,7 +57,7 @@ function Category() {
     const take_quiz = (quiz: QuizProps) => {
         //console.log("Taking quiz:", quiz.id);
         const api_url = `/categories/${id}/take_quiz/${quiz.id}`
-        //console.log("Navigating to:", api_url);
+        console.log("Take quiz, navigating to:", api_url);
         navigate(api_url)
     }
 

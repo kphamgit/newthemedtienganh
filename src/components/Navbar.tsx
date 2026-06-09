@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { LevelProps, CategoryProps } from "./Level";
 import api from "../api";
+import { useSelector } from "react-redux";
+import type { RootState } from "../redux/store";
 
 
 
-   export default function Navbar({ levels }: { role: string; levels: LevelProps[] | null }) {
+   export default function Navbar({ levels, onShowAssignments }: { role: string; levels: LevelProps[] | null; onShowAssignments?: () => void }) {
+    const pendingAssignments = useSelector((state: RootState) => state.pendingAssignments.assignments);
     //const [animationParent] = useAutoAnimate();
     
     const [categoriesLinks, setCategoriesLinks] = useState<{ label: string; link: string }[]>([])
@@ -109,7 +112,15 @@ import api from "../api";
        
   
         {/* right side data */}
-     
+        {pendingAssignments && pendingAssignments.length > 0 && (
+          <button
+            onClick={onShowAssignments}
+            className="flex items-center gap-1 px-3 py-1 bg-red-100 border border-red-400 rounded text-sm font-medium text-red-700 hover:bg-red-200"
+          >
+            <span className="text-red-600">★</span>
+            Pending Assignments
+          </button>
+        )}
       </div>
     );
   }

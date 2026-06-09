@@ -2,12 +2,16 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
 import userReducer from './userSlice';
+import assignmentReducer from './assignmentSlice';
+import pendingAssignmentsReducer from './pendingAssignmentsSlice';
 ////import liveQuizIdReducer from './liveQuizIdSlice';
 //import connectedUsersReducer from './connectedUsersSlice';
 
 // 1. Combine your reducers
 const rootReducer = combineReducers({
   user: userReducer,
+  assignment: assignmentReducer,
+  pendingAssignments: pendingAssignmentsReducer,
   //liveQuizId: liveQuizIdReducer,
   //connectedUsers: connectedUsersReducer,
 });

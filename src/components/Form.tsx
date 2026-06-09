@@ -5,7 +5,7 @@ import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 import LoadingIndicator from "./LoadingIndicator"
 import { setUser } from "../redux/userSlice";
 import { useDispatch } from "react-redux";
-import AssignmentModal from "./AssignmentModal";
+import { setPendingAssignments } from "../redux/pendingAssignmentsSlice";
 
 interface FormProps {
     route: string;
@@ -22,8 +22,6 @@ function Form({ route, method }: FormProps) {
     const [username, setUsername] = useState(user_name_env);
     const [password, setPassword] = useState(password_env);
     const [loading, setLoading] = useState(false);
-    const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
-    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const navigate = useNavigate();
 
     const name = method === "login" ? "Login" : "Register";
@@ -43,12 +41,11 @@ function Form({ route, method }: FormProps) {
 
                 const assignmentsRes = await api.get("/api/assignments/pending/");
                 const assignments = assignmentsRes.data.pending_assignments;
-                if (assignments && assignments.length > 0) {
-                    setPendingAssignments(assignments);
-                    setShowAssignmentModal(true);
-                } else {
-                    navigate("/");
-                }
+                console.log("Pending assignments from server:", assignments);
+                // Save assignments to Redux so the "Pending Assignments" tab appears.
+                // Don't pop a modal here — let the student choose to do them via the tab.
+                dispatch(setPendingAssignments(assignments ?? []));
+                navigate("/");
             } else {
                 navigate("/login")
             }
@@ -58,6 +55,16 @@ function Form({ route, method }: FormProps) {
             setLoading(false)
         }
     };
+
+    /*
+{
+  "assignment_id": 7,
+  "quiz_id": 11,
+  "category_id": 1,
+  "quiz_name": "Quiz 1",
+  "assigned_at": "2026-06-08T19:29:12.279087Z"
+}
+    */
 
     return (
         <>
@@ -82,12 +89,6 @@ function Form({ route, method }: FormProps) {
                     {name}
                 </button>
             </form>
-            {showAssignmentModal && (
-                <AssignmentModal
-                    assignments={pendingAssignments}
-                    onClose={() => { setShowAssignmentModal(false); navigate("/"); }}
-                />
-            )}
         </>
     );
 }

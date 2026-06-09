@@ -3,10 +3,10 @@ import api from "../api";
 import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
 import Navbar from "../components/Navbar";
-//import { Outlet } from "react-router-dom";
 //import { type RootState } from "../redux/store";
 import TakeQuizLive from "../components/TakeQuizLive";
 import { useSelector } from 'react-redux';
+import type { RootState } from '../redux/store';
 //import type { WebSocketMessageProps } from "../components/shared/types";
 //import ScoreBoard from "./ScoreBoard";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
@@ -15,6 +15,7 @@ import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import { Outlet } from "react-router-dom";
+import AssignmentModal from "../components/AssignmentModal";
 
 // import useWebSocketPing from "../hooks/useWebSocketPing";
 //import UserConnections from "./UserConnections";
@@ -25,7 +26,9 @@ import { Outlet } from "react-router-dom";
 function HomeStudent() {
 
     const [levels, setLevels] = useState<LevelProps[]>([]);
- 
+    const pendingAssignments = useSelector((state: RootState) => state.pendingAssignments.assignments);
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+
     const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
 
     const {eventEmitter, websocketRef} = useWebSocket();
@@ -116,7 +119,7 @@ function HomeStudent() {
    
    
     return (
-        <div className="bg-red-600 h-full w-full">       
+        <div className="bg-amber-300 h-full w-full">       
             <div>
                 {liveQuizId ?
                     <div>
@@ -133,9 +136,19 @@ function HomeStudent() {
                     <>
                     <div className="flex flex-col bg-cyan-200 py-2 px-10">
                         <div className='col-span-9 text-lg m-1'>
-                            <Navbar role="student" levels={levels} />
+                            <Navbar
+                                role="student"
+                                levels={levels}
+                                onShowAssignments={() => setShowAssignmentModal(true)}
+                            />
                         </div>
                     </div>
+                    {showAssignmentModal && pendingAssignments.length > 0 && (
+                        <AssignmentModal
+                            assignments={pendingAssignments}
+                            onClose={() => setShowAssignmentModal(false)}
+                        />
+                    )}
                          <Outlet />
                     </>
                 }
