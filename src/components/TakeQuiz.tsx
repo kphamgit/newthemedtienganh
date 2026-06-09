@@ -34,8 +34,8 @@ import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ReviewPromptModal from './ReviewPromptModal';
 
-//import CountdownTimer, { type CountdownTimerHandleProps } from "../components/CountdownTimer";
-//import TimeoutModal from './TImeOutModal';
+import CountdownTimer from "../components/CountdownTimer";
+import TimeoutModal from './TImeOutModal';
 
 
 
@@ -49,8 +49,6 @@ const TakeQuiz: React.FC = () => {
 
   const [reviewMode, setReviewMode] = useState<boolean>(false); // State to manage the flow of reviewing incorrectly answered questions after finishing the quiz. We start in the "initial" state where we show the end of quiz screen with the final score and a button to review incorrectly answered questions. When the user clicks the button to review incorrectly answered questions, we transition to the "reviewing_incorrect" state where we load and show incorrectly answered questions one by one with a button to go to the next question until there are no more incorrectly answered questions to review, at which point we transition to the "completed" state where we show a message that the review is complete and a button to navigate back to the unit screen.
   
-  //const timerRef = useRef<CountdownTimerHandleProps>(null);
-
   const childRef = useRef<ChildRef>(null);
 
   //const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
@@ -78,6 +76,9 @@ const TakeQuiz: React.FC = () => {
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [incorrectCount, setIncorrectCount] = useState(0);
 
+   
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+
   useEffect(() => {
     // reset state when navigating to a different quiz (the component is reused, not remounted, by React Router)
     setEndOfQuiz(false);
@@ -96,7 +97,6 @@ const TakeQuiz: React.FC = () => {
         setQuestion(response.data.question ? response.data.question : undefined);
         setQuestionAttemptId(response.data.question_attempt_id ? response.data.question_attempt_id : null);
         setQuizAttempt(response.data.quiz_attempt);
-     
      })
      .catch((error) => {
        console.error("Error fetching quiz attempt data:", error);
@@ -117,9 +117,6 @@ const TakeQuiz: React.FC = () => {
       current_question_number: question?.question_number, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt,
     });
     if (response.data.next_question_attempt) {
-      //const { question_attempt_id } = response.data;
-      //setQuestionAttemptId(question_attempt_id);
-      // console.log("Created next question attempt. Server response:", response.data);
       const next_question = response.data.next_question;
       if (next_question) {
         setAnswerSubmitted(false);
@@ -153,15 +150,6 @@ const TakeQuiz: React.FC = () => {
   }
     
 };
-
-/*
- useEffect(() => {
-    if (question) {
-      //console.log("Question id:", question.id, " question number:", question.question_number, " content:", question.content);
-      createQuestionAttempt(quizAttempt.id);
-    }
- }, [question])
-*/
 
  useEffect(() => {
   if (!endOfQuiz) return;
@@ -312,6 +300,34 @@ const handleReviewNo = () => {
     return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
   }
   
+  const questionTimeoutHandler = () => {
+        console.log("Timer completed callback called. Submitting answer with timer completion flag set to true.");
+        setShowTimeoutModal(true);
+    }
+
+    const handleTimeout = () => {
+     
+     
+      const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
+      
+      api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format })
+        .then(() => {     
+          //console.log("Received response from server after processing question attempt timeout:", res.data);
+          // load the next question.
+          createNextQuestionAttempt();
+      })
+        .catch((error) => {
+          console.error("Error processing question attempt:", error);
+        });
+        
+  }
+
+    const timeoutModalCallback = () => {
+      setShowTimeoutModal(false);
+      handleTimeout();
+    }
+
+
   if (endOfQuiz) {
     return (
       <div className='text-center bg-amber-50 mt-10'>
@@ -325,8 +341,15 @@ const handleReviewNo = () => {
     <>
     <div className="grid grid-cols-3 bg-amber-100 gap-6 p-4 w-full">
       {/* Left: Question (2/3 width) */}
-      
       <div className="col-span-2 flex flex-col items-center bg-green-200">
+        {question && (
+          <CountdownTimer
+            key={questionAttemptId ?? 0}
+            initialSeconds={(question.timeout ?? 0) / 1000}
+            onComplete={questionTimeoutHandler}
+            autoStart
+          />
+        )}
         <AnimatePresence mode="wait">
           { question && (
             <motion.div
@@ -337,8 +360,6 @@ const handleReviewNo = () => {
               className="flex flex-col items-center w-full"
             >
               <div>Question Number: {question.question_number}</div>
-              <div>Question Attempt Id: {questionAttemptId}</div>
-              <div>Incorrect Count: {incorrectCount}</div>
               {SafeHTML({ content: question.instructions ?? "" })}
               {question?.prompt && (
                 <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
@@ -372,6 +393,9 @@ const handleReviewNo = () => {
           explanation={incorrectModalQuestion.current?.explanation ?? ""}
           processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
         />}
+           { showTimeoutModal && questionAttemptId !== null && <TimeoutModal parentCallback={timeoutModalCallback} questionAttemptId={questionAttemptId} />
+
+}
       </div>
 
     </div>

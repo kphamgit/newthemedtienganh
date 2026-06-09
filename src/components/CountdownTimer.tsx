@@ -9,17 +9,19 @@ export interface CountdownTimerHandleProps {
 interface CountdownTimerProps {
   initialSeconds: number;
   onComplete: () => void;
+  autoStart?: boolean; // when true, the timer begins counting down as soon as it mounts
   // In React 19, ref is a standard prop and doesn't require forwardRef
   ref?: React.Ref<CountdownTimerHandleProps>;
 }
 
-const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
-  initialSeconds, 
-  onComplete, 
-  ref 
+const CountdownTimer: React.FC<CountdownTimerProps> = ({
+  initialSeconds,
+  onComplete,
+  autoStart = false,
+  ref
 }) => {
   const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isRunning, setIsRunning] = useState<boolean>(autoStart);
 
   // Sync state when initialSeconds changes (e.g., from a parent update)
   useEffect(() => {
