@@ -10,14 +10,6 @@ export interface Props {
     parentCallback: () => void;
 }
 
-/*
- const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;
-    api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format })
-      .then(() => {     
-        // server returns the next question id (if any), together with assessment results 
-    })
-*/
-
 function TimeoutModal({ message, questionAttemptId, parentCallback}: Props) {
     useEffect(() => {
         const url = `/api/question_attempts/${questionAttemptId}/process_timeout/`;

@@ -33,6 +33,7 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ReviewPromptModal from './ReviewPromptModal';
+import CardReview from './CardReview';
 
 import CountdownTimer from "../components/CountdownTimer";
 import TimeoutModal from './TImeOutModal';
@@ -79,8 +80,13 @@ const TakeQuiz: React.FC = () => {
    
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
+  // 'reviewing_cards' shows vocabulary flashcards (spaced repetition) before the quiz.
+  // CardReview flips this to 'quiz' when the user finishes/skips cards (or if there are none).
+  const [phase, setPhase] = useState<'reviewing_cards' | 'quiz'>('reviewing_cards');
+
   useEffect(() => {
     // reset state when navigating to a different quiz (the component is reused, not remounted, by React Router)
+    setPhase('reviewing_cards');
     setEndOfQuiz(false);
     setReviewMode(false);
     setShowReviewPrompt(false);
@@ -334,6 +340,18 @@ const handleReviewNo = () => {
         <h2 className='text-2xl font-bold mb-4'>Quiz Completed!</h2>
         <p className='text-lg'>Congratulations on completing the quiz. Your final score is: {questionAttemptAssessmentResults?.score}</p>
       </div>
+    );
+  }
+
+  // Vocabulary card review runs before the quiz. CardReview self-fetches the due cards
+  // and calls onComplete() when the user finishes/skips them, or immediately if there are none.
+  if (phase === 'reviewing_cards') {
+    return (
+      <CardReview
+        quizId={quiz_id ?? ''}
+        userName={name ?? ''}
+        onComplete={() => setPhase('quiz')}
+      />
     );
   }
 

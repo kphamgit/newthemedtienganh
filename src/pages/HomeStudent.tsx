@@ -16,6 +16,7 @@ import type { WebSocketMessageProps } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import { Outlet } from "react-router-dom";
 import AssignmentModal from "../components/AssignmentModal";
+import CardReview from "../components/CardReview";
 
 // import useWebSocketPing from "../hooks/useWebSocketPing";
 //import UserConnections from "./UserConnections";
@@ -28,6 +29,7 @@ function HomeStudent() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const pendingAssignments = useSelector((state: RootState) => state.pendingAssignments.assignments);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+    const [showVocabReview, setShowVocabReview] = useState(false);
 
     const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
 
@@ -137,6 +139,14 @@ function HomeStudent() {
                                 onShowAssignments={() => setShowAssignmentModal(true)}
                             />
                         </div>
+                        <div className="m-1 flex justify-center">
+                            <button
+                                onClick={() => setShowVocabReview(true)}
+                                className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium"
+                            >
+                                Review My Vocabulary
+                            </button>
+                        </div>
                     </div>
                     {showAssignmentModal && pendingAssignments.length > 0 && (
                         <AssignmentModal
@@ -144,7 +154,14 @@ function HomeStudent() {
                             onClose={() => setShowAssignmentModal(false)}
                         />
                     )}
-                         <Outlet />
+                    {showVocabReview ? (
+                        <CardReview
+                            userName={name ?? ''}
+                            onComplete={() => setShowVocabReview(false)}
+                        />
+                    ) : (
+                        <Outlet />
+                    )}
                     </>
                 }
             
