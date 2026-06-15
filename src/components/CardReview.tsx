@@ -38,6 +38,7 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [chosenIdx, setChosenIdx] = useState<number | null>(null); // null until answered
+  const [dontKnow, setDontKnow] = useState(false);                 // user pressed "I don't know"
   const [submitting, setSubmitting] = useState(false);
 
   const startRef = useRef<number>(performance.now());          // when the current card was shown
@@ -63,7 +64,18 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
       });
   }, [quizId, userName]);
 
-  const answered = chosenIdx !== null;
+  const answered = chosenIdx !== null || dontKnow;
+
+  const submitReview = async (cardId: number, quality: number) => {
+    setSubmitting(true);
+    try {
+      await api.post(`/api/cards/${cardId}/review/`, { user_name: userName, quality });
+    } catch (err) {
+      console.error('Error submitting card review:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSelect = async (optIdx: number) => {
     if (answered || submitting) return;
@@ -77,14 +89,15 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
     const quality = computeQuality(correct, latency, correctLatenciesRef.current);
     if (correct) correctLatenciesRef.current.push(latency);
 
-    setSubmitting(true);
-    try {
-      await api.post(`/api/cards/${card.id}/review/`, { user_name: userName, quality });
-    } catch (err) {
-      console.error('Error submitting card review:', err);
-    } finally {
-      setSubmitting(false);
-    }
+    await submitReview(card.id, quality);
+  };
+
+  // Explicit lapse: the user acknowledges they don't know the word (no guessing).
+  const handleDontKnow = async () => {
+    if (answered || submitting) return;
+    const card = cards[index];
+    setDontKnow(true);
+    await submitReview(card.id, 1); // quality 1 -> SM-2 lapse
   };
 
   const next = () => {
@@ -92,6 +105,7 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
       onComplete();
     } else {
       setChosenIdx(null);
+      setDontKnow(false);
       setIndex((i) => i + 1);
       startRef.current = performance.now();
     }
@@ -165,6 +179,15 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
               </button>
             ))}
           </div>
+
+          {/* Explicit lapse — acknowledge not knowing instead of guessing */}
+          <button
+            disabled={answered || submitting}
+            onClick={handleDontKnow}
+            className="mt-4 px-5 py-2 rounded-lg border-2 border-gray-500 text-gray-600 font-medium hover:bg-gray-100 hover:border-gray-700 disabled:opacity-40"
+          >
+            I don't know
+          </button>
         </motion.div>
       </AnimatePresence>
 
