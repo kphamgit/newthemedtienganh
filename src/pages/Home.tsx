@@ -75,8 +75,11 @@ function Home() {
                 }
                 if (data.message_type === "another_user_joined") {
                     setUserRows((prevRows) => {
-                            //console.log("MessageController: Adding new user to the list:", data.user_name);
-                            return [...prevRows, { name: data.user_name}]; // add new user to the list with is_logged_in set to true  
+                            // skip if this user is already in the list (e.g. duplicate connection/reconnect)
+                            if (prevRows.some((row) => row.name === data.user_name)) {
+                                return prevRows;
+                            }
+                            return [...prevRows, { name: data.user_name}]; // add new user to the list with is_logged_in set to true
                     })
                 }
                 if (data.message_type === "chat") {
