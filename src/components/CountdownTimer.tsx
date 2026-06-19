@@ -10,6 +10,7 @@ interface CountdownTimerProps {
   initialSeconds: number;
   onComplete: () => void;
   autoStart?: boolean; // when true, the timer begins counting down as soon as it mounts
+  paused?: boolean;    // when true, the timer freezes (e.g. after the user submits an answer)
   // In React 19, ref is a standard prop and doesn't require forwardRef
   ref?: React.Ref<CountdownTimerHandleProps>;
 }
@@ -18,6 +19,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   initialSeconds,
   onComplete,
   autoStart = false,
+  paused = false,
   ref
 }) => {
   const [timeLeft, setTimeLeft] = useState<number>(initialSeconds);
@@ -45,14 +47,14 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   // Effect 1: The Ticking Mechanism
   // This only handles the math of counting down.
   useEffect(() => {
-    if (!isRunning || timeLeft <= 0) return;
+    if (!isRunning || paused || timeLeft <= 0) return;
 
     const intervalId = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [isRunning, timeLeft]);
+  }, [isRunning, paused, timeLeft]);
 
   // Effect 2: The Completion Watcher
   // This ensures onComplete is only called once when the threshold is crossed.

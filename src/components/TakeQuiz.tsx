@@ -366,6 +366,7 @@ const handleReviewNo = () => {
             initialSeconds={(question.timeout ?? 0) / 1000}
             onComplete={questionTimeoutHandler}
             autoStart
+            paused={answerSubmitted}
           />
         )}
         <AnimatePresence mode="wait">
