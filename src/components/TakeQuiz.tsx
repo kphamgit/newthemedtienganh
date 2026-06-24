@@ -391,7 +391,7 @@ const handleReviewNo = () => {
                 }
               </div>
               {displayQuestion(question.format, question.content)}
-              <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-300 transition-opacity duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
+              <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-green-900 transition-colors duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
                 onClick={() => handleSubmit()}
               >
                 Submit

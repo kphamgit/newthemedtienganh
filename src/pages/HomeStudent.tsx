@@ -141,8 +141,9 @@ function HomeStudent() {
                         </div>
                         <div className="m-1 flex justify-center">
                             <button
+                                disabled={true}
                                 onClick={() => setShowVocabReview(true)}
-                                className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium"
+                                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-purple-700 text-white font-medium"
                             >
                                 Review My Vocabulary
                             </button>

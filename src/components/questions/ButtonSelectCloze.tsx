@@ -41,7 +41,9 @@ export const ButtonSelectCloze = ({ content, content_language, choices, submitte
     if (content_language === "fr") {
       audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/fr_${selectedItem.text}.mp3`;
     }
-    new Audio(audioUrl).play().catch(() => {});
+    const audio = new Audio(audioUrl);
+    audio.playbackRate = 0.85; // 1 = normal, < 1 = slower, > 1 = faster
+    audio.play().catch(() => {});
 
     setPlacedWords(prev => ({ ...prev, [targetBlankIndex]: selectedItem }));
     setWordBank(prev => prev.map(item => item.id === selectedItem.id ? { ...item, placed: true } : item));

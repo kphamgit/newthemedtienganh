@@ -20,6 +20,9 @@ interface CardReviewProps {
   onComplete: () => void;
 }
 
+// Delay before a card's pronunciation plays (and the progress bar fills), in milliseconds.
+const AUDIO_DELAY_MS = 1000;
+
 // SM-2 quality is derived from objective behavior instead of self-rating:
 //   wrong answer            -> 1 (lapse)
 //   correct but slow        -> 4 (Good)   [slower than the user's session median]
@@ -40,9 +43,11 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
   const [chosenIdx, setChosenIdx] = useState<number | null>(null); // null until answered
   const [dontKnow, setDontKnow] = useState(false);                 // user pressed "I don't know"
   const [submitting, setSubmitting] = useState(false);
+  const [audioPending, setAudioPending] = useState(false);         // true during the 2s wait before audio plays
 
   const startRef = useRef<number>(performance.now());          // when the current card was shown
   const correctLatenciesRef = useRef<number[]>([]);            // session latencies of correct answers
+  const lastPlayedIdRef = useRef<number | null>(null);         // guards against replaying the same card's audio
 
   useEffect(() => {
     // quizId set -> review one quiz's due cards before the quiz; omitted -> review all vocabulary.
@@ -63,6 +68,27 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
         if (quizId) onComplete(); // fail open: don't block the quiz if cards can't load
       });
   }, [quizId, userName]);
+
+  // Play the word's pronunciation AUDIO_DELAY_MS after a new card is shown.
+  useEffect(() => {
+    if (loading || cards.length === 0) return;
+    const card = cards[index];
+    if (!card) return;
+    const audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${card.text}.mp3`;
+    setAudioPending(true);
+    const timeoutId = setTimeout(() => {
+      setAudioPending(false);
+      // Set the guard only when we actually play, so StrictMode's mount→cleanup→mount
+      // (which clears the first timer) doesn't leave the guard set with nothing scheduled.
+      if (lastPlayedIdRef.current === card.id) return;
+      lastPlayedIdRef.current = card.id;
+      new Audio(audioUrl).play().catch(() => {});
+    }, AUDIO_DELAY_MS);
+    return () => {
+      clearTimeout(timeoutId); // cancel if the card changes before the delay elapses
+      setAudioPending(false);
+    };
+  }, [index, loading, cards]);
 
   const answered = chosenIdx !== null || dontKnow;
 
@@ -162,8 +188,26 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
           className="w-full flex flex-col items-center"
         >
           {/* Front: the word */}
-          <div className="w-full min-h-28 flex items-center justify-center bg-white border-2 border-gray-300 rounded-xl shadow-lg p-6 mb-6">
+          <div className="w-full min-h-28 flex items-center justify-center bg-white border-2 border-gray-300 rounded-xl shadow-lg p-6 mb-3">
             <span className="text-3xl font-bold text-gray-800">{card.text}</span>
+          </div>
+
+          {/* Audio "about to play" indicator: a 2s progress bar with a pulsing speaker */}
+          <div className="w-full h-6 mb-3 flex items-center gap-2">
+            {audioPending && (
+              <>
+                <span className="text-gray-500 animate-pulse">🔊</span>
+                <div className="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
+                  <motion.div
+                    key={card.id}
+                    className="h-full bg-amber-500"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: AUDIO_DELAY_MS / 1000, ease: 'linear' }}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Multiple-choice definitions */}
