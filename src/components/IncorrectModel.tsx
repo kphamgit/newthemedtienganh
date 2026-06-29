@@ -48,11 +48,8 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
 
   return (
 
-    <div
-      className="p-4"
->
-    <div className="bg-gray-200 rounded-lg shadow-lg p-11 w-auto h-auto text-center">
-        <div className="mb-4 font-bold text-lg text-green-900">Score: {processQuestionResults?.score}</div>
+    <div className="bg-white rounded-lg shadow-xl p-8 w-auto max-w-xl text-center">
+        <div className="mb-4 font-bold text-lg text-red-700">Score: {processQuestionResults?.score}</div>
         <Explanation>
             {(format === 1 || format == 2 ) && 
                 <ClozeExplanation  content={content} processQuestionResults={processQuestionResults} />}
@@ -75,8 +72,7 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
             Continue
         </button>
     </div>
-</div>
-   
+
   )
 }
 

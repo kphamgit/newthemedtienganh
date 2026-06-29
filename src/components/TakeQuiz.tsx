@@ -33,6 +33,7 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ReviewPromptModal from './ReviewPromptModal';
+import { useCreateNextQuestionAttempt } from '../hooks/useCreateNextQuestionAttempt';
 import CardReview from './CardReview';
 
 import CountdownTimer from "../components/CountdownTimer";
@@ -110,52 +111,14 @@ const TakeQuiz: React.FC = () => {
      });
  },[quiz_id])
 
- const createNextQuestionAttempt = async () => {
-  // console.log("createQuestionAttempt called. quizAttempt id:", quizAttempt.id, " current question number:", question?.question_number);
-  const url = `/api/quiz_attempts/${quizAttempt.id}/create_next_question_attempt/`;
-  try {
-    const response = await api.post<{ 
-       next_question_attempt: any,
-       next_question: any
-       number_of_incorrect_attempts: number,  // this flag is use only in case there is not 
-       // next question attempt returned from server,
-    }>(url, {
-      current_question_number: question?.question_number, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt,
-    });
-    if (response.data.next_question_attempt) {
-      const next_question = response.data.next_question;
-      if (next_question) {
-        setAnswerSubmitted(false);
-        setQuestion(next_question);
-        setQuestionAttemptId(response.data.next_question_attempt.id);
-      }
-      else {
-        console.log("Error: Question Attempt returned from server but found no next question in the response. This should not happen");
-        return;
-      }
-    }
-    else {  // no next question attempt returned from server 
-    // means we have reached the end of the quiz attempt,
-      //console.log("No next question attempt returned from server. Server response:", response.data);
-      // check number_of_incorrect_attempts from server response
-      const number_of_incorrect_attempts = response.data.number_of_incorrect_attempts;
-      //console.log("Number of incorrect attempts in this quiz attempt:", number_of_incorrect_attempts);
-      if (number_of_incorrect_attempts > 0) {
-        //console.log("Reached end of quiz, but there are incorrectly answered questions in the quiz attempt, setting review mode to true to review incorrectly answered questions.");
-        // setReviewMode(true);
-        setIncorrectCount(number_of_incorrect_attempts);
-        setTimeout(() => setShowReviewPrompt(true), 800);
-      }
-      else {
-        //console.log("Reached end of quiz, and there are no incorrectly answered questions in the quiz attempt, marking quiz attempt as completed and showing end of quiz screen.");
-        setEndOfQuiz(true);
-      }
-    }
-  } catch (error) {
-    console.error("Error creating next question attempt:", error);
-  }
-    
-};
+ const createNextQuestionAttempt = useCreateNextQuestionAttempt({
+   setQuestion,
+   setQuestionAttemptId,
+   setAnswerSubmitted,
+   setIncorrectCount,
+   setShowReviewPrompt,
+   setEndOfQuiz,
+ });
 
  useEffect(() => {
   if (!endOfQuiz) return;
@@ -172,7 +135,7 @@ const handleFeedbackModalClose = () => {
     //createNextQuestionAttempt();
     // if not Review mode, create the next question attempt
     if (!reviewMode) {
-      createNextQuestionAttempt();
+      createNextQuestionAttempt(quizAttempt.id, question?.question_number);
     }
     else {   // get the next incorrect question attempt to review
       api.get(`/api/quiz_attempts/${quizAttempt.id}/get_incorrect_question_attempt/`)
@@ -320,7 +283,7 @@ const handleReviewNo = () => {
         .then(() => {     
           //console.log("Received response from server after processing question attempt timeout:", res.data);
           // load the next question.
-          createNextQuestionAttempt();
+          createNextQuestionAttempt(quizAttempt.id, question?.question_number);
       })
         .catch((error) => {
           console.error("Error processing question attempt:", error);
@@ -357,67 +320,73 @@ const handleReviewNo = () => {
 
   return (
     <>
-    <div className="grid grid-cols-3 bg-amber-100 gap-6 p-4 w-full">
-      {/* Left: Question (2/3 width) */}
-      <div className="col-span-2 flex flex-col items-center bg-green-200">
-        {question && (
-          <CountdownTimer
+    <div className="flex flex-col items-center bg-amber-100 gap-6 p-4 w-full">
+      {question && (
+        <CountdownTimer
+          key={questionAttemptId ?? 0}
+          initialSeconds={(question.timeout ?? 0) / 1000}
+          onComplete={questionTimeoutHandler}
+          autoStart
+          paused={answerSubmitted}
+        />
+      )}
+      <AnimatePresence mode="wait">
+        { question && (
+          <motion.div
             key={questionAttemptId ?? 0}
-            initialSeconds={(question.timeout ?? 0) / 1000}
-            onComplete={questionTimeoutHandler}
-            autoStart
-            paused={answerSubmitted}
-          />
-        )}
-        <AnimatePresence mode="wait">
-          { question && (
-            <motion.div
-              key={questionAttemptId ?? 0}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.9, ease: 'easeOut' } }}
-              exit={{ opacity: 0, transition: { duration: 0.4 } }}
-              className="flex flex-col items-center w-full"
-            >
-              <div>Question Number: {question.question_number}</div>
-              {SafeHTML({ content: question.instructions ?? "" })}
-              {question?.prompt && (
-                <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
-                  {question.prompt}
-                </div>
-              )}
-              <div>
-                {(question?.audio_str && question.audio_str.trim().length > 0) &&
-                  <OpenAIStream sentence={question.audio_str} />
-                }
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.9, ease: 'easeOut' } }}
+            exit={{ opacity: 0, transition: { duration: 0.4 } }}
+            className="flex flex-col items-center w-full"
+          >
+            <div>Question Number: {question.question_number}</div>
+            {SafeHTML({ content: question.instructions ?? "" })}
+            {question?.prompt && (
+              <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
+                {question.prompt}
               </div>
-              {displayQuestion(question.format, question.content)}
-              <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-green-900 transition-colors duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
-                onClick={() => handleSubmit()}
-              >
-                Submit
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Right: Feedback panel */}
-      <div className="col-span-1 mt-5 bg-amber-200">
-        {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
-        {showIncorrectModal && <IncorrectModal
-          parentCallback={handleFeedbackModalClose}
-          format={incorrectModalQuestion.current?.format ?? 1}
-          content={incorrectModalQuestion.current?.content ?? ""}
-          answer_key={incorrectModalQuestion.current?.answer_key ?? ""}
-          explanation={incorrectModalQuestion.current?.explanation ?? ""}
-          processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
-        />}
-           { showTimeoutModal && questionAttemptId !== null && <TimeoutModal parentCallback={timeoutModalCallback} questionAttemptId={questionAttemptId} />
-
-}
-      </div>
-
+            )}
+            <div>
+              {(question?.audio_str && question.audio_str.trim().length > 0) &&
+                <OpenAIStream sentence={question.audio_str} />
+              }
+            </div>
+            {displayQuestion(question.format, question.content)}
+            <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-green-900 transition-colors duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
+              onClick={() => handleSubmit()}
+            >
+              Submit
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+
+    {/* Centered overlay modals */}
+    {showCorrectModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <CorrectModal score={questionAttemptAssessmentResults?.score}/>
+      </div>
+    )}
+    {showIncorrectModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="max-h-[90vh] overflow-y-auto">
+          <IncorrectModal
+            parentCallback={handleFeedbackModalClose}
+            format={incorrectModalQuestion.current?.format ?? 1}
+            content={incorrectModalQuestion.current?.content ?? ""}
+            answer_key={incorrectModalQuestion.current?.answer_key ?? ""}
+            explanation={incorrectModalQuestion.current?.explanation ?? ""}
+            processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+          />
+        </div>
+      </div>
+    )}
+    {showTimeoutModal && questionAttemptId !== null && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <TimeoutModal parentCallback={timeoutModalCallback} questionAttemptId={questionAttemptId} />
+      </div>
+    )}
 
     {showReviewPrompt && (
       <ReviewPromptModal onYes={handleReviewYes} onNo={handleReviewNo} incorrectCount={incorrectCount} />

@@ -20,6 +20,7 @@ import CorrectModal from './CorrectModal';
 import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
+import ReviewPromptModal from './ReviewPromptModal';
 
 
 
@@ -43,17 +44,15 @@ interface VideoSegment {
 }
 */
 
-interface QuestionsBankProps extends QuestionProps {
-  finished: boolean; // whether the question has been attempted and processed by the server. Defaults to false.
-}
-
 export default function TakeVideoQuiz() {
     const location = useLocation();
     const { video_url, quiz_id, video_segments } = location.state || {};
     const playerRef = React.useRef<MediaPlayerInstance>(null);
 
-    //const stopTime = useRef<number>(0);
-    const [stopTime, setStopTime] = useState<number>(0);
+    // A ref (not state) so handleTimeUpdate always reads the latest value with no async/closure
+    // race — important because the native YouTube play button sets it via onPlay after playback
+    // has already begun.
+    const stopTimeRef = useRef<number>(0);
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
@@ -78,69 +77,25 @@ export default function TakeVideoQuiz() {
             useState<QuestionAttemptAssesmentResultsProps | null>(null);
     
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Snapshot of the question for the IncorrectModal, since `question` is set to undefined
+    // before the modal renders.
+    const incorrectModalQuestion = useRef<QuestionProps | undefined>(undefined);
   
     //const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
 
-    const [questionsBank, setQuestionsBank] = useState<QuestionsBankProps[]>([]); // State to hold all questions in the quiz attempt, including those that have been attempted and those that have not been attempted yet. We use this to keep track of which questions have been attempted and which questions are remaining, and to determine when we are at the end of the quiz attempt.
-
-
     const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
-
-    // Subscribes to the state (paused/playing) to update the UI
-    // This hook "listens" for changes in the media state (i.e, play is ongoing or has been paused) and re-renders the 
-    // component when it changes
-    //const { paused } = useMediaStore(playerRef);
-    //const { paused, started } = useMediaStore(playerRef);
     const [showVideoPlayer, setShowVideoPlayer] = useState<boolean>(true);
+
+    // Redo flow: after the last segment, if there are wrong answers, prompt to redo them
+    // (replaying each wrong question's video segment) or finish the quiz.
+    const [showRedoPrompt, setShowRedoPrompt] = useState<boolean>(false);
+    const [redoCount, setRedoCount] = useState<number>(0);
+    const [redoMode, setRedoMode] = useState<boolean>(false);
 
     const mediaStore = useMediaStore(playerRef);
     const paused = showVideoPlayer ? mediaStore.paused : false;
 
-    /*
     useEffect(() => {
-        api.
-        post(`/api/video_quiz_attempts/`, {
-            user_name: name,
-            quiz_id: quiz_id
-        })
-        .then((res) => res.data)
-        .then((data) => {
-            console.log("TakeVideoQuiz: quiz attempt created", data);
-            setQuizAttempt(data.quiz_attempt);
-            // play the first video segment, start from beginning of segment 1
-            // look up segment 1 start time
-            const segment1 = video_segments.find((seg: VideoSegment) => seg.segment_number === 1);
-            console.log("TakeVideoQuiz: segment 1 data", segment1);
-            if (segment1) {
-                const [minutes_start, seconds_start, milliseconds_start] = segment1.start_time.split(":").map(Number); // Split and convert to numbers
-                const [minutes_end, seconds_end, milliseconds_end] = segment1.end_time.split(":").map(Number); // Split and convert to numbers
-        
-                const startTimeInSeconds = (minutes_start * 60 + seconds_start + milliseconds_start / 1000);
-                const stopTimeInSeconds = (minutes_end * 60 + seconds_end + milliseconds_end / 1000);
-                
-                console.log("TakeVideoQuiz: segment 1 startTimeInSeconds =", startTimeInSeconds);
-                console.log("TakeVideoQuiz: segment 1 stopTimeInSeconds =", stopTimeInSeconds);
-                
-            } else {
-                
-                //console.warn("TakeVideoQuiz: segment 1 not found, seeking to 0");
-                //remote.seek(0);
-                //remote.play();
-                
-            }
-          
-           
-        })
-        .catch((err) => {
-            console.error("TakeVideoQuiz: error creating quiz attempt", err);
-            alert("Error creating quiz attempt");
-        });
-    }, [quiz_id]);
-    */
-
-    useEffect(() => {
-
-      // load all questions in first video segment
       // console.log("************************ TakeVideoQuiz: useEffect on component mount, video_segments =", video_segments);
       const first_video_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === 1);
       // console.log("TakeVideoQuiz: first_video_segment =", first_video_segment);
@@ -153,18 +108,7 @@ export default function TakeVideoQuiz() {
           number_of_questions_to_preload: number_of_questions
         })
        .then((response) => {
-          //console.log("Received response from get_or_create_react_native endpoint:", response.data);
-          //const all_questions_loaded = response.data.questions;
-
-          /*
-          setRemainingQuestions(response.data.questions.map((q: QuestionProps) => ({ question: q })));
-          */
-
-          // console.log(" First question loaded from server:", first_question);
-          //setRemainingQuestions(all_questions_loaded.slice(1).map((q: QuestionProps) => ({ question: q })));
-          //setQuestion(first_question);
           setQuizAttempt(response.data.quiz_attempt);
-       
        })
        .catch((error) => {
          console.error("Error fetching quiz attempt data:", error);
@@ -193,39 +137,43 @@ export default function TakeVideoQuiz() {
         }
     }, [quizAttempt]);
 
-    const onPaused = useEffectEvent(async () => {
-        //console.log(" ****** video paused. Active segment number:", activeSegmentNumber);
-        const unfinished_questions = questionsBank.filter(q => q.finished === false);
-        if (unfinished_questions.length === 0 && quizAttempt) {
-            //console.log("TakeVideoQuiz: video is paused and no remaining questions in state. Fetching questions for current segment from server.");
-            const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-            //console.log("TakeVideoQuiz: >>>>>>>>>>>>>>>>>>>>>>>>> current_segment =", current_segment);
-            if (current_segment) {
-                const url = `/api/video_segments/${current_segment.id}/get_questions/`;
-                try {
-                    const response = await api.get<{ questions: QuestionProps[] }>(url);
-                    //console.log("TakeVideoQuiz: Received response from server for questions in current segment:", response.data);
-                    const questions_in_segment = response.data.questions;
-                    setQuestionsBank(prev => [...prev, ...questions_in_segment.map(q => ({ ...q, finished: false }))]);
-                    if (questions_in_segment.length > 0) {
-                        const first_question = questions_in_segment[0];
-                        const success = await fetchQuestionAttempt(first_question);
-                        if (success) {
-                            setQuestion(first_question);
-                            setQuestionsBank(prev => prev.map(q => q.id === first_question.id ? { ...q, finished: false } : q));
-                            setShowQuestion(true);
-                        }
-                    }
-                } catch (error) {
-                    console.error("TakeVideoQuiz: Error fetching questions for current segment:", error);
-                }
+    // Ask the server for the next unfinished question in a segment (server owns progress state).
+    const loadNextSegmentQuestion = useCallback(
+        async (segmentId: number, quizAttemptId: number): Promise<QuestionProps | null> => {
+            try {
+                const res = await api.get<{ next_question: QuestionProps | null }>(
+                    `/api/video_segments/${segmentId}/next_question/`,
+                    { params: { quiz_attempt_id: quizAttemptId } }
+                );
+                return res.data.next_question;
+            } catch (error) {
+                console.error("TakeVideoQuiz: Error fetching next segment question:", error);
+                return null;
             }
-        } else if (unfinished_questions.length > 0) {
-            const nextQuestion = unfinished_questions[0];
+        },
+        []
+    );
+
+    const onPaused = useEffectEvent(async () => {
+        // A replay just finished: re-show the same question without advancing the flow.
+        if (isReplayingRef.current) {
+            isReplayingRef.current = false;
+            setShowQuestion(true);
+            return;
+        }
+        // In redo mode the wrong question is already loaded; the replayed segment just paused,
+        // so show that question instead of fetching the segment's next question.
+        if (redoMode) {
+            if (question) setShowQuestion(true);
+            return;
+        }
+        const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
+        if (!current_segment || !quizAttempt) return;
+        const nextQuestion = await loadNextSegmentQuestion(current_segment.id, quizAttempt.id);
+        if (nextQuestion) {
             const success = await fetchQuestionAttempt(nextQuestion);
             if (success) {
                 setQuestion(nextQuestion);
-                setQuestionsBank(prev => prev.map(q => q.id === nextQuestion.id ? { ...q, finished: false } : q));
                 setShowQuestion(true);
             }
         }
@@ -237,38 +185,97 @@ export default function TakeVideoQuiz() {
         }
     }, [paused]);
 
+    // Mark the quiz attempt complete on the server and show the end screen.
+    const finishQuiz = useEffectEvent(() => {
+        setShowCorrectModal(false);
+        setShowVideoPlayer(false);
+        if (quizAttempt) {
+            api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
+                .then(() => setEndOfQuiz(true))
+                .catch(err => console.error("Error marking quiz attempt as completed.", err));
+        }
+    });
+
+    // Fetch the next wrong question to redo, then replay its video segment. The question is
+    // shown when the replayed segment pauses (handled in onPaused's redo branch). If there are
+    // no more wrong questions, finish the quiz.
+    const loadNextWrongAndReplay = useEffectEvent(async () => {
+        if (!quizAttempt) return;
+        try {
+            const res = await api.get<{ question?: QuestionProps, question_attempt_id?: number }>(
+                `/api/quiz_attempts/${quizAttempt.id}/get_incorrect_question_attempt/`
+            );
+            const wrongQuestion = res.data.question;
+            if (wrongQuestion && res.data.question_attempt_id) {
+                setQuestion(wrongQuestion);
+                setQuestionAttemptId(res.data.question_attempt_id);
+                setShowQuestion(false);
+                const segment = video_segments.find((seg: VideoSegment) => seg.id === wrongQuestion.video_segment_id);
+                if (segment) {
+                    const [m1, s1, ms1] = segment.start_time.split(":").map(Number);
+                    const [m2, s2, ms2] = segment.end_time.split(":").map(Number);
+                    stopTimeRef.current = m2 * 60 + s2 + ms2 / 1000;
+                    setShowVideoPlayer(true);
+                    remote.seek(m1 * 60 + s1 + ms1 / 1000);
+                    remote.play();
+                }
+            } else {
+                // No more wrong questions to redo.
+                setRedoMode(false);
+                finishQuiz();
+            }
+        } catch (error) {
+            console.error("Error loading next wrong question for redo:", error);
+            setRedoMode(false);
+            finishQuiz();
+        }
+    });
+
+    const handleRedoYes = useEffectEvent(async () => {
+        setShowRedoPrompt(false);
+        setRedoMode(true);
+        if (quizAttempt) {
+            // Put the quiz attempt in review state so the server marks corrected answers.
+            await api.get(`/api/quiz_attempts/${quizAttempt.id}/set_review_mode/`).catch(() => {});
+        }
+        await loadNextWrongAndReplay();
+    });
+
+    const handleRedoNo = useEffectEvent(() => {
+        setShowRedoPrompt(false);
+        finishQuiz();
+    });
+
 
   const handleTimeUpdate = (event:any) => {
     const currentTime = event.currentTime;
-    //console.log("TakeVideoQuiz: Time update event, currentTime =", currentTime);
-    //console.log("TakeVideoQuiz: handleTimeUpdate called currentTime=", currentTime);
-    //console.log(`Current Time: ${currentTime.toFixed(2)}s`);
-    //console.log("TakeVideoQuiz: current stop time =", stopTime);
-    //if (currentTime > stopTime.current) {
-    
-    if (currentTime >= stopTime) {
+    // stopTimeRef.current === 0 means "not configured yet" (e.g. playback just started via the
+    // native YouTube button before onPlay set it). Don't pause, or we'd rewind to 0 immediately.
+    if (stopTimeRef.current <= 0) return;
+    if (currentTime >= stopTimeRef.current) {
         //console.log("TakeVideoQuiz: Current time has reached or exceeded stop time. Pausing and seeking back.");
         remote.pause();
-        remote.seek(stopTime);
+        remote.seek(stopTimeRef.current);
     }
-        
-       
-    /*
-    const tolerance = 0.01; // Allow a small margin of error
-    if (Math.abs(currentTime - stopTime.current) <= tolerance || currentTime > stopTime.current) {
-      console.log("TakeVideoQuiz: Current time has reached or exceeded stop time. Pausing and seeking back.");
-      remote.pause();
-      remote.seek(stopTime.current);
-    }
-        */
  }
+
+  // If playback starts WITHOUT going through handlePlay (e.g. the native YouTube play button),
+  // stopTime is still 0, so handleTimeUpdate would immediately pause and rewind. Configure the
+  // active segment's stop time on the first play so the segment can play through. Set the ref
+  // synchronously so the very next timeupdate already sees it (no async race).
+  const handlePlayEvent = () => {
+    if (stopTimeRef.current === 0) {
+      const seg = video_segments.find((s: VideoSegment) => s.segment_number === activeSegmentNumber);
+      if (seg) {
+        const [m2, s2, ms2] = seg.end_time.split(":").map(Number);
+        stopTimeRef.current = m2 * 60 + s2 + ms2 / 1000;
+      }
+    }
+  }
 
   const handlePlay = () => {
     //console.log("TakeVideoQuiz: Play button clicked active video segment: ", video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber));
     const active_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-    //const start_time = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber)?.start_time ?? "00:00:00";
-    //console.log("TakeVideoQuiz: start_time to seek to =", start_time);
-
     const [minutes_start, seconds_start, milliseconds_start] = active_segment.start_time.split(":").map(Number); // Split and convert to numbers
     const [minutes_end, seconds_end, milliseconds_end] = active_segment.end_time.split(":").map(Number); // Split and convert to numbers
   
@@ -278,8 +285,7 @@ export default function TakeVideoQuiz() {
     //console.log("TakeVideoQuiz: seeking to start time in seconds =", startTimeInSeconds);
     //console.log("TakeVideoQuiz: setting stop time to =", stopTimeInSeconds);
 
-    //stopTime.current = parseFloat(stopTimeInSeconds);
-    setStopTime(stopTimeInSeconds);
+    stopTimeRef.current = stopTimeInSeconds;
  
     // set stop time for later use in handleTimeUpdate
     
@@ -288,8 +294,25 @@ export default function TakeVideoQuiz() {
     // set showQuestion to false. No questions should be shown while video is playing. Questions will only be shown when video is paused (handleTimeUpdate will set showQuestion to true when video is paused)
     setShowQuestion(false);
     remote.play();
- 
   }
+
+  // Replay the current question's video segment without advancing the flow. The flag tells
+  // onPaused to just re-show the same question (rather than fetch/create a new attempt) when
+  // the replayed segment pauses again.
+  const isReplayingRef = useRef(false);
+  const handleReplay = () => {
+    const seg = question?.video_segment_id
+      ? video_segments.find((s: VideoSegment) => s.id === question.video_segment_id)
+      : video_segments.find((s: VideoSegment) => s.segment_number === activeSegmentNumber);
+    if (!seg) return;
+    const [m1, s1, ms1] = seg.start_time.split(":").map(Number);
+    const [m2, s2, ms2] = seg.end_time.split(":").map(Number);
+    isReplayingRef.current = true;
+    stopTimeRef.current = m2 * 60 + s2 + ms2 / 1000;
+    setShowQuestion(false);
+    remote.seek(m1 * 60 + s1 + ms1 / 1000);
+    remote.play();
+  };
 
 
   const handleSubmit = () => {
@@ -308,8 +331,7 @@ export default function TakeVideoQuiz() {
       //console.log("Assessment results from server:", assessment_results);
       //quizHasErrors.current = quiz_attempt_has_errors;
       setQuestionAttemptAssessmentResults(assessment_results);
-      // search questionsBank and set the question with the same id as the current question as finished = true, 
-      setQuestionsBank(prev => prev.map(q => q.id === question?.id ? { ...q, finished: true } : q));
+      // The server marks the QuestionAttempt completed in /process/, so no local progress tracking is needed.
       if (assessment_results.error_flag === false) {
         //alert("Answer is correct.");
         setShowCorrectModal(true);
@@ -321,9 +343,9 @@ export default function TakeVideoQuiz() {
         }, 1000); // Close modal after 2 seconds
       }
       else {
-        // make a snapshot of question for incorrect model because
-        // question is undefined when passed as a prop to IncorrectModal.
-         //incorrectModalQuestion.current = question;
+        // Snapshot the question because `question` state is set to undefined above, but the
+        // IncorrectModal needs the question's format/content/answer_key/explanation.
+         incorrectModalQuestion.current = question;
          setShowIncorrectModal(true);
       }
     })
@@ -334,85 +356,72 @@ export default function TakeVideoQuiz() {
   }
 
 const handleModalClose = useEffectEvent(async () => {
-  //("handleModalCloze")
   if (showCorrectModal) {
     setShowCorrectModal(false);
   }
   if (showIncorrectModal) {
     setShowIncorrectModal(false);
   }
-  //setQuestion(remainingQuestions.length > 0 ? remainingQuestions[0].question : undefined);
-  //console.log("handleModalClose. Remaining questions length:", remainingQuestions.length);
-  const unfinished_questions = questionsBank.filter(q => q.finished === false);
-  //console.log("handleModalClose. Unfinished questions:");
-  //unfinished_questions.forEach(q => console.log(`Question id: ${q.id}, finished: ${q.finished}`));
-  //if (remainingQuestions.length > 0) {
-  if (unfinished_questions.length > 0) {
-        //console.log("handleCorrectModalTimeout There are remaining questions in state, showing next question immediately for a smooth user experience while waiting for the server response to create the next question attempt. Remaining questions length:", remainingQuestions.length, " Next question id:", remainingQuestions[0].question.id);
-        // remove the next question to display from the remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
-        // const nextQuestion = remainingQuestions[0].question;
-        const nextQuestion = unfinished_questions[0];
-        //console.log(" handleModalCloze next question to attempt:", nextQuestion);
+
+  // In redo mode we don't follow the segment flow: just move on to the next wrong question
+  // (replaying its segment), or finish when there are none left.
+  if (redoMode) {
+    await loadNextWrongAndReplay();
+    return;
+  }
+
+  // Ask the server for the next unfinished question in the current segment.
+  const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
+  const nextQuestion = (current_segment && quizAttempt)
+    ? await loadNextSegmentQuestion(current_segment.id, quizAttempt.id)
+    : null;
+
+  if (nextQuestion) {
         const success = await fetchQuestionAttempt(nextQuestion);
         if (success) {
             setQuestion(nextQuestion);
-            // setRemainingQuestions(prev => prev.slice(1));
-            // setQuestionsBank(prev => prev.map(q => q.id === nextQuestion.id ? { ...q, finished: true } : q));
             setShowQuestion(true);
         }
-
-        //for a smooth user experience while waiting for the server response to create the next question attempt. Next question id:", remainingQuestions[0].question.id);
-  }
-  else if (unfinished_questions.length == 0 ) { // else if (remainingQuestions.length == 0) { 
-      // no next question id means end of quiz reached
-      //console.log("handleModalTimeout. No more remaining questions:");
-      // play the next video segment if there is one, otherwise end the quiz and show alert
-        //const current_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === activeSegmentNumber);
-        //console.log("TakeVideoQuiz: current_segment =", current_segment);
+  } else {
+        // No more questions in this segment -> advance to the next segment, or end the quiz.
         const isLastSegment = activeSegmentNumber === video_segments.length;
         if (!isLastSegment) {
-            // increment active segment number to move to next segment
-            //console.log("TakeVideoQuiz: ******* ********* Moving to next segment.");
             const nextSegmentNumber = (activeSegmentNumber ?? 1) + 1;
-            //console.log("TakeVideoQuiz: Moving to next segment, nextSegmentNumber =", nextSegmentNumber);
             setActiveSegmentNumber(nextSegmentNumber);
             // play next segment
             const next_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === nextSegmentNumber);
-            //console.log("TakeVideoQuiz: next_segment =", next_segment);
             if (next_segment) {
                 setShowCorrectModal(false)
                 const [minutes_start, seconds_start, milliseconds_start] = next_segment.start_time.split(":").map(Number); // Split and convert to numbers
                 const [minutes_end, seconds_end, milliseconds_end] = next_segment.end_time.split(":").map(Number); // Split and convert to numbers
-        
+
                 const startTimeInSeconds = (minutes_start * 60 + seconds_start + milliseconds_start / 1000);
                 const stopTimeInSeconds = (minutes_end * 60 + seconds_end + milliseconds_end / 1000);
-                
-                //console.log("TakeVideoQuiz: next segment startTimeInSeconds =", startTimeInSeconds);
-                //console.log("TakeVideoQuiz: next segment stopTimeInSeconds =", stopTimeInSeconds);
-                
-                setStopTime(stopTimeInSeconds);
+
+                stopTimeRef.current = stopTimeInSeconds;
                 remote.seek(startTimeInSeconds);
                 remote.play();
             }
         }
         else {
-            //console.log("TakeVideoQuiz: This was the last segment. Quiz completed.");
-           
+            // Last segment done. If there are wrong answers, offer to redo them; otherwise finish.
             setShowCorrectModal(false);
-            setShowVideoPlayer(false);
+            let wrongCount = 0;
             if (quizAttempt) {
-            api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
-              .then(() => {
-                  //console.log("Quiz attempt marked as completed on server.");
-                  setEndOfQuiz(true);
-              })
-            .catch(err => console.error("Error marking quiz attempt as completed.", err));
+                try {
+                    const res = await api.get<{ count: number }>(`/api/quiz_attempts/${quizAttempt.id}/incorrect_count/`);
+                    wrongCount = res.data.count;
+                } catch (err) {
+                    console.error("Error fetching incorrect count:", err);
+                }
+            }
+            if (wrongCount > 0) {
+                setRedoCount(wrongCount);
+                setShowRedoPrompt(true);
+            } else {
+                finishQuiz();
             }
         }
-      //alert("You have completed the quiz!");
-  }
-  else {
-      console.error("handleModalClose: This should not happen. No remaining questions but also no end of quiz?");
   }
 });
 
@@ -429,54 +438,96 @@ if (endOfQuiz) {
     <>
  {/* 1. The Parent defines the max size and shape */}
 { showVideoPlayer &&
-<>
+<div className="flex flex-col items-center w-full">
  <div className="w-full max-w-[800px] aspect-video bg-blue-200 relative overflow-hidden rounded-lg">
-  <MediaPlayer 
+  <MediaPlayer
     ref = {playerRef}
     src={video_url}
     aspectRatio="16/9"
     onTimeUpdate={(handleTimeUpdate)}
-    className="w-full h-full relative 
+    onPlay={handlePlayEvent}
+    className="w-full h-full relative
              [&_[data-media-provider]]:!w-full [&_[data-media-provider]]:!h-full
              [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover
              [&_iframe]:!w-full [&_iframe]:!h-full [&_iframe]:!absolute"
   >
     <MediaProvider>
-     
+
     </MediaProvider>
 
-  
+
   </MediaPlayer>
+  {/* Full-cover overlay: blocks ALL native YouTube interaction (links AND the native play
+      button, which fights vidstack). When paused (and not answering) a click on the video
+      runs our controlled handlePlay — the same path the Play button uses — so the student can
+      just click the video to start it reliably. */}
+  <div
+    className="absolute inset-0 z-10"
+    style={{ cursor: paused && !showQuestion ? 'pointer' : 'default' }}
+    onClick={() => { if (paused && !showQuestion) handlePlay(); }}
+  />
 </div>
 
-    <button
-    onClick={() => (paused ? handlePlay() : remote.pause())}
-    className="flex items-center gap-2 bg-blue-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-blue-500 transition-colors"
-  >
-    {paused ? (
-      <span>Play</span>
-    ) : (
-      <span> Pause Video</span>
+    {/* Play-only button (no pausing): the student starts the video manually and must listen
+        through the whole segment. */}
+    {paused && !showQuestion && (
+      <button
+        onClick={() => handlePlay()}
+        className="flex items-center gap-2 bg-blue-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-blue-500 transition-colors"
+      >
+        <span>Play</span>
+      </button>
     )}
-  </button>
-  </>
+
+    {/* Replay the segment once it has finished (while answering), in case the student wants
+        to watch it again. Does not advance the flow — the same question is shown afterwards.
+        Aligned to the left edge of the video frame. */}
+    {paused && showQuestion && (
+      <div className="w-full max-w-[800px] flex justify-start">
+        <button
+          onClick={() => handleReplay()}
+          className="flex items-center gap-2 bg-amber-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-amber-500 transition-colors"
+        >
+          <span>Replay Segment</span>
+        </button>
+      </div>
+    )}
+  </div>
 }
 
-  {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score}/>}
-      {showIncorrectModal && <IncorrectModal 
-        parentCallback={handleModalClose} 
-        format={question?.format ?? 1}
-        content={question?.content ?? ""}
-        answer_key={question?.answer_key ?? ""}
-        explanation={question?.explanation ?? ""}
-        processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+  {showRedoPrompt && (
+        <ReviewPromptModal
+          onYes={handleRedoYes}
+          onNo={handleRedoNo}
+          incorrectCount={redoCount}
         />
-      }
+      )}
+  {showCorrectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <CorrectModal score={questionAttemptAssessmentResults?.score}/>
+        </div>
+      )}
+      {showIncorrectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-h-[90vh] overflow-y-auto">
+            <IncorrectModal
+              parentCallback={handleModalClose}
+              format={incorrectModalQuestion.current?.format ?? 1}
+              content={incorrectModalQuestion.current?.content ?? ""}
+              answer_key={incorrectModalQuestion.current?.answer_key ?? ""}
+              explanation={incorrectModalQuestion.current?.explanation ?? ""}
+              processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+            />
+          </div>
+        </div>
+      )}
   {showQuestion &&
                 <div className='flex flex-col items-center bg-gray-300'>
+                    {question &&
                     <div className='flex flex-row justify-start items-center  mx-10 bg-cyan-200 px-20 py-1  rounded-md'>
                     <div className='mb-2'>Question: {question?.question_number}</div>
                     </div>
+                    }
                     <div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instructions ?? '' }}></div>
                     <div className='m-2 text-amber-800 whitespace-pre-wrap'>{question?.prompt}</div>
                 
@@ -526,11 +577,13 @@ if (endOfQuiz) {
               }
               </div>
                 </div>
+                {question &&
                 <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
                 onClick={() => handleSubmit()}
             >
                 Submit
                 </button>
+                }
                 </div>
             }
 

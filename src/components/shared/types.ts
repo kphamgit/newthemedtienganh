@@ -81,6 +81,7 @@ export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
 export interface QuestionProps {
     id: number,
     quiz_id: number,
+    video_segment_id?: number,
     question_number: number,
     content: string,
     content_language: string,

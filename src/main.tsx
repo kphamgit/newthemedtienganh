@@ -12,7 +12,7 @@ import { PersistGate } from 'redux-persist/integration/react'
 
 
 createRoot(document.getElementById('root')!).render(
-<StrictMode>
+    <StrictMode>
      <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
       
@@ -20,6 +20,6 @@ createRoot(document.getElementById('root')!).render(
    
     </PersistGate>
     </Provider>
-</StrictMode>
+    </StrictMode>
 
 )
