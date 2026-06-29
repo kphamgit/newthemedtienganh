@@ -33,6 +33,9 @@ interface VideoSegment {
     question_numbers: string
 }
 
+// Max number of times a student may replay the video segment for a single question.
+const MAX_REPLAYS = 3;
+
 /*
 {
   "id": 1,
@@ -68,6 +71,7 @@ export default function TakeVideoQuiz() {
     const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
     const [showQuestion, setShowQuestion] = useState<boolean>(false);
+    const [replayCount, setReplayCount] = useState<number>(0); // replays used for the current question
     const childRef = useRef<ChildRef>(null);
 
     const [showCorrectModal, setShowCorrectModal] = useState(false);
@@ -174,6 +178,7 @@ export default function TakeVideoQuiz() {
             const success = await fetchQuestionAttempt(nextQuestion);
             if (success) {
                 setQuestion(nextQuestion);
+                setReplayCount(0); // fresh replay budget for the new question
                 setShowQuestion(true);
             }
         }
@@ -208,6 +213,7 @@ export default function TakeVideoQuiz() {
             const wrongQuestion = res.data.question;
             if (wrongQuestion && res.data.question_attempt_id) {
                 setQuestion(wrongQuestion);
+                setReplayCount(0); // fresh replay budget for the redo question
                 setQuestionAttemptId(res.data.question_attempt_id);
                 setShowQuestion(false);
                 const segment = video_segments.find((seg: VideoSegment) => seg.id === wrongQuestion.video_segment_id);
@@ -301,10 +307,12 @@ export default function TakeVideoQuiz() {
   // the replayed segment pauses again.
   const isReplayingRef = useRef(false);
   const handleReplay = () => {
+    if (replayCount >= MAX_REPLAYS) return; // no replays left for this question
     const seg = question?.video_segment_id
       ? video_segments.find((s: VideoSegment) => s.id === question.video_segment_id)
       : video_segments.find((s: VideoSegment) => s.segment_number === activeSegmentNumber);
     if (!seg) return;
+    setReplayCount((c) => c + 1);
     const [m1, s1, ms1] = seg.start_time.split(":").map(Number);
     const [m2, s2, ms2] = seg.end_time.split(":").map(Number);
     isReplayingRef.current = true;
@@ -380,6 +388,7 @@ const handleModalClose = useEffectEvent(async () => {
         const success = await fetchQuestionAttempt(nextQuestion);
         if (success) {
             setQuestion(nextQuestion);
+            setReplayCount(0); // fresh replay budget for the new question
             setShowQuestion(true);
         }
   } else {
@@ -392,6 +401,7 @@ const handleModalClose = useEffectEvent(async () => {
             const next_segment = video_segments.find((seg: VideoSegment) => seg.segment_number === nextSegmentNumber);
             if (next_segment) {
                 setShowCorrectModal(false)
+                setShowQuestion(false); // hide the question panel so the video frame is visible while the next segment plays
                 const [minutes_start, seconds_start, milliseconds_start] = next_segment.start_time.split(":").map(Number); // Split and convert to numbers
                 const [minutes_end, seconds_end, milliseconds_end] = next_segment.end_time.split(":").map(Number); // Split and convert to numbers
 
@@ -439,7 +449,9 @@ if (endOfQuiz) {
  {/* 1. The Parent defines the max size and shape */}
 { showVideoPlayer &&
 <div className="flex flex-col items-center w-full">
- <div className="w-full max-w-[800px] aspect-video bg-blue-200 relative overflow-hidden rounded-lg">
+ {/* Video frame — kept mounted (so replay preserves player position/state) but hidden while a
+     question is shown, so the question takes its place. */}
+ <div className={`w-full max-w-[800px] aspect-video bg-blue-200 relative overflow-hidden rounded-lg ${showQuestion ? 'hidden' : ''}`}>
   <MediaPlayer
     ref = {playerRef}
     src={video_url}
@@ -468,6 +480,47 @@ if (endOfQuiz) {
   />
 </div>
 
+    {/* Question shown in place of the (hidden) video frame */}
+    {showQuestion &&
+      <div className='flex flex-col items-center bg-gray-300 w-full max-w-[800px] rounded-lg p-2'>
+        {question &&
+        <div className='flex flex-row justify-start items-center mx-10 bg-cyan-200 px-20 py-1 rounded-md'>
+          <div className='mb-2'>Question: {question?.question_number}</div>
+        </div>
+        }
+        <div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instructions ?? '' }}></div>
+        <div className='m-2 text-amber-800 whitespace-pre-wrap'>{question?.prompt}</div>
+
+        <div>
+          {(question?.audio_str && question.audio_str.trim().length > 0) &&
+            <OpenAIStream sentence={question.audio_str} />
+          }
+        </div>
+
+        <div className='bg-cyan-200 flex flex-col rounded-md justify-center'>
+          <div className='my-5'>
+            { question?.format === 1 && <DynamicWordInputs content={question.content} ref={childRef} /> }
+            { question?.format === 2 && <ButtonSelectCloze content={question.content} content_language={question.content_language} choices={question.button_cloze_options} ref={childRef} /> }
+            { question?.format === 3 && <ButtonSelect content={question.content} ref={childRef} /> }
+            { question?.format === 4 && <RadioQuestion content={question.content} ref={childRef} /> }
+            { question?.format === 5 && <CheckboxQuestion content={question.content} ref={childRef} /> }
+            { question?.format === 6 && <DragDrop content={question.content} content_language={question.content_language} ref={childRef} /> }
+            { question?.format === 7 && <SRNonContinuous content={question.content} ref={childRef} /> }
+            { question?.format === 8 && <WordsSelect content={question.content} ref={childRef} /> }
+            { question?.format === 10 && <DropDowns content={question.content} ref={childRef} /> }
+            { question?.format === 12 && <SentenceScramble content={question.content} ref={childRef} /> }
+          </div>
+        </div>
+        {question &&
+        <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
+          onClick={() => handleSubmit()}
+        >
+          Submit
+        </button>
+        }
+      </div>
+    }
+
     {/* Play-only button (no pausing): the student starts the video manually and must listen
         through the whole segment. */}
     {paused && !showQuestion && (
@@ -486,9 +539,14 @@ if (endOfQuiz) {
       <div className="w-full max-w-[800px] flex justify-start">
         <button
           onClick={() => handleReplay()}
-          className="flex items-center gap-2 bg-amber-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-amber-500 transition-colors"
+          disabled={replayCount >= MAX_REPLAYS}
+          className="flex items-center gap-2 bg-amber-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-600"
         >
-          <span>Replay Segment</span>
+          <span>
+            {replayCount >= MAX_REPLAYS
+              ? 'No rewatches left'
+              : `Rewatch (${MAX_REPLAYS - replayCount} left)`}
+          </span>
         </button>
       </div>
     )}
@@ -521,71 +579,6 @@ if (endOfQuiz) {
           </div>
         </div>
       )}
-  {showQuestion &&
-                <div className='flex flex-col items-center bg-gray-300'>
-                    {question &&
-                    <div className='flex flex-row justify-start items-center  mx-10 bg-cyan-200 px-20 py-1  rounded-md'>
-                    <div className='mb-2'>Question: {question?.question_number}</div>
-                    </div>
-                    }
-                    <div className='text-textColor2 m-2' dangerouslySetInnerHTML={{ __html: question?.instructions ?? '' }}></div>
-                    <div className='m-2 text-amber-800 whitespace-pre-wrap'>{question?.prompt}</div>
-                
-                    <div>
-                        {(question?.audio_str && question.audio_str.trim().length > 0) &&
-                             <OpenAIStream sentence={question.audio_str} />
-                        }                 
-                    </div>
-
-
-                    <div className='bg-cyan-200 flex flex-col rounded-md justify-center'>
-                   
-                    <div className='my-5'>
-              { question?.format === 1 &&
-                 <DynamicWordInputs content={question.content}  ref={childRef} />
-              }
-              { question?.format === 2 &&
-                  <ButtonSelectCloze 
-                  content={question.content} 
-                  content_language={question.content_language}
-                  choices={question.button_cloze_options} 
-                  ref={childRef} />
-              }
-              { question?.format === 3 &&
-                <ButtonSelect content={question.content} ref={childRef} />
-              }
-              { question?.format === 4 &&
-                <RadioQuestion content={question.content} ref={childRef} />
-              }
-              { question?.format === 5 &&
-                <CheckboxQuestion content={question.content} ref={childRef} />
-              }
-              { question?.format === 6 &&
-                <DragDrop content={question.content} content_language={question.content_language} ref={childRef} />
-              }
-              { question?.format === 7 &&
-                <SRNonContinuous content={question.content} ref={childRef} />
-              }
-              { question?.format === 8 &&
-                <WordsSelect content={question.content} ref={childRef} />
-              }
-              { question?.format === 10 &&
-                <DropDowns content={question.content} ref={childRef} />
-              } 
-              { question?.format === 12 &&
-                <SentenceScramble content={question.content} ref={childRef} />
-              }
-              </div>
-                </div>
-                {question &&
-                <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
-                onClick={() => handleSubmit()}
-            >
-                Submit
-                </button>
-                }
-                </div>
-            }
 
   </>
   )
