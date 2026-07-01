@@ -21,6 +21,7 @@ import SRNonContinuous from './questions/SRNonContinuous';
 import OpenAIStream from './shared/OpenAIStream';
 import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ReviewPromptModal from './ReviewPromptModal';
+import RewatchPromptModal from './RewatchPromptModal';
 
 
 
@@ -56,6 +57,9 @@ export default function TakeVideoQuiz() {
     // race — important because the native YouTube play button sets it via onPlay after playback
     // has already begun.
     const stopTimeRef = useRef<number>(0);
+    // True only when the pause was caused by reaching the segment's end (not a manual pause),
+    // so onPaused knows whether to run the segment-end flow or ignore the pause.
+    const segmentEndedRef = useRef<boolean>(false);
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
@@ -71,6 +75,8 @@ export default function TakeVideoQuiz() {
     const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
     const [showQuestion, setShowQuestion] = useState<boolean>(false);
+    const [showRewatchPrompt, setShowRewatchPrompt] = useState<boolean>(false); // "rewatch the segment?" prompt, shown after a segment finishes (before its first question)
+    const [hasStarted, setHasStarted] = useState<boolean>(false); // whether the video has begun playing at least once (controls the initial Play button)
     const [replayCount, setReplayCount] = useState<number>(0); // replays used for the current question
     const childRef = useRef<ChildRef>(null);
 
@@ -159,10 +165,14 @@ export default function TakeVideoQuiz() {
     );
 
     const onPaused = useEffectEvent(async () => {
-        // A replay just finished: re-show the same question without advancing the flow.
+        // Only react to a pause caused by the segment ending — ignore manual pauses (the student
+        // pausing mid-segment), which should just pause the video without advancing the flow.
+        if (!segmentEndedRef.current) return;
+        segmentEndedRef.current = false;
+        // A rewatch just finished: ask again whether to rewatch (until they say No or run out).
         if (isReplayingRef.current) {
             isReplayingRef.current = false;
-            setShowQuestion(true);
+            setShowRewatchPrompt(true);
             return;
         }
         // In redo mode the wrong question is already loaded; the replayed segment just paused,
@@ -177,9 +187,11 @@ export default function TakeVideoQuiz() {
         if (nextQuestion) {
             const success = await fetchQuestionAttempt(nextQuestion);
             if (success) {
+                // Segment finished: load its first question but DON'T show it yet — first ask
+                // whether the student wants to rewatch the segment.
                 setQuestion(nextQuestion);
-                setReplayCount(0); // fresh replay budget for the new question
-                setShowQuestion(true);
+                setReplayCount(0); // fresh rewatch budget for this question
+                setShowRewatchPrompt(true);
             }
         }
     });
@@ -260,6 +272,7 @@ export default function TakeVideoQuiz() {
     if (stopTimeRef.current <= 0) return;
     if (currentTime >= stopTimeRef.current) {
         //console.log("TakeVideoQuiz: Current time has reached or exceeded stop time. Pausing and seeking back.");
+        segmentEndedRef.current = true; // this pause is the segment ending (not a manual pause)
         remote.pause();
         remote.seek(stopTimeRef.current);
     }
@@ -270,6 +283,10 @@ export default function TakeVideoQuiz() {
   // active segment's stop time on the first play so the segment can play through. Set the ref
   // synchronously so the very next timeupdate already sees it (no async race).
   const handlePlayEvent = () => {
+    setHasStarted(true);
+    // Clear any stale "segment ended" flag (a stray timeupdate after the end-of-segment seek can
+    // re-set it); while the video is playing we're mid-segment, so a later pause is manual.
+    segmentEndedRef.current = false;
     if (stopTimeRef.current === 0) {
       const seg = video_segments.find((s: VideoSegment) => s.segment_number === activeSegmentNumber);
       if (seg) {
@@ -320,6 +337,19 @@ export default function TakeVideoQuiz() {
     setShowQuestion(false);
     remote.seek(m1 * 60 + s1 + ms1 / 1000);
     remote.play();
+  };
+
+  // Rewatch prompt: "Yes" replays the segment (then the prompt shows again via onPaused);
+  // "No" dismisses the prompt and shows the question (with no rewatch button).
+  const handleRewatchYes = () => {
+    if (replayCount >= MAX_REPLAYS) return;
+    setShowRewatchPrompt(false);
+    handleReplay();
+  };
+
+  const handleRewatchNo = () => {
+    setShowRewatchPrompt(false);
+    setShowQuestion(true);
   };
 
 
@@ -469,16 +499,36 @@ if (endOfQuiz) {
 
 
   </MediaPlayer>
-  {/* Full-cover overlay: blocks ALL native YouTube interaction (links AND the native play
-      button, which fights vidstack). When paused (and not answering) a click on the video
-      runs our controlled handlePlay — the same path the Play button uses — so the student can
-      just click the video to start it reliably. */}
+  {/* Full-cover overlay: blocks native YouTube interaction (links + native play button, which
+      fights vidstack) and gives us controlled play/pause. Clicking the video toggles play/pause
+      while watching; the very first start seeks to the segment start via handlePlay. */}
   <div
     className="absolute inset-0 z-10"
-    style={{ cursor: paused && !showQuestion ? 'pointer' : 'default' }}
-    onClick={() => { if (paused && !showQuestion) handlePlay(); }}
+    style={{ cursor: showQuestion || showRewatchPrompt ? 'default' : 'pointer' }}
+    onClick={() => {
+      if (showQuestion || showRewatchPrompt) return;
+      if (!paused) {
+        remote.pause();              // pause while watching
+      } else if (hasStarted) {
+        remote.play();               // resume from the current position (no seek)
+      } else {
+        handlePlay();                // initial start: seek to the segment start, then play
+      }
+    }}
   />
 </div>
+
+    {/* Pause / Resume button, below the video frame and left-aligned. */}
+    {hasStarted && !showQuestion && !showRewatchPrompt && (
+      <div className="w-full max-w-[800px] flex justify-start">
+        <button
+          onClick={() => (paused ? remote.play() : remote.pause())}
+          className="mt-3 bg-gray-700 hover:bg-gray-800 text-white text-sm px-5 py-2 rounded-md"
+        >
+          {paused ? 'Resume' : 'Pause'}
+        </button>
+      </div>
+    )}
 
     {/* Question shown in place of the (hidden) video frame */}
     {showQuestion &&
@@ -521,9 +571,9 @@ if (endOfQuiz) {
       </div>
     }
 
-    {/* Play-only button (no pausing): the student starts the video manually and must listen
-        through the whole segment. */}
-    {paused && !showQuestion && (
+    {/* Initial Play button — only before the video has ever started. After that, the student
+        toggles play/pause by clicking the video itself. */}
+    {!hasStarted && paused && !showQuestion && !showRewatchPrompt && (
       <button
         onClick={() => handlePlay()}
         className="flex items-center gap-2 bg-blue-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-blue-500 transition-colors"
@@ -531,28 +581,16 @@ if (endOfQuiz) {
         <span>Play</span>
       </button>
     )}
-
-    {/* Replay the segment once it has finished (while answering), in case the student wants
-        to watch it again. Does not advance the flow — the same question is shown afterwards.
-        Aligned to the left edge of the video frame. */}
-    {paused && showQuestion && (
-      <div className="w-full max-w-[800px] flex justify-start">
-        <button
-          onClick={() => handleReplay()}
-          disabled={replayCount >= MAX_REPLAYS}
-          className="flex items-center gap-2 bg-amber-600 px-6 py-2 mt-3 text-white rounded-full hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-600"
-        >
-          <span>
-            {replayCount >= MAX_REPLAYS
-              ? 'No rewatches left'
-              : `Rewatch (${MAX_REPLAYS - replayCount} left)`}
-          </span>
-        </button>
-      </div>
-    )}
   </div>
 }
 
+  {showRewatchPrompt && (
+        <RewatchPromptModal
+          onYes={handleRewatchYes}
+          onNo={handleRewatchNo}
+          rewatchesLeft={MAX_REPLAYS - replayCount}
+        />
+      )}
   {showRedoPrompt && (
         <ReviewPromptModal
           onYes={handleRedoYes}
