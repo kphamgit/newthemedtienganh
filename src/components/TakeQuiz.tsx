@@ -13,7 +13,7 @@ import { useParams } from 'react-router-dom';
 import { type ProcessQuestionAttemptResultsProps, type QuestionAttemptAssesmentResultsProps, type QuestionProps, type QuizAttemptProps } from './shared/types';
 //import { processQuestion } from './processQuestion';
 import { DynamicWordInputs } from './questions/DynamicWordInputs';
-import IncorrectModal from './IncorrectModel';
+import IncorrectModal from './IncorrectModal';
 import api from '../api';
 import { ButtonSelect } from "./questions/ButtonSelect";
 import { RadioQuestion } from "./questions/RadioQuestion";

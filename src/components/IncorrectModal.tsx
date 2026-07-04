@@ -24,22 +24,28 @@ export interface Props {
 
 function IncorrectModal({ parentCallback, format, answer_key, content, explanation,  processQuestionResults }: Props) {
 
-    const [_timeLeft, setTimeLeft] = useState(10);
+    const [timeLeft, setTimeLeft] = useState(10);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current!);
-                    parentCallback('');
-                    return 0;
-                }
-                return prev - 1;
-            });
+            // Keep the updater pure — just decrement. Don't call parentCallback here:
+            // updater functions run during render, and parentCallback is a useEffectEvent
+            // which React forbids calling during rendering.
+            setTimeLeft(prev => (prev <= 1 ? 0 : prev - 1));
         }, 2000);
         return () => clearInterval(timerRef.current!);
     }, []);
+
+    // When the countdown reaches 0, stop the timer and notify the parent (from an effect,
+    // which is a valid place to call a useEffectEvent).
+    useEffect(() => {
+        if (timeLeft === 0) {
+            clearInterval(timerRef.current!);
+            parentCallback('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timeLeft]);
 
     const handleCloseModal = () => {
         clearInterval(timerRef.current!);
@@ -48,7 +54,7 @@ function IncorrectModal({ parentCallback, format, answer_key, content, explanati
 
   return (
 
-    <div className="bg-white rounded-lg shadow-xl p-8 w-auto max-w-xl text-center">
+    <div className="bg-white rounded-lg shadow-xl p-6 w-auto max-w-md max-h-[80vh] overflow-y-auto text-center">
         <div className="mb-4 font-bold text-lg text-red-700">Score: {processQuestionResults?.score}</div>
         <Explanation>
             {(format === 1 || format == 2 ) && 

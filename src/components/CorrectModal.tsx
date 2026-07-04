@@ -11,7 +11,7 @@ function CorrectModal({ message, score}: CorrectModalProps) {
     
     return (
 
-        <div className="bg-white rounded-lg shadow-xl p-8 w-96 text-center">
+        <div className="bg-white rounded-lg shadow-xl p-6 w-72 text-center">
             <p className="text-xl font-bold mb-4 text-green-700">Good job! Keep going!</p>
             <p className="text-sm text-gray-600 mb-4">{message}</p>
             <p className="text-gray-800">Score: {score}</p>
