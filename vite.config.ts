@@ -35,7 +35,15 @@ export default defineConfig({
           ) {
             return 'redux'
           }
-          if (id.includes('react-dom')) return 'react-dom'
+          // Keep react, react-dom and scheduler together — they share a tightly-coupled
+          // init order; splitting them breaks scheduler (e.g. "unstable_now" TypeError).
+          if (
+            id.includes('/react-dom/') ||
+            id.includes('/react/') ||
+            id.includes('/scheduler/')
+          ) {
+            return 'react-vendor'
+          }
           return 'vendor'
         },
       },
