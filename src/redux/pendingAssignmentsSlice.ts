@@ -4,6 +4,7 @@ interface Assignment {
   assignment_id: number;
   quiz_id: number;
   quiz_name: string;
+  unit_name: string;
   category_id: number;
   assigned_at: string;
 }

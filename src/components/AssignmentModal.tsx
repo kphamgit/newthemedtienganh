@@ -5,6 +5,7 @@ interface Assignment {
     assignment_id: number;
     quiz_id: number;
     quiz_name: string;
+    unit_name: string;
     category_id: number;
     assigned_at: string;
 }
@@ -36,7 +37,7 @@ function AssignmentModal({ assignments, onClose }: AssignmentModalProps) {
                 <ul className="space-y-3 mb-6">
                     {assignments.map((a) => (
                         <li key={a.assignment_id} className="flex items-center justify-between border rounded-md p-3">
-                            <span className="font-medium">{a.quiz_name}</span>
+                            <span className="font-medium">{a.unit_name} — {a.quiz_name}</span>
                             <button
                                 className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                                 onClick={() => handleStart(a.category_id, a.quiz_id)}
