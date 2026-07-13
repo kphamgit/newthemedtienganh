@@ -9,7 +9,10 @@ import api from "../api";
 import {toast, ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUserConnections } from "../components/context/UserConnectionsContext";
-import DisplayRecordings from "./DisplayRecordings";
+import ListUsers from "./ListUsers";
+
+import { type QuizProps } from "../components/shared/types";
+
 
 
 export interface TeacherControlRefProps {
@@ -31,12 +34,11 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
 
         const [targetUserName, setTargetUserName] = useState("");
 
-       
         const {websocketRef, eventEmitter} = useWebSocket();
 
         const [inputLiveQuizId, setInputLiveQuizId] = useState("");
 
-        const [inputVideoSegmentNumber, setInputVideoSegmentNumber] = useState("");
+        // const [inputVideoSegmentNumber, setInputVideoSegmentNumber] = useState("");
 
         const [activeLiveQuizId, setActiveLiveQuizId] = useState<string | null>(null); 
         // track active live quiz id . Set after a live_quiz_id message is received from server,
@@ -44,11 +46,17 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         const [showTerminateLiveQuizButton, setShowTerminateLiveQuizButton] = useState(false);
 
         const {userRows} = useUserConnections();
+
+        const [liveQuiz, setLiveQuiz] = useState<QuizProps | null>(null);
+
+        // this is used to store question numbers for all video segments of an active video quiz.
+        const [allQuestionNumbers, setAllQuestionNumbers] = useState<string[]>([]); // store all question numbers for the active live quiz
          
+        const [inputVideoSegmentNumber, setInputVideoSegmentNumber] = useState("");
 
     useEffect(() => {
         if (live_quiz_id) {
-            console.log("TeacherControlPanel: Received live_quiz_id from parent component:", live_quiz_id);
+            // console.log("TeacherControlPanel: Received live_quiz_id from parent component:", live_quiz_id);
             setActiveLiveQuizId(live_quiz_id || null);
             setShowTerminateLiveQuizButton(true);
         }
@@ -58,6 +66,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
     useEffect(() => {
           const handleMessage = (data: WebSocketMessageProps) => {
             //console.log("TeacherControl: handleMessage called with data:", data);
+
             if (data.message_type === "live_quiz_terminated") {
                 //console.log("TeacherControl: Received live_quiz_terminated message from server, data = :", data);
                 setActiveLiveQuizId(null);
@@ -73,6 +82,25 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
           };
         }, [eventEmitter]); // Only include eventEmitter in the dependency array
 
+    useEffect(() => {
+        // this useEffect only applies for video quiz
+        if (liveQuiz) {
+            const question_numbers: string[] = []
+            let question_number = 1;
+            //console.log("TeacherControlPanel: liveQuiz state updated:", liveQuiz);
+            if (liveQuiz.video_segments.length > 0) {
+                liveQuiz.video_segments.forEach(segment => {
+                    console.log(`Segment ${segment.segment_number}: ${segment.start_time} - ${segment.end_time}, Questions: ${segment.question_ids}`);
+                    segment.question_ids.split(",").forEach(() => {
+                        question_numbers.push(question_number.toString());
+                        question_number++;
+                    });
+                });
+            }
+            question_numbers.map(qn => console.log("Question number:", qn));
+            setAllQuestionNumbers(question_numbers);
+        }
+    }, [liveQuiz]);
 
     useImperativeHandle(ref, () => ({
         terminate_live_quiz: () => {
@@ -93,8 +121,40 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         console.log("live quiz id: ");
         api.get(`/api/start_live_quiz/${inputLiveQuizId}`)
         .then(response => {
-            console.log("Response from server after starting live quiz:", response.data);
-            setActiveLiveQuizId(inputLiveQuizId);
+            // console.log("Response from server after starting live quiz:", response.data);
+            setLiveQuiz(response.data.quiz as QuizProps);
+            /*
+{
+    "id": 2,
+    "name": "Video Quiz",
+    "quiz_number": 3,
+    "video_url": "https://www.youtube.com/watch?v=_hH1pzeIawc",
+    "video_segments": [
+        {
+            "id": 1,
+            "quiz_id": 2,
+            "segment_number": 1,
+            "start_time": "0:00:000",
+            "end_time": "0:10:500",
+            "question_ids": "2, 3, 136"
+        },
+        {
+            "id": 2,
+            "quiz_id": 2,
+            "segment_number": 2,
+            "start_time": "0:10:500",
+            "end_time": "0:17:500",
+            "question_ids": "137, 138"
+        }
+    ]
+}
+            */
+
+            if (!response.data.quiz.id) {
+                alert("Failed to start live quiz. Please check the quiz id and try again.");
+                return;
+            }
+            setActiveLiveQuizId(response.data.quiz.id.toString());
             /*
             const liveQuizIdFromServer = response.data.live_quiz_id;
             if (!liveQuizIdFromServer) {
@@ -111,32 +171,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             alert("Error starting live quiz. " + error.response?.data.error);
             // clear the input field
             setInputLiveQuizId("");
-            /*
-
-            */
-           
         });   
-    };
-
-    const sendVideoSegmentNumber = () => {
-        if (!websocketRef.current) {
-            alert("WebSocket is not connected.");
-            return;
-        }
-        websocketRef.current.send(JSON.stringify({
-            message_type: "video_segment_number",
-            content: inputVideoSegmentNumber,  // query key
-            user_name: name,    // identify sender, which is teacher
-        }));
-          toast.success('Okay!', {
-                position: 'top-right',
-                autoClose: 2000, // Auto close after 2 seconds
-                hideProgressBar: true,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-              });
     };
 
     const sendQuestionNumber = () => {
@@ -194,96 +229,139 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         setTargetUserName(userName);
     }
 
-  return (
-    <div className="m-10">
-  
-    <div>TeacherControlPanel
-      
-    </div>
-    <div className="mt-2 bg-green-200">
-        <div>
-            Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
-            { showTerminateLiveQuizButton &&
-            <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={handleTerminateLiveQuiz}>Terminate Live Quiz</button>
+
+    const sendVideoSegmentNumber = () => {
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
         }
-        </div>
-        <span>
-        <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..." 
-        value={inputLiveQuizId || ""} 
-        onChange={e => {setInputLiveQuizId(e.target.value)}} 
-        readOnly={activeLiveQuizId !== null}
-        />
-     
-              <button
-                  className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputLiveQuizId ? "" : "opacity-50 cursor-not-allowed"
-                      }`}
-                  onClick={sendQuizId}
-                  disabled={!inputLiveQuizId} // Disable the button if inputLiveQuizId is empty
-              >
-                  Send Quiz id
-              </button>
-              </span>
+        websocketRef.current.send(JSON.stringify({
+            message_type: "video_segment_number",
+            content: inputVideoSegmentNumber,  // query key
+            user_name: name,    // identify sender, which is teacher
+        }));
+          toast.success('Okay!', {
+                position: 'top-right',
+                autoClose: 2000, // Auto close after 2 seconds
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+              });
+    };
 
-              <span>
-                  <input className="bg-blue-200 text-black m-2 p-2" placeholder="video segment num (2...)"
-                      value={inputVideoSegmentNumber || ""}
-                      onChange={e => { setInputVideoSegmentNumber(e.target.value) }}
-                      readOnly={activeLiveQuizId === null}
-                  />
+    return (
+        <div className="m-10">
 
-                  <button
-                      className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputVideoSegmentNumber ? "" : "opacity-50 cursor-not-allowed"
-                          }`}
-                      onClick={sendVideoSegmentNumber}
-                      disabled={!inputVideoSegmentNumber} // Disable the button if inputLiveQuizId is empty
-                  >
-                      Send Video Segment Number
-                  </button>
-              </span>
-        </div>
-    <div className="mt-2 bg-gray-200">
-        <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
-              <button
-                  className={`text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-800 ${questionNumber ? "" : "opacity-50 cursor-not-allowed"
-                      }`}
-                  onClick={sendQuestionNumber}
-                  disabled={!questionNumber} // Disable the button if questionNumber is empty
-              >
-                  Send Question Number
-              </button>
-        <span>
-            <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="target user name..."
-            onChange={e => setTargetUserName(e.target.value)} value={targetUserName} 
-            />
-        </span>
-        <div className='flex flex-row justify-end gap-2 mt-2'>
-    </div>
-   </div>
+            <div>TeacherControlPanel
 
-   <div className="bg-green-300 p-2 mb-2">
-                <div><button className='bg-amber-700 text-white hover:bg-amber-900 p-1 rounded-md mb-2'
-                 onClick={() => {onUserNameClick('everybody')}}>Everybody</button></div>
-                {userRows && userRows.length > 0 &&
-                    userRows.map((user, index) => (
-                        <div className='flex flex-row justify-start mb-2 items-center bg-green-100 px-2' key={index}>
-                               <div
-                                className={`text-blue-800 font-bold ${user.is_logged_in === false ? "opacity-50" : "opacity-100"
-                                    }`}
-                            >    
-                                <button className='bg-green-700 text-white hover:bg-green-900 p-1 rounded-md'
-                                    onClick={() => { onUserNameClick(user.name)} }
-                                >{user.name}
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                }
-                <DisplayRecordings />
+            </div>
+            <div className="mt-2 bg-green-200">
+                <div>
+                    Active Live Quiz Id: <span className={`text-red-700 text-md font-bold border-2 border-green-400 rounded-full px-2 py-0 inline-block`}>{activeLiveQuizId === null ? "X" : activeLiveQuizId}</span>
+                    {showTerminateLiveQuizButton &&
+                        <button className="text-white bg-red-600 ml-10 mb-2 p-2 rounded-md hover:bg-red-800" onClick={handleTerminateLiveQuiz}>Terminate Live Quiz</button>
+                    }
+                </div>
+                <span>
+                    <input className="bg-blue-200 text-black m-2 p-2" placeholder="quiz id..."
+                        value={inputLiveQuizId || ""}
+                        onChange={e => { setInputLiveQuizId(e.target.value) }}
+                        readOnly={activeLiveQuizId !== null}
+                    />
+
+                    <button
+                        className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputLiveQuizId ? "" : "opacity-50 cursor-not-allowed"
+                            }`}
+                        onClick={sendQuizId}
+                        disabled={!inputLiveQuizId} // Disable the button if inputLiveQuizId is empty
+                    >
+                        Send Quiz id
+                    </button>
+                </span>
+
+
+            </div>
+            <div className="mt-10 bg-gray-200">
+                <input className="bg-blue-200 text-black m-2 p-2 rounded-md" placeholder="question number..." value={questionNumber} onChange={(e) => setQuestionNumber(e.target.value)} />
+                <button
+                    className={`text-white bg-green-600 mb-2 p-1 rounded-md hover:bg-green-800 ${questionNumber ? "" : "opacity-50 cursor-not-allowed"
+                        }`}
+                    onClick={sendQuestionNumber}
+                    disabled={!questionNumber} // Disable the button if questionNumber is empty
+                >
+                    Send Question Number
+                </button>
+                <span>
+                    <input className="bg-blue-200 text-black m-2 p-1 rounded-md" placeholder="target user name..."
+                        onChange={e => setTargetUserName(e.target.value)} value={targetUserName}
+                    />
+                </span>
+                <div className='flex flex-row justify-end gap-2 mt-2'>
+                </div>
             </div>
 
-      <ToastContainer />
-    </div>
-  )
+
+            <div>
+                    <input className="bg-blue-200 text-black m-2 p-2" placeholder="video segment num (2...)"
+                        value={inputVideoSegmentNumber || ""}
+                        onChange={e => { setInputVideoSegmentNumber(e.target.value) }}
+                        
+                    />
+
+                    <button
+                        className={`text-red bg-green-400 mb-2 p-2 rounded-md hover:bg-green-400 ${inputVideoSegmentNumber ? "" : "opacity-50 cursor-not-allowed"
+                            }`}
+                        onClick={sendVideoSegmentNumber}
+                        disabled={!inputVideoSegmentNumber} // Disable the button if inputLiveQuizId is empty
+                    >
+                        Send Video Segment Number
+                    </button>
+            </div>
+            
+
+            
+
+            { allQuestionNumbers.length > 0 && (
+                <div className="mt-10 bg-gray-200 p-2 rounded-md">
+                    <h3 className="text-lg font-bold mb-2">All Question Numbers for Active Live Quiz</h3>
+                    <ul className="list-disc list-inside">
+                        {allQuestionNumbers.map((qn, index) => (
+                            <li key={index}>
+                                Question {qn}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )
+            }
+
+            {liveQuiz && (
+                <div className="mt-10 bg-gray-200 p-2 rounded-md">
+                    <h3 className="text-lg font-bold mb-2">Live Quiz Details</h3>
+                    <p><strong>Quiz Name:</strong> {liveQuiz.name}</p>
+                    <p><strong>Quiz Number:</strong> {liveQuiz.quiz_number}</p>
+                    <p><strong>Video URL:</strong> <a href={liveQuiz.video_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{liveQuiz.video_url}</a></p>
+                    <div className="mt-2">
+                        <h4 className="font-semibold">Video Segments:</h4>
+                        <ul className="list-disc list-inside">
+                            {liveQuiz.video_segments.map((segment) => (
+                                <li key={segment.id}>
+                                    Segment {segment.segment_number}: {segment.start_time} - {segment.end_time}, Questions: {segment.question_ids}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )
+
+            }
+            <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
+
+            <ToastContainer />
+        </div>
+    )
 }
 
 export default TeacherControlPanel

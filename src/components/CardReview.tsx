@@ -52,6 +52,7 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
   useEffect(() => {
     // quizId set -> review one quiz's due cards before the quiz; omitted -> review all vocabulary.
     const url = quizId ? `/api/quizzes/${quizId}/cards/due/` : `/api/cards/due/`;
+    console.log(`Fetching due cards from ${url} for user ${userName}...`);
     api.get(url, { params: { user_name: userName } })
       .then((res) => {
         const due: DueCard[] = res.data.due_cards ?? [];

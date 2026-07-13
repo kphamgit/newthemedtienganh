@@ -33,7 +33,7 @@ import ScoreBoard from '../pages/ScoreBoard';
 import chimeSound from '../assets/chime.mp3';
 //import { User } from 'microsoft-cognitiveservices-speech-sdk';
 import type { UserRowProps } from './context/UserConnectionsContext';
-import CustomYoutubePlayer from './shared/CustomYoutubePlayer';
+//import CustomYoutubePlayer from './shared/CustomYoutubePlayer';
 
 interface TakeQuizLiveProps {
     live_quiz_id: string;
@@ -49,19 +49,6 @@ function extractVideoId(url: string): string {
   return match ? match[1] : url;
 }
 
-// Convert a "MM:SS:mmm" time value into a number of seconds.
-// e.g. "02:33:5000" -> 2*60 + 33 + 5000/1000 = 158 seconds.
-function parseTime(t: string | number | undefined): number {
-  if (t === undefined || t === null || t === '') return 0;
-  if (typeof t === 'number') return t;
-  const parts = t.split(':').map(Number);
-  if (parts.length === 3) {
-    const [minutes, seconds, milliseconds] = parts;
-    return minutes * 60 + seconds + milliseconds / 1000;
-  }
-  const fallback = parseFloat(t);
-  return Number.isNaN(fallback) ? 0 : fallback;
-}
 
 function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: TakeQuizLiveProps) {
     // scenarios:
@@ -84,14 +71,14 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
     const {eventEmitter } = useWebSocket();
     const [showQuestion, setShowQuestion] = useState<boolean>(false); // work in conjunction with questionAttemptData 
 
-    const [activeSegment, setActiveSegment] = useState<VideoSegment | null>(null);
+    //const [activeSegment, setActiveSegment] = useState<VideoSegment | null>(null);
 
     const [showCorrectModal, setShowCorrectModal] = useState(false);
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
 
     const [pendingQuestionAttempt, setPendingQuestionAttempt] = useState<boolean>(false); // to track if a question attempt is being processed by the server. This is important to prevent multiple submissions of the same question attempt when user clicks submit button multiple times before receiving a response from the server.
 
-    const [playKey, setPlayKey] = useState<number | undefined>(undefined);
+    //const [playKey, setPlayKey] = useState<number | undefined>(undefined);
     //const [finishedLiveQuestion, setFinishedLiveQuestion] = useState<{status: boolean, question_number: string}>({ status: false, question_number: '' });
 
     let correctModalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,7 +92,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
     const [allVideoSegments, setAllVideoSegments] = useState<VideoSegment[]>([]);
     //const [videoUrl, setVideoUrl] = useState<string>("");
-    const [videoId, setVideoId] = useState<string>("");
+    const [, setVideoId] = useState<string>("");
  
     //const videoId = extractVideoId(video_url) || 'dQw4w9WgXcQ';
 
@@ -150,12 +137,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
       };
     }, [eventEmitter, allVideoSegments]); // Only include eventEmitter in the dependency array
 
-    const handleSegmentClick = (segment: VideoSegment) => {
-      setActiveSegment(segment);
-      setPlayKey((k) => (k ?? 0) + 1);
-    };
-  
-
+   
     useEffect(() => {
          // call api to get quiz question 
          // data for quizId and questionId
@@ -169,7 +151,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             api.get(`/api/quizzes/${live_quiz_id}/`)
             .then((res) => res.data)
             .then((data) => {
-                //console.log("TakeQuizLive: Quiz  Data:", data);
+                console.log("TakeQuizLive: Quiz  Data:", data);
                 if (data.video_url && data.video_segments) {
                   setAllVideoSegments(data.video_segments);
                   setVideoId(extractVideoId(data.video_url));
@@ -177,6 +159,33 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
                 }
             })
       }, [live_quiz_id]);
+
+      /*
+{
+  "id": 2,
+  "name": "Video Quiz",
+  "quiz_number": 3,
+  "video_url": "https://www.youtube.com/watch?v=_hH1pzeIawc",
+  "video_segments": [
+    {
+      "id": 1,
+      "quiz_id": 2,
+      "segment_number": 1,
+      "start_time": "0:00:000",
+      "end_time": "0:10:500",
+      "question_ids": "2, 3, 136"
+    },
+    {
+      "id": 2,
+      "quiz_id": 2,
+      "segment_number": 2,
+      "start_time": "0:10:500",
+      "end_time": "0:17:500",
+      "question_ids": "137, 138"
+    }
+  ]
+}
+      */
 
     // 1. Encapsulate the "Action" that needs the latest values
     const fetchLiveQuestion = useEffectEvent((questionNum: number) => {
@@ -277,7 +286,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         parent_callback(); // notify parent component that question is finished
       };
 
-      const displayShowQuestionStatus = () => {
+      const displayPendingQuestionStatus = () => {
         // only display status if quiz_id is set
         if (live_quiz_id) {
             if (!showQuestion) {
@@ -316,71 +325,24 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
 
   return (
     <>
-      <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5">
+      <div className="grid grid-cols-[3fr_1fr] gap-4 mr-5 bg-gray-200 min-h-screen">
         {/* Left Column */}
-        <div className="bg-blue-200 py-2 px-10 h-full">
+        <div className="bg-cyan-400 py-2 px-10 h-full">
           <div>Pending question attempt: {pendingQuestionAttempt.toString()}</div>
           <div className='bg-cyan-300 flex flex-row justify-center items-center mt-5 mb-3'>
             <span className='mx-3'>Quiz ID:</span>
             <span className={`text-red-300 text-md font-bold border-2 mr-5  border-red-400 rounded-full px-2 py-0 inline-block`}>{live_quiz_id} </span>
-            {displayShowQuestionStatus()}
           </div>
 
-      
-        {videoId && allVideoSegments &&
-           <div className="relative" style={{ maxWidth: '640px', margin: '0 auto' }}>
-             <CustomYoutubePlayer
-                     videoId={videoId}
-                     startTime={activeSegment ? parseTime(activeSegment.start_time) : 0}
-                     stopTime={activeSegment ? parseTime(activeSegment.end_time) : 0}
-                     playKey={playKey}
-                     allVideoSegments={allVideoSegments}
-                   />
-
-             {/* Feedback modal overlay — confined to the video frame */}
-             {(showCorrectModal || showIncorrectModal) && (
-               <div className="absolute inset-0 bg-slate-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-                 {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
-                 {showIncorrectModal && <IncorrectModal
-                   parentCallback={handleModalClose}
-                   format={question?.format ?? 1}
-                   content={question?.content ?? ""}
-                   answer_key={question?.answer_key ?? ""}
-                   explanation={question?.explanation ?? ""}
-                   processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
-                 />}
-               </div>
-             )}
-           </div>
-        }
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <div className="flex flex-wrap justify-start gap-2 mt-3">
-          {allVideoSegments.map((segment) => (
-            <button
-              key={segment.segment_number}
-              onClick={() => handleSegmentClick(segment)}
-              className={`px-4 py-2 rounded-md font-medium border transition-colors ${
-                activeSegment?.segment_number === segment.segment_number
-                  ? 'bg-amber-600 text-white border-amber-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-              }`}
-            >
-            {segment.segment_number}
-            </button>
-          ))}
-        </div>
-      </div>
-
-
-          {question && showQuestion && (
+          {question && showQuestion ? (
             <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200">
-              <div className="mb-3 text-lg text-blue-200 font-bold">
+              <div className="mb-3 text-lg text-amber-800">
                 Question: {question?.question_number}
               </div>
               {SafeHTML({ content: question.instructions ?? "" })}
               {question?.prompt && (
-                <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
-                  {question.prompt}
+                <div className="mb-3 mt-5 text-amber-600 whitespace-pre-wrap">
+                  PROMPT: {question.prompt}
                 </div>
               )
               }
@@ -399,6 +361,10 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
               </button>
             </div>
 
+          ) : (
+            <div className="col-span-8 mx-15 my-5 p-10 rounded-md bg-cyan-200 text-center text-xl text-gray-700">
+              {displayPendingQuestionStatus()}
+            </div>
           )}
         </div>
 
@@ -407,6 +373,21 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
           <ScoreBoard my_row={myLiveScore} />
         </div>
       </div>
+
+      {/* Feedback modal — fixed overlay centered on top of the whole component */}
+      {(showCorrectModal || showIncorrectModal) && (
+        <div className="fixed inset-0 bg-slate-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          {showCorrectModal && <CorrectModal score={questionAttemptAssessmentResults?.score} />}
+          {showIncorrectModal && <IncorrectModal
+            parentCallback={handleModalClose}
+            format={question?.format ?? 1}
+            content={question?.content ?? ""}
+            answer_key={question?.answer_key ?? ""}
+            explanation={question?.explanation ?? ""}
+            processQuestionResults={questionAttemptAssessmentResults as QuestionAttemptAssesmentResultsProps}
+          />}
+        </div>
+      )}
     </>
   )
 }

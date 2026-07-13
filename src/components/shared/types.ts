@@ -65,9 +65,19 @@ interface BaseWebSocketMessageProps {
 }
 
 export interface VideoSegment {
+  id: number,
   segment_number: number,
   start_time: string,
   end_time: string,
+  question_ids: string, // comma-separated list of question ids
+}
+
+export interface QuizProps {
+  id: number,
+  name: string,
+  quiz_number: number,
+  video_url: string,
+  video_segments: VideoSegment[],
 }
 
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
