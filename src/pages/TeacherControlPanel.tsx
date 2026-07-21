@@ -337,26 +337,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             )
             }
 
-            {liveQuiz && (
-                <div className="mt-10 bg-gray-200 p-2 rounded-md">
-                    <h3 className="text-lg font-bold mb-2">Live Quiz Details</h3>
-                    <p><strong>Quiz Name:</strong> {liveQuiz.name}</p>
-                    <p><strong>Quiz Number:</strong> {liveQuiz.quiz_number}</p>
-                    <p><strong>Video URL:</strong> <a href={liveQuiz.video_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{liveQuiz.video_url}</a></p>
-                    <div className="mt-2">
-                        <h4 className="font-semibold">Video Segments:</h4>
-                        <ul className="list-disc list-inside">
-                            {liveQuiz.video_segments.map((segment) => (
-                                <li key={segment.id}>
-                                    Segment {segment.segment_number}: {segment.start_time} - {segment.end_time}, Questions: {segment.question_ids}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-            )
-
-            }
             <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
 
             <ToastContainer />

@@ -9,7 +9,7 @@ import { FaSpinner } from 'react-icons/fa';
 
 function StudentScoreRow({ user }: { user: UserRowProps }) {
   return (
-    <div className='flex flex-row justify-start mb-2 items-center bg-cyan-100 px-2'>
+    <div className='flex flex-row justify-start mb-2 items-center bg-amber-300 px-2'>
       <div>{user.name}</div>
       {user.live_question_number !== undefined && (
         <>
@@ -20,7 +20,7 @@ function StudentScoreRow({ user }: { user: UserRowProps }) {
             <div className='mx-2'>Score:</div>
             <div>
               {user.live_score === undefined
-                ? <FaSpinner className="animate-spin text-blue-500" size={17} />
+                ? <FaSpinner className="animate-spin text-blue-200" size={17} />
                 : <span className="ml-2">{user.live_score}</span>
               }
             </div>
@@ -145,7 +145,7 @@ interface ScoreBoardProps {
         <>
         {my_row && <StudentScoreRow user={my_row} />}
        
-            <div className="bg-blue-300 p-0 mt-10 mb-2 h-[100px] overflow-y-auto">
+            <div className="bg-blue-200 p-0 mt-10 mb-2 flex-1 min-h-0 overflow-y-auto">
                 { userRows && userRows.length > 0 &&
                     [...userRows]
                     .sort((a, b) => (b.live_total_score ?? -1) - (a.live_total_score ?? -1))
