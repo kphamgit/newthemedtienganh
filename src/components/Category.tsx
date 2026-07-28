@@ -3,6 +3,8 @@ import "../styles/Note.css"
 import { useNavigate, useParams } from 'react-router-dom';
 import api from "../api";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "../redux/store";
 
 interface UnitProps {
     id: number,
@@ -26,6 +28,10 @@ function Category() {
     const [id, setId] = useState<number>(0);
 
     const navigate = useNavigate();
+
+    // The app identifies the teacher by the user name "teacher" (same convention as ScoreBoard/Home).
+    const { name } = useSelector((state: RootState) => state.user);
+    const isTeacher = name === "teacher";
 
     useEffect(() => {
        if (params.category_id) {
@@ -78,17 +84,20 @@ function Category() {
                             unit.quizzes && unit.quizzes.map((quiz) => (
                                 <div key={quiz.id} className="px-6 my-1">
                                     <span>{quiz.quiz_number}.</span>
-                                   
+
                                     { quiz.video_url ?
                                     <>
                                         <button className=' px-2 rounded-md hover:underline' onClick={() => take_video_quiz(quiz)}>
-                                        {quiz.name} 
+                                        {quiz.name}
                                     </button>
                                     </>
                                     :
                                     <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
-                                    {quiz.name} 
+                                    {quiz.name}
                                 </button>
+                                    }
+                                    { isTeacher &&
+                                        <span className="ml-2 text-base font-bold text-red-800">(id: {quiz.id})</span>
                                     }
                                 </div>
                             ))
