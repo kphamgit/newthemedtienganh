@@ -174,10 +174,13 @@ export interface ChatProps {
     // transcript to the student (echoed into the chat) and send it to the teacher, then LOCK the
     // mic so they can't re-record. (audioUrl is the S3 link, available for future use e.g. replay.)
     const handleVoiceTranscribed = (transcript: string, audioUrl?: string) => {
+      // Empty/failed transcription: leave the mic available AND keep the input disabled, so the
+      // student must re-record (they can't type a "fake" transcription while the mic is open).
       if (!transcript || transcript.trim().length === 0) return;
       // Send transcript + audio url; echoed to the student too so they see their transcription.
       sendText(transcript, true, audioUrl);
-      setMicDisabled(true); // one attempt only — no retrying for a better transcription
+      setMicDisabled(true);    // one attempt only — no retrying for a better transcription
+      setInputDisabled(false); // answer accepted → re-enable typing
     };
 
   
@@ -221,7 +224,12 @@ export interface ChatProps {
                   {/* Student: record a spoken answer; it's transcribed on the server and sent to the teacher.
                       Locked after one attempt (micDisabled) until the teacher sends a new message. */}
                   {isStudent && (
-                    <VoiceAnswerRecorder onTranscribed={handleVoiceTranscribed} userName={name} disabled={micDisabled} />
+                    <VoiceAnswerRecorder
+                      onTranscribed={handleVoiceTranscribed}
+                      userName={name}
+                      disabled={micDisabled}
+                      highlight={inputDisabled && !micDisabled}
+                    />
                   )}
                   {/* Teacher-only: send a message that forces the student to answer by voice */}
                   {!isStudent && (
