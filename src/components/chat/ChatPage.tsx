@@ -205,6 +205,12 @@ export interface ChatProps {
               {/* Input, voice recorder, and Send button */}
               <div className="p-2 border-t border-gray-300 bg-gray-100">
                 <div className="flex items-center gap-2">
+                  <button
+                    className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                    onClick={sendChatMessage}
+                  >
+                    Send
+                  </button>
                   <input
                     disabled={inputDisabled}
                     className={`flex-1 bg-gray-200 text-black p-2 rounded-md ${inputDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -217,12 +223,6 @@ export interface ChatProps {
                   {isStudent && (
                     <VoiceAnswerRecorder onTranscribed={handleVoiceTranscribed} userName={name} disabled={micDisabled} />
                   )}
-                  <button
-                    className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-                    onClick={sendChatMessage}
-                  >
-                    Send
-                  </button>
                   {/* Teacher-only: send a message that forces the student to answer by voice */}
                   {!isStudent && (
                     <button
