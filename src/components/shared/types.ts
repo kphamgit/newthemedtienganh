@@ -83,9 +83,10 @@ export interface QuizProps {
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
   connected_users?: ReceivedConnectedUserDataProps[];
   queried_value?: string; // only for cache_query_response message type
-  quiz_name?: string; // 
-  live_quiz_id: string; // for quiz host to identify which quiz the message is related to, and for students to identify which quiz to join  
+  quiz_name?: string; //
+  live_quiz_id: string; // for quiz host to identify which quiz the message is related to, and for students to identify which quiz to join
   live_question_number: string; // for quiz host to identify which question the message is related to, and for students to identify which question to answer
+  audio_url?: string; // for chat voice answers: presigned S3 url of the recorded audio
 }
 
 export interface QuestionProps {

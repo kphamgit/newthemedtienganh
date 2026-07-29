@@ -1,9 +1,10 @@
 
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
-import VoiceAnswerRecorder from './VoiceAnswerRecorder';
+import SRNonContinuous from '../questions/SRNonContinuous';
+import { type ChildRef } from '../TakeQuiz';
 import { FaAngleDoubleRight } from 'react-icons/fa';
 //import type { WebSocketMessageProps } from '../shared/types';
 //import type { RootState } from '../../redux/store';
@@ -26,10 +27,9 @@ export interface ChatPageProps {
 export interface ChatProps {
     text?: string;
     user_name: string;
-    audio_url?: string; // presigned S3 url of a recorded voice answer (for the teacher to replay)
   }
   
-    export const ChatPage = ({ ref, chat, onClose }: ChatPageProps) => {
+    export const ChatPageSaved = ({ ref, chat, onClose }: ChatPageProps) => {
 
     const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
 
@@ -43,9 +43,6 @@ export interface ChatProps {
     // When the teacher sends a message beginning with "SR", the student must answer by voice:
     // the text input is disabled until they respond.
     const [inputDisabled, setInputDisabled] = useState<boolean>(false);
-    // The mic is locked after the student submits one recorded answer (no retries), and re-opens
-    // when the teacher sends a new message.
-    const [micDisabled, setMicDisabled] = useState<boolean>(false);
 
     const {websocketRef} = useWebSocket();
     
@@ -78,11 +75,9 @@ export interface ChatProps {
           return [...prevMessages, chat]
           });
 
-        // Student side: a new teacher message opens a fresh answer opportunity.
-        if (name !== "teacher") {
-          const isSR = chatMessage.text?.trim().startsWith("SR") ?? false;
-          setInputDisabled(isSR); // SR => force voice (disable typing); otherwise allow typing
-          setMicDisabled(false);  // re-open the mic for the new question
+        // A student receiving a teacher message that starts with "SR" must reply by voice.
+        if (name !== "teacher" && chatMessage.text?.trim().startsWith("SR")) {
+          setInputDisabled(true);
         }
 
       }
@@ -125,10 +120,8 @@ export interface ChatProps {
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
     */
     
-    // Send an arbitrary piece of text as a chat message. `audioUrl` (optional) is the S3 link of a
-    // recorded voice answer, so the teacher can replay it. `echoLocally` controls whether the sender
-    // also sees the message in their own chat body.
-    const sendText = (text: string, echoLocally: boolean = true, audioUrl?: string) => {
+    // Send an arbitrary piece of text as a chat message (used by the typed input and the spoken reply).
+    const sendText = (text: string) => {
       if (!text || text.trim().length === 0) return;
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
         alert('ChatPage: WebSocket is not connected');
@@ -137,24 +130,48 @@ export interface ChatProps {
       const messageToSend = {
         message_type: 'chat',
         content: text,
-        user_name: name, // You can replace this with the actual user name from your state
-        audio_url: audioUrl, // forwarded verbatim by the ws-server's general broadcast
+        user_name: name // You can replace this with the actual user name from your state
       };
       websocketRef.current.send(JSON.stringify(messageToSend));
-      if (echoLocally) {
-        setIncomingMessages((prevMessages) => [
-          ...prevMessages,
-          { text, user_name: name, audio_url: audioUrl },
-        ]);
-      }
+      // add the sent message to incomingMessages so it shows up in chat body
+      setIncomingMessages((prevMessages) => [
+        ...prevMessages,
+        { text, user_name: name },
+      ]);
     };
 
     // Everyone who isn't the teacher is treated as a student.
     const isStudent = name !== "teacher";
 
-    // Reset the composer after a message is sent.
+    // Ref to the speech-recognition mic, so we can clear its transcript after sending.
+    const srRef = useRef<ChildRef>(null);
+    // Latest value of the input, readable inside the (stable) transcript callback without stale closures.
+    const outgoingMessageRef = useRef<string>('');
+    outgoingMessageRef.current = outgoingMessage;
+    // Previous transcript and the text typed before the current dictation session started (for appending).
+    const prevTranscriptRef = useRef<string>('');
+    const dictationBaseRef = useRef<string>('');
+
+    // The mic dictates into the message input: append the live transcript to whatever was typed
+    // before this dictation session started. Cumulative transcript => recompute from the base each time.
+    const handleTranscriptChange = useCallback((transcript: string) => {
+      const prev = prevTranscriptRef.current;
+      prevTranscriptRef.current = transcript;
+      if (transcript === '') return; // reset/empty — don't clobber the input
+      if (prev === '') {
+        // A new dictation session just started; remember the currently typed text.
+        dictationBaseRef.current = outgoingMessageRef.current;
+      }
+      const base = dictationBaseRef.current;
+      setOutgoingMessage(base ? `${base} ${transcript}` : transcript);
+    }, []);
+
+    // Reset the composer (input + dictation state) after a message is sent.
     const clearComposer = () => {
       setOutgoingMessage('');
+      srRef.current?.resetTranscript?.(); // clear the mic transcript so next dictation starts fresh
+      dictationBaseRef.current = '';
+      prevTranscriptRef.current = '';
       setInputDisabled(false); // re-enable typing after the student has responded
     };
 
@@ -168,16 +185,6 @@ export interface ChatProps {
       const srText = outgoingMessage.trim() ? `SR ${outgoingMessage.trim()}` : 'SR';
       sendText(srText);
       clearComposer();
-    };
-
-    // Student: a recorded answer has been saved to S3 and transcribed on the server. Show the
-    // transcript to the student (echoed into the chat) and send it to the teacher, then LOCK the
-    // mic so they can't re-record. (audioUrl is the S3 link, available for future use e.g. replay.)
-    const handleVoiceTranscribed = (transcript: string, audioUrl?: string) => {
-      if (!transcript || transcript.trim().length === 0) return;
-      // Send transcript + audio url; echoed to the student too so they see their transcription.
-      sendText(transcript, true, audioUrl);
-      setMicDisabled(true); // one attempt only — no retrying for a better transcription
     };
 
   
@@ -202,7 +209,7 @@ export interface ChatProps {
                 <ChatBody messages={incomingMessages} />
               </div>
 
-              {/* Input, voice recorder, and Send button */}
+              {/* Input, mic (dictation), and a single Send button */}
               <div className="p-2 border-t border-gray-300 bg-gray-100">
                 <div className="flex items-center gap-2">
                   <input
@@ -212,10 +219,9 @@ export interface ChatProps {
                     value={outgoingMessage}
                     onChange={(e) => setOutgoingMessage(e.target.value)}
                   />
-                  {/* Student: record a spoken answer; it's transcribed on the server and sent to the teacher.
-                      Locked after one attempt (micDisabled) until the teacher sends a new message. */}
+                  {/* Student: dictate into the input (always available) */}
                   {isStudent && (
-                    <VoiceAnswerRecorder onTranscribed={handleVoiceTranscribed} userName={name} disabled={micDisabled} />
+                    <SRNonContinuous ref={srRef} compact onTranscriptChange={handleTranscriptChange} />
                   )}
                   <button
                     className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
@@ -241,5 +247,5 @@ export interface ChatProps {
     );
   };
   
-  export default ChatPage;
+  export default ChatPageSaved;
 
