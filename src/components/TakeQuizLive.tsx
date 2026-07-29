@@ -160,33 +160,6 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
             })
       }, [live_quiz_id]);
 
-      /*
-{
-  "id": 2,
-  "name": "Video Quiz",
-  "quiz_number": 3,
-  "video_url": "https://www.youtube.com/watch?v=_hH1pzeIawc",
-  "video_segments": [
-    {
-      "id": 1,
-      "quiz_id": 2,
-      "segment_number": 1,
-      "start_time": "0:00:000",
-      "end_time": "0:10:500",
-      "question_ids": "2, 3, 136"
-    },
-    {
-      "id": 2,
-      "quiz_id": 2,
-      "segment_number": 2,
-      "start_time": "0:10:500",
-      "end_time": "0:17:500",
-      "question_ids": "137, 138"
-    }
-  ]
-}
-      */
-
     // 1. Encapsulate the "Action" that needs the latest values
     const fetchLiveQuestion = useEffectEvent((questionNum: number) => {
       // We check pending status here to ensure we have the latest state
@@ -217,11 +190,8 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         //console.log("TakeQuizLive: question_number is not set.");
         return;
       }
-
-      // Call the event handler
-      console.log("TakeQuizLive: useEffect triggered for liveQuestionNumber change. Calling fetchLiveQuestion with question number:", Number(liveQuestionNumber));
+      //console.log("TakeQuizLive: useEffect triggered for liveQuestionNumber change. Calling fetchLiveQuestion with question number:", Number(liveQuestionNumber));
       fetchLiveQuestion(Number(liveQuestionNumber));
-
       // Dependency array is now clean and specific
     }, [liveQuestionNumber]);
     

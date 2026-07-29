@@ -12,6 +12,7 @@ import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
 import AudioRecorder from "../components/shared/AudioRecorder";
 import HomeAdmin from "./HomeAdmin";
+import { FaAngleDoubleLeft } from "react-icons/fa";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import MessageController from "./MessageController";
 import type { ReceivedConnectedUserDataProps, WebSocketMessageProps } from "../components/shared/types";
@@ -186,15 +187,17 @@ function Home() {
                 {renderHomeContent()
 
                 }
-                { isChatOpen === true &&  <ChatPage ref={chatPageRef} chat = {chatMessage}/>}
-                <div className="fixed bottom-4 right-4">
-               <button
-                   className="bg-blue-300 p-2 rounded-md shadow-md hover:bg-blue-400"
-                   onClick={() => toggleChatBox()}
-               >
-                   {isChatOpen ? 'Close Chat' : 'Open Chat'}
-               </button>
-           </div>
+                { isChatOpen === true &&  <ChatPage ref={chatPageRef} chat = {chatMessage} onClose={() => toggleChatBox(false)} />}
+                { !isChatOpen &&
+                    <button
+                        onClick={() => toggleChatBox(true)}
+                        aria-label="Open chat"
+                        title="Open chat"
+                        className="fixed right-0 bottom-15 h-72 w-6 z-20 flex items-center justify-center bg-blue-300 hover:bg-blue-400 rounded-l-md shadow-md"
+                    >
+                        <FaAngleDoubleLeft />
+                    </button>
+                }
 
             </>
        

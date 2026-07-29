@@ -1,8 +1,11 @@
 
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ChatBody from './ChatBody';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSelector } from 'react-redux';
+import SRNonContinuous from '../questions/SRNonContinuous';
+import { type ChildRef } from '../TakeQuiz';
+import { FaAngleDoubleRight } from 'react-icons/fa';
 //import type { WebSocketMessageProps } from '../shared/types';
 //import type { RootState } from '../../redux/store';
 //import type { WebSocketMessageProps } from '../shared/types';
@@ -18,6 +21,7 @@ export interface ChatPageRefProps {
 export interface ChatPageProps {
     ref: React.Ref<ChatPageRefProps>;
     chat: ChatProps;
+    onClose?: () => void; // collapse/close the chat window
   }
 
 export interface ChatProps {
@@ -25,7 +29,7 @@ export interface ChatProps {
     user_name: string;
   }
   
-    export const ChatPage = ({ ref, chat }: ChatPageProps) => {
+    export const ChatPage = ({ ref, chat, onClose }: ChatPageProps) => {
 
     const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
 
@@ -35,6 +39,10 @@ export interface ChatProps {
     const [isChatOpen, setIsChatOpen] = useState(true);
 
     const [outgoingMessage, setOutgoingMessage] = useState<string>('');
+
+    // When the teacher sends a message beginning with "SR", the student must answer by voice:
+    // the text input is disabled until they respond.
+    const [inputDisabled, setInputDisabled] = useState<boolean>(false);
 
     const {websocketRef} = useWebSocket();
     
@@ -66,6 +74,11 @@ export interface ChatProps {
         setIncomingMessages((prevMessages) => {
           return [...prevMessages, chat]
           });
+
+        // A student receiving a teacher message that starts with "SR" must reply by voice.
+        if (name !== "teacher" && chatMessage.text?.trim().startsWith("SR")) {
+          setInputDisabled(true);
+        }
 
       }
     }, [chat])
@@ -107,25 +120,71 @@ export interface ChatProps {
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
     */
     
-    const sendChatMessage = () => {
+    // Send an arbitrary piece of text as a chat message (used by the typed input and the spoken reply).
+    const sendText = (text: string) => {
+      if (!text || text.trim().length === 0) return;
       if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
         alert('ChatPage: WebSocket is not connected');
         return;
       }
       const messageToSend = {
         message_type: 'chat',
-        content: outgoingMessage,
+        content: text,
         user_name: name // You can replace this with the actual user name from your state
       };
-      //console.log('ChatPage: Sending message to server:', messageToSend);
       websocketRef.current.send(JSON.stringify(messageToSend));
       // add the sent message to incomingMessages so it shows up in chat body
       setIncomingMessages((prevMessages) => [
         ...prevMessages,
-        { text: outgoingMessage, user_name: name },
+        { text, user_name: name },
       ]);
-      setOutgoingMessage(''); // Clear the input field after sending
-      //console.log('ChatPage: Sent message to server:', messageToSend);
+    };
+
+    // Everyone who isn't the teacher is treated as a student.
+    const isStudent = name !== "teacher";
+
+    // Ref to the speech-recognition mic, so we can clear its transcript after sending.
+    const srRef = useRef<ChildRef>(null);
+    // Latest value of the input, readable inside the (stable) transcript callback without stale closures.
+    const outgoingMessageRef = useRef<string>('');
+    outgoingMessageRef.current = outgoingMessage;
+    // Previous transcript and the text typed before the current dictation session started (for appending).
+    const prevTranscriptRef = useRef<string>('');
+    const dictationBaseRef = useRef<string>('');
+
+    // The mic dictates into the message input: append the live transcript to whatever was typed
+    // before this dictation session started. Cumulative transcript => recompute from the base each time.
+    const handleTranscriptChange = useCallback((transcript: string) => {
+      const prev = prevTranscriptRef.current;
+      prevTranscriptRef.current = transcript;
+      if (transcript === '') return; // reset/empty — don't clobber the input
+      if (prev === '') {
+        // A new dictation session just started; remember the currently typed text.
+        dictationBaseRef.current = outgoingMessageRef.current;
+      }
+      const base = dictationBaseRef.current;
+      setOutgoingMessage(base ? `${base} ${transcript}` : transcript);
+    }, []);
+
+    // Reset the composer (input + dictation state) after a message is sent.
+    const clearComposer = () => {
+      setOutgoingMessage('');
+      srRef.current?.resetTranscript?.(); // clear the mic transcript so next dictation starts fresh
+      dictationBaseRef.current = '';
+      prevTranscriptRef.current = '';
+      setInputDisabled(false); // re-enable typing after the student has responded
+    };
+
+    const sendChatMessage = () => {
+      sendText(outgoingMessage);
+      clearComposer();
+    };
+
+    // Teacher-only: prepend "SR" so the student is forced to answer by voice.
+    const sendSRMessage = () => {
+      const srText = outgoingMessage.trim() ? `SR ${outgoingMessage.trim()}` : 'SR';
+      sendText(srText);
+      clearComposer();
     };
 
   
@@ -133,28 +192,53 @@ export interface ChatProps {
       <div
         className="fixed bottom-15 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-72 flex flex-col z-20"
       >
-       
+          {/* Close arrow — sticks to the right edge of the chat window */}
+          <button
+            onClick={onClose}
+            aria-label="Close chat"
+            title="Close chat"
+            className="absolute top-1 right-1 z-30 p-1 text-gray-500 hover:text-gray-800"
+          >
+            <FaAngleDoubleRight />
+          </button>
+
           <>
             <div className="flex flex-col h-full">
               {/* Chat Body */}
               <div className="flex-1 overflow-y-auto p-4">
                 <ChatBody messages={incomingMessages} />
               </div>
-    
-              {/* Input and Send Button */}
+
+              {/* Input, mic (dictation), and a single Send button */}
               <div className="p-2 border-t border-gray-300 bg-gray-100">
-                <input
-                  className="bg-gray-200 text-black w-full p-2 rounded-md mb-2"
-                  placeholder="Type your message..."
-                  value={outgoingMessage}
-                  onChange={(e) => setOutgoingMessage(e.target.value)}
-                />
-                <button
-                  className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
-                  onClick={sendChatMessage}
-                >
-                  Send Message
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    disabled={inputDisabled}
+                    className={`flex-1 bg-gray-200 text-black p-2 rounded-md ${inputDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder={inputDisabled ? 'Typing disabled — please speak your reply' : 'Type or speak your message...'}
+                    value={outgoingMessage}
+                    onChange={(e) => setOutgoingMessage(e.target.value)}
+                  />
+                  {/* Student: dictate into the input (always available) */}
+                  {isStudent && (
+                    <SRNonContinuous ref={srRef} compact onTranscriptChange={handleTranscriptChange} />
+                  )}
+                  <button
+                    className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600"
+                    onClick={sendChatMessage}
+                  >
+                    Send
+                  </button>
+                  {/* Teacher-only: send a message that forces the student to answer by voice */}
+                  {!isStudent && (
+                    <button
+                      className="bg-purple-600 text-white p-2 rounded-md hover:bg-purple-700"
+                      onClick={sendSRMessage}
+                    >
+                      Send SR
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </>

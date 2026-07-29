@@ -45,6 +45,8 @@ import TimeoutModal from './TImeOutModal';
 
 export interface ChildRef {
     getAnswer: () => string | undefined;
+    // Optional: components backed by speech recognition can expose this to clear their transcript.
+    resetTranscript?: () => void;
   }
 
 const TakeQuiz: React.FC = () => {
