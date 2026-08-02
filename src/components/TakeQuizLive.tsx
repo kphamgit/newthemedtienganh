@@ -5,30 +5,20 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useWebSocket } from './context/WebSocketContext';
 import type { ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, VideoSegment, WebSocketMessageProps } from './shared/types';
 import api from '../api';
-import { DynamicWordInputs } from './questions/DynamicWordInputs';
-import { ButtonSelect } from './questions/ButtonSelect';
-import { RadioQuestion } from './questions/RadioQuestion';
-import { CheckboxQuestion } from './questions/CheckboxQuestion';
-import DragDrop from './questions/dragdrop/DragDrop';
-//import WordsSelect from './explanations/WordsSelect';
-import { DropDowns } from './questions/DropDowns';
-import SentenceScramble from './questions/SentenceScramble';
 import DOMPurify from 'dompurify';
 import type { ChildRef } from './TakeQuiz';
 import CorrectModal from './CorrectModal';
 import IncorrectModal from './IncorrectModal';
+import QuestionInput from './QuestionInput';
 
 import { useSelector } from 'react-redux';
 import { type RootState } from '../redux/store';
-import { WordsSelect } from './questions/WordsSelect';
-import SRNonContinuous from './questions/SRNonContinuous';
 
 
 // import './VideoPlayer.css';
 
 
 import OpenAIStream from './shared/OpenAIStream';
-import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ScoreBoard from '../pages/ScoreBoard';
 import chimeSound from '../assets/chime.mp3';
 //import { User } from 'microsoft-cognitiveservices-speech-sdk';
@@ -266,31 +256,9 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
         }
       }
 
-  const displayQuestion = (format: number) => {
-    switch(format) {
-      case 1:
-        return <DynamicWordInputs content={question?.content ?? ""} ref={childRef} />;
-      case 2:
-        return <ButtonSelectCloze content={question?.content ?? ""} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options ?? ""} ref={childRef} />;
-      case 3:
-        return <ButtonSelect content={question?.content ?? ""} ref={childRef} />;
-      case 4:
-        return <RadioQuestion content={question?.content ?? ""} ref={childRef} />;
-      case 5:
-        return <CheckboxQuestion content={question?.content ?? ""} ref={childRef} />;
-      case 6:
-        return <DragDrop content={question?.content ?? ""} content_language={question?.content_language ?? ""} ref={childRef} />;
-      case 7:
-        return <SRNonContinuous content={question?.content ?? ""} ref={childRef} />
-      case 8:
-        return <WordsSelect content={question?.content ?? ""} ref={childRef} />;
-      case 10:
-        return <DropDowns content={question?.content ?? ""} ref={childRef} />;
-      case 12:
-        return <SentenceScramble content={question?.content ?? ""} ref={childRef} />;
-      default:
-        return null;
-    }
+  const displayQuestion = () => {
+    if (!question) return null;
+    return <QuestionInput question={question} ref={childRef} />;
   }
 
   return (
@@ -322,7 +290,7 @@ function TakeQuizLive({ live_quiz_id , live_question_number,  parent_callback}: 
                 }
               </div>
               <div className='my-5'>
-                {displayQuestion(question.format)}
+                {displayQuestion()}
               </div>
               <button className='bg-green-500 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-300'
                 onClick={() => handleSubmit()}

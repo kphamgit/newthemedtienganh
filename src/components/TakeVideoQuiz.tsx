@@ -9,19 +9,10 @@ import { useSelector } from 'react-redux';
 import { type QuestionProps} from './shared/types';
 
 import type { ChildRef } from './TakeQuiz';
-import { DynamicWordInputs } from './questions/DynamicWordInputs';
 import IncorrectModal from './IncorrectModal';
-import { ButtonSelect } from "./questions/ButtonSelect";
-import { RadioQuestion } from "./questions/RadioQuestion";
-import { CheckboxQuestion } from "./questions/CheckboxQuestion";
-import DragDrop from "./questions/dragdrop/DragDrop";
-import { WordsSelect } from "./questions/WordsSelect";
-import SentenceScramble from "./questions/SentenceScramble";
-import { DropDowns } from "./questions/DropDowns";
 import CorrectModal from './CorrectModal';
-import SRNonContinuous from './questions/SRNonContinuous';
+import QuestionInput from './QuestionInput';
 //import OpenAIStream from './shared/OpenAIStream';
-import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 //import { on } from 'events';
 
 interface VideoSegment {
@@ -70,6 +61,9 @@ const DEFAULT_SEGMENTS: VideoSegment[] = [
   { id: 3, quiz_id: 0, segment_number: 3, start_time: '00:40:000', end_time: '01:00:000', question_ids: '' },
 ];
 
+// How many times a student may rewatch each segment before they must move on.
+const MAX_REWATCHES = 1;
+
 export default function TakeVideoQuiz() {
   const location = useLocation();
   const { quiz_id, video_url, video_segments } = location.state || {};
@@ -92,6 +86,7 @@ export default function TakeVideoQuiz() {
   const [quizAttempt, setQuizAttempt] = useState<QuizAttemptProps | null>(null);
   const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
   const [showRewatchPrompt, setShowRewatchPrompt] = useState<boolean>(false); //
+  const [rewatchesLeft, setRewatchesLeft] = useState<number>(MAX_REWATCHES); // per-segment rewatch allowance
   const [showCorrectModal, setShowCorrectModal] = useState(false);
   const [showIncorrectModal, setShowIncorrectModal] = useState(false);
   const [showRedoQuizPrompt, setShowRedoQuizPrompt] = useState<boolean>(false); //
@@ -109,22 +104,67 @@ export default function TakeVideoQuiz() {
   const incorrectModalQuestion = useRef<QuestionProps | undefined>(undefined);
   // Holds the pending-attempt response while the redo prompt is up, so its handlers can use it.
   const pendingResponseRef = useRef<CreateVideoQuizAttemptResponse | null>(null);
+  // Which quiz we've already POSTed a create-attempt for, so StrictMode's double-invocation (or a
+  // re-render) doesn't create/fetch the attempt twice — the 2nd call would return created:false.
+  const requestedQuizRef = useRef<unknown>(undefined);
   // Mirror of activeSegment so async handlers read the latest value (no stale closure).
   const activeSegmentRef = useRef<VideoSegment | null>(null);
   activeSegmentRef.current = activeSegment;
 
   useEffect(() => {
+    // Only POST once per quiz (guards against StrictMode's setup→cleanup→setup double-invocation,
+    // whose 2nd call would find the just-created attempt and return created:false → false redo prompt).
+    if (requestedQuizRef.current === quiz_id) return;
+    requestedQuizRef.current = quiz_id;
     // console.log("Starting quiz attempt because this is the first segment.");
       api.post(`/api/video_quiz_attempts/create/`, {
         quiz_id: quiz_id,
         user_name: name,
       })
      .then((response) => {
-        console.log("Quiz attempt created response's data:", response.data);
+        //console.log("Quiz attempt created response's data:", response.data);
         // `created` is false when the server returns an existing *pending* attempt for this
         // user+quiz. In that case, stash the response and ask the user whether to continue it
         // or start over — and DON'T auto-start the segment until they choose.
+        /*
+{
+  "quiz_attempt": {
+    "id": 1386,
+    "quiz_id": 14,
+    "user_name": "student1",
+    "score": 0,
+    "created_at": "2026-08-01T19:23:34.412340Z",
+    "updated_at": "2026-08-01T19:23:34.412709Z",
+    "completion_status": "uncompleted",
+    "errorneous_questions": "",
+    "review_state": false
+  },
+  "created": true,
+  "question": {
+    "id": 37,
+    "quiz_id": 14,
+    "video_segment_id": 44,
+    "question_number": 1,
+    "question_purpose": "practice",
+    "content": "Where [were] they?",
+    "content_language": "en",
+    "format": 1,
+    "answer_key": "were",
+    "instructions": "<p>instruction</p>",
+    "prompt": "",
+    "audio_str": "",
+    "score": 0,
+    "button_cloze_options": "",
+    "timeout": 30000,
+    "hint": "",
+    "explanation": ""
+  },
+  "question_attempt_id": 2381
+}
+        */
+
         if (!response.data.created) {
+          
           pendingResponseRef.current = response.data;
           setShowRedoQuizPrompt(true);
           return;
@@ -142,6 +182,7 @@ export default function TakeVideoQuiz() {
   const handleSegmentPlay = (segment: VideoSegment) => {
     //console.log(`handleSegmentPlay Playing segment ${segment.segment_number}: ${segment.start_time} to ${segment.end_time}`);
     setActiveSegment(segment);
+    setRewatchesLeft(MAX_REWATCHES); // fresh rewatch allowance for the new segment
     setShowQuestion(false); // hide any previous question while the new segment plays
     setPlayKey((k) => (k ?? 0) + 1);
     // playKey is watched inside CustomYoutubePlayer, so bumping it 
@@ -200,7 +241,9 @@ export default function TakeVideoQuiz() {
   }
 
   const handleRewatchYes = () => {
+    if (rewatchesLeft <= 0) return; // no rewatches left (the modal also disables "Yes")
     setShowRewatchPrompt(false);
+    setRewatchesLeft((n) => n - 1);
     handleReplay();
   };
   const handleRewatchNo = async () => {
@@ -246,7 +289,7 @@ export default function TakeVideoQuiz() {
         (url, {
             question_id: question_id,
         });
-        //console.log("fetchQuestionAttempt - Received response from server after creating question attempt:", response.data);
+        //console.log("fetchQuestionAttempt - response.data for question_id=" + question_id + ":", response.data);
         if (response.data.question && response.data.question_attempt_id) {
            //console.log(`fetchQuestionAttempt - Created question attempt with id ${response.data.question_attempt_id} for question_id=${question_id}`);
             setQuestionAttemptId(response.data.question_attempt_id);
@@ -374,7 +417,7 @@ export default function TakeVideoQuiz() {
     
         try {
                 const res = await api.get<{ count: number }>(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_count/`);
-                console.log("Incorrect count response:", res.data);
+                //console.log("Incorrect count response:", res.data);
                 wrongCount = res.data.count;
                 if (wrongCount > 0) {
                   //console.log(`There are ${wrongCount} incorrect questions. Showing review prompt.`);
@@ -383,7 +426,7 @@ export default function TakeVideoQuiz() {
                   //setRedoCount(wrongCount);
                   //setShowRedoPrompt(true);
               } else {
-                  console.log("No more segments and no incorrect questions. Marking quiz attempt as completed.");
+                  //console.log("No more segments and no incorrect questions. Marking quiz attempt as completed.");
                   api.post(`/api/quiz_attempts/${quizAttempt?.id}/mark_completed/`)
                     .then(() => setEndOfQuiz(true))
                     .catch(err => console.error("Error marking quiz attempt as completed.", err));
@@ -394,20 +437,23 @@ export default function TakeVideoQuiz() {
       }
     } else {
       // load the next question in the current segment
-      console.log("****** Loading next question in the current segment.question_ids_for_segment =", question_ids_for_segment);
+      //console.log("****** Loading next question in the current segment.question_ids_for_segment =", question_ids_for_segment);
       
       const current_question_index = question_ids_for_segment?.indexOf(current_question_id ?? -1);
-      console.log(`Current question index in segment ${activeSegment?.segment_number}: ${current_question_index}`);
+      //console.log(`Current question index in segment ${activeSegment?.segment_number}: ${current_question_index}`);
       const next_question_id = question_ids_for_segment?.[current_question_index! + 1];
       if (next_question_id) {
-        console.log(`Loading next question ${next_question_id} in segment ${activeSegment?.segment_number}.`);
+        //console.log(`Loading next question ${next_question_id} in segment ${activeSegment?.segment_number}.`);
         // fetchQuestionAttempt already sets the question + questionAttemptId on success,
         // so no separate GET /api/questions/:id/ is needed.
         if (quizAttempt && quizAttempt.id) {
           const ok = await fetchQuestionAttempt(quizAttempt.id, next_question_id);
+          //console.log("fetchQuestionAttempt ok =", ok, "-> setShowQuestion(true) will", ok ? "run" : "NOT run");
           if (ok) {
             setShowQuestion(true);
           }
+        } else {
+          console.warn("No quizAttempt.id available to fetch the next question.", quizAttempt);
         }
       } else {
         console.warn(`No next question found after current question ${current_question_id} in segment ${activeSegment?.segment_number}.`);
@@ -496,21 +542,13 @@ export default function TakeVideoQuiz() {
   }
 
   return (
-    <>
-      <div style={{ maxWidth: '640px', margin: 'auto' }}>
+    <div className='bg-green-500'>
+      <div style={{ maxWidth: '720px', margin: 'auto' }}>
         { showQuestion && question && (
-               <div className='bg-cyan-200 flex flex-col rounded-md justify-center'>
+               <div className='bg-cyan-200 flex flex-col rounded-md justify-center items-center'>
                <div className='my-5'>
-                 { question?.format === 1 && <DynamicWordInputs content={question.content} ref={childRef} /> }
-                 { question?.format === 2 && <ButtonSelectCloze content={question.content} content_language={question.content_language} choices={question.button_cloze_options} ref={childRef} /> }
-                 { question?.format === 3 && <ButtonSelect content={question.content} ref={childRef} /> }
-                 { question?.format === 4 && <RadioQuestion content={question.content} ref={childRef} /> }
-                 { question?.format === 5 && <CheckboxQuestion content={question.content} ref={childRef} /> }
-                 { question?.format === 6 && <DragDrop content={question.content} content_language={question.content_language} ref={childRef} /> }
-                 { question?.format === 7 && <SRNonContinuous content={question.content} ref={childRef} /> }
-                 { question?.format === 8 && <WordsSelect content={question.content} ref={childRef} /> }
-                 { question?.format === 10 && <DropDowns content={question.content} ref={childRef} /> }
-                 { question?.format === 12 && <SentenceScramble content={question.content} ref={childRef} /> }
+                 {/* key on the attempt id forces a fresh input when the next question loads */}
+                 <QuestionInput key={questionAttemptId ?? 0} question={question} ref={childRef} />
                </div>
             <button className='bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-700'
               onClick={() => handleSubmit()}
@@ -545,7 +583,7 @@ export default function TakeVideoQuiz() {
              <RewatchPromptModal
                onYes={handleRewatchYes}
                onNo={handleRewatchNo}
-               rewatchesLeft={1}
+               rewatchesLeft={rewatchesLeft}
              />
            )}
         {showRedoQuizPrompt && (
@@ -592,35 +630,6 @@ export default function TakeVideoQuiz() {
        </div>
      )}
     </div>
-    </>
+    </div>
   );
 }
-
-/*
-        {segments.map((segment) => (
-            <button
-              key={segment.id}
-              onClick={() => handleSegmentClick(segment)}
-              className={`px-4 py-2 rounded-md font-medium border transition-colors ${activeSegment?.id === segment.id
-                  ? 'bg-amber-600 text-white border-amber-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                }`}
-            >
-              Segment {segment.segment_number}
-            </button>
-          ))}
-*/
-
-/*
-          <button
-            
-              onClick={() => handleSegmentPlay(segments[0])}
-              className={`px-4 py-2 rounded-md font-medium border 
-                  ? 'bg-amber-600 text-white border-amber-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                }`}
-            >
-              Play
-            </button>
-*/
-

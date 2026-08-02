@@ -27,7 +27,7 @@ function Home() {
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
 
-    const [isChatOpen, setIsChatOpen] = useState<boolean | null>(true);
+    const [isChatOpen, setIsChatOpen] = useState<boolean | null>(false); // start closed on mount
 
     const [chatMessage, setChatMessage] = useState<ChatProps>({ text: '', user_name: '' });
 
@@ -193,7 +193,7 @@ function Home() {
                         onClick={() => toggleChatBox(true)}
                         aria-label="Open chat"
                         title="Open chat"
-                        className="fixed right-0 bottom-15 h-72 w-6 z-20 flex items-center justify-center bg-blue-300 hover:bg-blue-400 rounded-l-md shadow-md"
+                        className="fixed right-0 bottom-15 h-[268px] w-6 z-20 flex items-center justify-center bg-blue-300 hover:bg-blue-400 rounded-l-md shadow-md"
                     >
                         <FaAngleDoubleLeft />
                     </button>

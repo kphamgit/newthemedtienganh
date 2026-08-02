@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { VideoSegment } from './types';
 
 declare global {
@@ -39,6 +39,27 @@ export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime =
   // Guards onSegmentEnd so it fires only once per segment (not every interval tick).
   const segmentEndedRef = useRef(false);
 
+  // Captions default ON (cc_load_policy: 1); the button below lets students toggle them.
+  const [captionsOn, setCaptionsOn] = useState(true);
+
+  const toggleCaptions = () => {
+    const player = playerRef.current;
+    if (!player || typeof player.setOption !== 'function') return;
+    try {
+      if (captionsOn) {
+        // Turn captions off (empty track).
+        player.setOption('captions', 'track', {});
+      } else {
+        // Turn captions on (English).
+        player.loadModule('captions');
+        player.setOption('captions', 'track', { languageCode: 'en' });
+      }
+      setCaptionsOn((on) => !on);
+    } catch (err) {
+      console.error('CustomYoutubePlayer: could not toggle captions', err);
+    }
+  };
+
   useEffect(() => {
     // 1. Load the YouTube IFrame API Script dynamically if not already present
     if (!window.YT) {
@@ -70,8 +91,11 @@ export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime =
           controls: 0,          // Hide native YouTube controls completely
           disablekb: 1,         // Disable keyboard controls to prevent conflicts
           modestbranding: 1,    // Hide YouTube logo where possible
-          rel: 0,               // Don't show related videos from other channels
+          rel: 0,               // Related videos limited to the same channel
           fs: 0,                // Disable native fullscreen button
+          iv_load_policy: 3,    // Hide video annotations / info-card teasers ("more videos…")
+          cc_load_policy: 1,    // Show closed captions by default
+          cc_lang_pref: 'en',   // Prefer English captions
         },
         events: {
           onReady: () => {
@@ -174,26 +198,37 @@ export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime =
       >
         {/* The YouTube iframe injection-mounts inside here (fills the 16:9 box) */}
         <div ref={playerHostRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+
+        {/* Transparent strip over YouTube's "More videos" bar at the bottom: it doesn't hide the
+            video/captions, it just intercepts clicks so the student can't click the suggestions. */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: '70px',
+            backgroundColor: 'transparent',
+            zIndex: 2,
+          }}
+        />
+      </div>
+
+      {/* Student-facing captions on/off toggle */}
+      <div style={{ marginTop: '8px', textAlign: 'right' }}>
+        <button
+          type="button"
+          onClick={toggleCaptions}
+          title={captionsOn ? 'Hide captions' : 'Show captions'}
+          className={`px-3 py-1 rounded-md text-sm font-medium border ${
+            captionsOn
+              ? 'bg-gray-800 text-white border-gray-800'
+              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+          }`}
+        >
+          CC {captionsOn ? 'On' : 'Off'}
+        </button>
       </div>
     </div>
   );
 }
-
-/*
-  //* Custom Controls Panel UI 
-  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-  <button onClick={togglePlay} style={{ padding: '5px 15px' }}>
-    {isPlaying ? 'Pause' : 'Play'}
-  </button>
-
-  <input 
-    type="range" 
-    min="0" 
-    max="100" 
-    step="0.1"
-    value={progress} 
-    onChange={handleSeek} 
-    style={{ flexGrow: 1 }}
-  />
-</div>
-*/

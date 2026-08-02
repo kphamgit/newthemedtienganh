@@ -7,16 +7,7 @@ import api from '../api';
 import DOMPurify from 'dompurify';
 
 import OpenAIStream from './shared/OpenAIStream';
-import { DynamicWordInputs } from './questions/DynamicWordInputs';
-import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
-import { ButtonSelect } from './questions/ButtonSelect';
-import { RadioQuestion } from './questions/RadioQuestion';
-import { CheckboxQuestion } from './questions/CheckboxQuestion';
-import DragDrop from './questions/dragdrop/DragDrop';
-import SRNonContinuous from './questions/SRNonContinuous';
-import { WordsSelect } from './questions/WordsSelect';
-import { DropDowns } from './questions/DropDowns';
-import SentenceScramble from './questions/SentenceScramble';
+import QuestionInput from './QuestionInput';
 import type { ChildRef } from './TakeQuiz';
 import type { UserRowProps } from './context/UserConnectionsContext';
 import CorrectModal from './CorrectModal';
@@ -156,31 +147,9 @@ function TakeVideoQuizLive({ user_name, live_quiz_id, video_url, video_segments,
       setShowRewatchPrompt(true);
     };
 
-    const displayQuestion = (format: number) => {
-        switch(format) {
-          case 1:
-            return <DynamicWordInputs content={question?.content ?? ""} ref={childRef} />;
-          case 2:
-            return <ButtonSelectCloze content={question?.content ?? ""} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options ?? ""} ref={childRef} />;
-          case 3:
-            return <ButtonSelect content={question?.content ?? ""} ref={childRef} />;
-          case 4:
-            return <RadioQuestion content={question?.content ?? ""} ref={childRef} />;
-          case 5:
-            return <CheckboxQuestion content={question?.content ?? ""} ref={childRef} />;
-          case 6:
-            return <DragDrop content={question?.content ?? ""} content_language={question?.content_language ?? ""} ref={childRef} />;
-          case 7:
-            return <SRNonContinuous content={question?.content ?? ""} ref={childRef} />
-          case 8:
-            return <WordsSelect content={question?.content ?? ""} ref={childRef} />;
-          case 10:
-            return <DropDowns content={question?.content ?? ""} ref={childRef} />;
-          case 12:
-            return <SentenceScramble content={question?.content ?? ""} ref={childRef} />;
-          default:
-            return null;
-        }
+    const displayQuestion = () => {
+        if (!question) return null;
+        return <QuestionInput question={question} ref={childRef} />;
       }
 
 useEffect(() => {
@@ -400,7 +369,7 @@ useEffect(() => {
                 }
               </div>
               <div className='my-5'>
-                {displayQuestion(question.format)}
+                {displayQuestion()}
               </div>
               <button className='bg-green-500 text-white mx-10 mt-7 p-2 rounded-md hover:bg-red-300'
                 onClick={() => handleSubmit()}

@@ -12,26 +12,16 @@ import CorrectModal from './CorrectModal';
 import { useParams } from 'react-router-dom';
 import { type ProcessQuestionAttemptResultsProps, type QuestionAttemptAssesmentResultsProps, type QuestionProps, type QuizAttemptProps } from './shared/types';
 //import { processQuestion } from './processQuestion';
-import { DynamicWordInputs } from './questions/DynamicWordInputs';
 import IncorrectModal from './IncorrectModal';
 import api from '../api';
-import { ButtonSelect } from "./questions/ButtonSelect";
-import { RadioQuestion } from "./questions/RadioQuestion";
-import { CheckboxQuestion } from "./questions/CheckboxQuestion";
-import DragDrop from "./questions/dragdrop/DragDrop";
-import { WordsSelect } from "./questions/WordsSelect";
-import SentenceScramble from "./questions/SentenceScramble";
-import { DropDowns } from "./questions/DropDowns";
+import QuestionInput from './QuestionInput';
 import { useSelector, useDispatch } from 'react-redux';
 //import type { RootState } from '../redux/store';
 import DOMPurify from 'dompurify';
 import type { RootState } from '../redux/store';
 import { removeAssignment } from '../redux/pendingAssignmentsSlice';
-// import { SRContinuous } from './questions/SRContinuous';
-import SRNonContinuous from './questions/SRNonContinuous';
 //import { AzureAudioPlayer } from './shared/AzureAudioPlayer';
 import OpenAIStream from './shared/OpenAIStream';
-import { ButtonSelectCloze } from './questions/ButtonSelectCloze';
 import ReviewPromptModal from './ReviewPromptModal';
 import { useCreateNextQuestionAttempt } from '../hooks/useCreateNextQuestionAttempt';
 import CardReview from './CardReview';
@@ -245,19 +235,12 @@ const handleReviewNo = () => {
   });
   
 }
- const displayQuestion = (format: number, content: string) => {
+ const displayQuestion = () => {
+  if (!question) return null;
   return (
     <div className='my-5'>
-      { format === 1 && <DynamicWordInputs key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 2 && <ButtonSelectCloze key={questionAttemptId ?? 0} content={content} content_language={question?.content_language ?? "en"} choices={question?.button_cloze_options} submitted={answerSubmitted} ref={childRef} /> }
-      { format === 3 && <ButtonSelect key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 4 && <RadioQuestion key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 5 && <CheckboxQuestion key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 6 && <DragDrop key={questionAttemptId ?? 0} content={content} content_language={question?.content_language ?? "en"} ref={childRef} /> }
-      { format === 7 && <SRNonContinuous content={content} ref={childRef} /> }
-      { format === 8 && <WordsSelect key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 10 && <DropDowns key={questionAttemptId ?? 0} content={content} ref={childRef} /> }
-      { format === 12 && <SentenceScramble key={questionAttemptId ?? 0} content={content}  ref={childRef} /> }
+      {/* key forces a fresh input for each new question attempt */}
+      <QuestionInput key={questionAttemptId ?? 0} question={question} ref={childRef} submitted={answerSubmitted} />
     </div>
   );
 };
@@ -353,7 +336,7 @@ const handleReviewNo = () => {
                 <OpenAIStream sentence={question.audio_str} />
               }
             </div>
-            {displayQuestion(question.format, question.content)}
+            {displayQuestion()}
             <button className={`bg-green-700 text-white mx-10 mt-7 p-2 rounded-md hover:bg-green-900 transition-colors duration-300 ${showCorrectModal || showIncorrectModal ? 'opacity-0' : 'opacity-100'}`}
               onClick={() => handleSubmit()}
             >
