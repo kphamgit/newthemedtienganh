@@ -10,7 +10,6 @@ import { useSelector } from 'react-redux';
 //import type { WebSocketMessageProps } from "../components/shared/types";
 import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
-import AudioRecorder from "../components/shared/AudioRecorder";
 import HomeAdmin from "./HomeAdmin";
 import { FaAngleDoubleLeft } from "react-icons/fa";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
@@ -162,18 +161,13 @@ function Home() {
       };
 
     return (
-            <>
-           
+            <div className="relative min-h-screen">
+
                 <div className="text-red-800 mx-10 my-8">Welcome
                     <span className="font-bold"> {name}</span> to
                     <span className="text-blue-600"> tienganhphuyen.com</span>
                     <span className='text-md bg-amber-400 text-sm ml-3 p-2'>
                         <Link to="/logout">Log out</Link>
-                    </span>
-                    <span
-                        className="fixed top-5 right-0 bg-white shadow-lg border border-gray-300 rounded-t-lg w-96 h-15 flex flex-col z-100"
-                    >
-                        <AudioRecorder />
                     </span>
                 </div>
                 <div className="flex flex-row justify-left mb-2 ml-10 items-center bg-cyan-200 px-2">
@@ -193,13 +187,13 @@ function Home() {
                         onClick={() => toggleChatBox(true)}
                         aria-label="Open chat"
                         title="Open chat"
-                        className="fixed right-0 bottom-15 h-[268px] w-6 z-20 flex items-center justify-center bg-blue-300 hover:bg-blue-400 rounded-l-md shadow-md"
+                        className="absolute right-0 bottom-15 h-[268px] w-6 z-20 flex items-center justify-center bg-blue-300 hover:bg-blue-400 rounded-l-md shadow-md"
                     >
                         <FaAngleDoubleLeft />
                     </button>
                 }
 
-            </>
+            </div>
        
     );
 }

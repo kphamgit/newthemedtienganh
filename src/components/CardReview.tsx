@@ -15,7 +15,6 @@ interface DueCard {
 }
 
 interface CardReviewProps {
-  quizId?: string;   // when set, reviews one quiz's due cards (before the quiz); omit for all-vocabulary review
   userName: string;
   onComplete: () => void;
 }
@@ -36,7 +35,7 @@ function computeQuality(correct: boolean, latencyMs: number, sessionLatencies: n
   return latencyMs <= median ? 5 : 4;
 }
 
-export default function CardReview({ quizId, userName, onComplete }: CardReviewProps) {
+export default function CardReview({ userName, onComplete }: CardReviewProps) {
   const [cards, setCards] = useState<DueCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
@@ -50,25 +49,20 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
   const lastPlayedIdRef = useRef<number | null>(null);         // guards against replaying the same card's audio
 
   useEffect(() => {
-    // quizId set -> review one quiz's due cards before the quiz; omitted -> review all vocabulary.
-    const url = quizId ? `/api/quizzes/${quizId}/cards/due/` : `/api/cards/due/`;
-    console.log(`Fetching due cards from ${url} for user ${userName}...`);
-    api.get(url, { params: { user_name: userName } })
+    // Cards are universal vocabulary; review all cards due for this user.
+    api.get('/api/cards/due/', { params: { user_name: userName } })
       .then((res) => {
         const due: DueCard[] = res.data.due_cards ?? [];
         setCards(due);
         setLoading(false);
         startRef.current = performance.now();
-        // In quiz mode, having no due cards means "go straight to the quiz".
-        // In vocabulary mode, we keep the view mounted to show a "nothing due" message.
-        if (due.length === 0 && quizId) onComplete();
+        // With no due cards we keep the view mounted to show a "nothing due" message.
       })
       .catch((err) => {
         console.error('Error fetching due cards:', err);
         setLoading(false);
-        if (quizId) onComplete(); // fail open: don't block the quiz if cards can't load
       });
-  }, [quizId, userName]);
+  }, [userName]);
 
   // Play the word's pronunciation AUDIO_DELAY_MS after a new card is shown.
   useEffect(() => {
@@ -148,8 +142,6 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
   }
 
   if (cards.length === 0) {
-    // Quiz mode already fired onComplete; vocabulary mode shows a friendly message.
-    if (quizId) return null;
     return (
       <div className="flex flex-col items-center justify-center min-h-64 p-6">
         <p className="text-lg text-gray-700">🎉 No vocabulary due for review right now.</p>
@@ -243,7 +235,7 @@ export default function CardReview({ quizId, userName, onComplete }: CardReviewP
             onClick={next}
             className="px-6 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
-            {index + 1 >= cards.length ? (quizId ? 'Start quiz →' : 'Done') : 'Next →'}
+            {index + 1 >= cards.length ? 'Done' : 'Next →'}
           </button>
         )}
       </div>
