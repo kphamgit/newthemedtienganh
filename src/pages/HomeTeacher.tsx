@@ -12,6 +12,7 @@ import { type TeacherControlRefProps } from "./TeacherControlPanel";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import ScoreBoard from "./ScoreBoard";
 import Navbar from "../components/Navbar";
+import DictionaryLookup from "../components/DictionaryLookup";
 //import ScoreBoard from "./ScoreBoard";
 //import { useDispatch } from "react-redux";
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
@@ -47,7 +48,7 @@ function HomeTeacher() {
 
             <div className="bg-blue-300 col-span-1">
                 {/* Tabs */}
-                <div className="flex gap-1 px-2 pt-2">
+                <div className="flex items-center gap-1 px-2 pt-2">
                     <button
                         className={tabClass("control")}
                         onClick={() => { setActiveTab("control"); navigate("/"); }}
@@ -57,6 +58,9 @@ function HomeTeacher() {
                     <button className={tabClass("navbar")} onClick={() => setActiveTab("navbar")}>
                         Navbar
                     </button>
+                    <div className="ml-auto pb-2">
+                        <DictionaryLookup mode="teacher" />
+                    </div>
                 </div>
 
                 {/* Tab content */}

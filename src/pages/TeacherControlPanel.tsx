@@ -54,6 +54,14 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
          
         const [inputVideoSegmentNumber, setInputVideoSegmentNumber] = useState("");
 
+        // A pasted image waiting to be sent to students, plus a local preview url and an in-flight flag.
+        const [pastedImage, setPastedImage] = useState<File | null>(null);
+        const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+        const [sendingImage, setSendingImage] = useState(false);
+
+        // A YouTube link to push to students (they display it with a manual Play button).
+        const [inputVideoLink, setInputVideoLink] = useState("");
+
     useEffect(() => {
         if (live_quiz_id) {
             // console.log("TeacherControlPanel: Received live_quiz_id from parent component:", live_quiz_id);
@@ -230,6 +238,108 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
     }
 
 
+    // Teacher pastes an image (Ctrl/Cmd+V) into the paste box: grab it from the clipboard,
+    // keep the File for upload and show a local preview thumbnail.
+    const handleImagePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith("image")) {
+                const file = item.getAsFile();
+                if (!file) continue;
+                e.preventDefault();
+                setPastedImage(file);
+                // Replace any previous preview url and free its memory.
+                setImagePreviewUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return URL.createObjectURL(file);
+                });
+                return;
+            }
+        }
+    };
+
+    const clearPastedImage = () => {
+        setImagePreviewUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+        setPastedImage(null);
+    };
+
+    // Upload the pasted image to S3 (fixed per-teacher key) and broadcast its url to students.
+    // Blocked while a live quiz is active so the image doesn't clobber the quiz view.
+    const sendImageToStudents = async () => {
+        if (!pastedImage) return;
+        if (activeLiveQuizId !== null) {
+            alert("Cannot send an image while a live quiz is in progress.");
+            return;
+        }
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        setSendingImage(true);
+        try {
+            const formData = new FormData();
+            formData.append("image", pastedImage);
+            formData.append("user_name", name);
+            const res = await api.post("/api/upload-image/", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            const imageUrl = res.data.image_url as string;
+            websocketRef.current.send(JSON.stringify({
+                message_type: "live_image",
+                content: imageUrl,      // students display this presigned S3 url
+                user_name: name,        // identify sender, which is teacher
+            }));
+            toast.success("Image sent!", {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: true,
+            });
+            clearPastedImage();
+        } catch (error) {
+            console.error("Error sending image:", error);
+            alert("Failed to send image.");
+        } finally {
+            setSendingImage(false);
+        }
+    };
+
+    // Broadcast a YouTube link to students. Blocked during a live quiz (same as images),
+    // since students display it in their non-live-quiz view.
+    const sendVideoLink = () => {
+        const url = inputVideoLink.trim();
+        if (!url) return;
+        if (activeLiveQuizId !== null) {
+            alert("Cannot send a video while a live quiz is in progress.");
+            return;
+        }
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        websocketRef.current.send(JSON.stringify({
+            message_type: "live_video",
+            content: url,           // students extract the video id from this url
+            user_name: name,        // identify sender, which is teacher
+        }));
+        toast.success("Video sent!", {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: true,
+        });
+        setInputVideoLink("");
+    };
+
+    // Free the preview object url when the panel unmounts.
+    useEffect(() => {
+        return () => {
+            if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+        };
+    }, [imagePreviewUrl]);
+
     const sendVideoSegmentNumber = () => {
         if (!websocketRef.current) {
             alert("WebSocket is not connected.");
@@ -336,6 +446,76 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
                 </div>
             )
             }
+
+            {/* Send a YouTube link to all students; they display it with a manual Play button. */}
+            <div className="mt-10 bg-gray-200 p-3 rounded-md">
+                <h3 className="text-lg font-bold mb-2">Send YouTube Video to Students</h3>
+                <input
+                    className="bg-blue-200 text-black m-2 p-2 rounded-md w-96"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={inputVideoLink}
+                    onChange={(e) => setInputVideoLink(e.target.value)}
+                />
+                <button
+                    className={`text-white bg-blue-600 mb-2 p-2 rounded-md hover:bg-blue-800 ${
+                        inputVideoLink.trim() && activeLiveQuizId === null ? "" : "opacity-50 cursor-not-allowed"
+                    }`}
+                    onClick={sendVideoLink}
+                    disabled={!inputVideoLink.trim() || activeLiveQuizId !== null}
+                >
+                    Send Video
+                </button>
+                {activeLiveQuizId !== null && (
+                    <span className="text-sm text-red-700 ml-2">
+                        Cannot send a video while a live quiz is in progress.
+                    </span>
+                )}
+            </div>
+
+            {/* Paste an image (from Google, etc.) and send it to all students over the WebSocket. */}
+            <div className="mt-10 bg-gray-200 p-3 rounded-md">
+                <h3 className="text-lg font-bold mb-2">Send Image to Students</h3>
+                <div
+                    onPaste={handleImagePaste}
+                    tabIndex={0}
+                    className="border-2 border-dashed border-gray-400 rounded-md p-4 text-center text-gray-600 bg-white cursor-text focus:outline-none focus:border-blue-500"
+                >
+                    Click here, then paste an image (Ctrl/Cmd+V)
+                </div>
+
+                {imagePreviewUrl && (
+                    <div className="mt-3 flex flex-col items-start gap-2">
+                        <img
+                            src={imagePreviewUrl}
+                            alt="Preview of image to send"
+                            className="max-h-48 rounded border border-gray-400"
+                        />
+                        <div className="flex gap-2">
+                            <button
+                                onClick={sendImageToStudents}
+                                disabled={sendingImage || activeLiveQuizId !== null}
+                                className={`text-white bg-blue-600 p-2 rounded-md hover:bg-blue-800 ${
+                                    sendingImage || activeLiveQuizId !== null ? "opacity-50 cursor-not-allowed" : ""
+                                }`}
+                            >
+                                {sendingImage ? "Sending..." : "Send Image to Students"}
+                            </button>
+                            <button
+                                onClick={clearPastedImage}
+                                disabled={sendingImage}
+                                className="text-gray-700 bg-gray-300 p-2 rounded-md hover:bg-gray-400"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                        {activeLiveQuizId !== null && (
+                            <span className="text-sm text-red-700">
+                                Cannot send an image while a live quiz is in progress.
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
 

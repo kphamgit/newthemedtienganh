@@ -42,7 +42,9 @@ export interface ReceivedConnectedUserDataProps {
 interface BaseWebSocketMessageProps {
   message_type: 
   "user_disconnected" |
-  "chat" | 
+  "chat" |
+  "live_image" |
+  "live_video" |
   "live_score" |
   "live_user_answer" |
   "live_quiz_id" | 

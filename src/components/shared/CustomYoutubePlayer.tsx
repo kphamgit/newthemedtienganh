@@ -16,9 +16,10 @@ interface CustomYoutubePlayerProps {
   playKey?: number;    // change this value to (re)start playback of the current segment
   allVideoSegments?: VideoSegment[];
   onSegmentEnd?: () => void; // called once when the current segment reaches its stop time
+  maxWidth?: string;   // max width of the player (CSS value); defaults to 640px
 }
 
-export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime = 0, playKey, onSegmentEnd }: CustomYoutubePlayerProps) {
+export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime = 0, playKey, onSegmentEnd, maxWidth = '640px' }: CustomYoutubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerHostRef = useRef<HTMLDivElement>(null); // absolute, full-size div the iframe mounts into
   const playerRef = useRef<any>(null);
@@ -184,7 +185,7 @@ export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime =
   };
 */
   return (
-    <div style={{ maxWidth: '640px', margin: 'auto' }}>
+    <div style={{ width: '100%', maxWidth, margin: 'auto' }}>
       {/* Aspect Ratio Video Container */}
       <div 
         ref={containerRef} 

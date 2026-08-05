@@ -2,16 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import api from '../api';
 
-interface CardOption {
-  definition: string;
-  is_correct: boolean;
-}
-
 interface DueCard {
   id: number;
-  text: string;          // front (the word)
-  definition: string;    // correct definition (for reveal)
-  options: CardOption[]; // shuffled multiple-choice options
+  text: string;            // front (the word)
+  definition: string;      // back (revealed after recall)
+  part_of_speech?: string; // e.g. "verb", "noun"
 }
 
 interface CardReviewProps {
@@ -22,31 +17,24 @@ interface CardReviewProps {
 // Delay before a card's pronunciation plays (and the progress bar fills), in milliseconds.
 const AUDIO_DELAY_MS = 1000;
 
-// SM-2 quality is derived from objective behavior instead of self-rating:
-//   wrong answer            -> 1 (lapse)
-//   correct but slow        -> 4 (Good)   [slower than the user's session median]
-//   correct and fast        -> 5 (Easy)   [at or faster than the session median]
-function computeQuality(correct: boolean, latencyMs: number, sessionLatencies: number[]): number {
-  if (!correct) return 1;
-  if (sessionLatencies.length === 0) return 5; // no baseline yet: treat first correct as Easy
-  const sorted = [...sessionLatencies].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  return latencyMs <= median ? 5 : 4;
-}
+// Self-rating buttons → SM-2 quality. apply_sm2 treats quality < 4 as a lapse
+// (interval resets to 1 day) and only adjusts easiness when quality >= 4.
+const RATINGS: { label: string; quality: number; className: string }[] = [
+  { label: 'I know it very well', quality: 5, className: 'bg-green-600 hover:bg-green-700' },
+  { label: 'Knew it, but with difficulty', quality: 4, className: 'bg-blue-600 hover:bg-blue-700' },
+  { label: 'I vaguely remember it', quality: 2, className: 'bg-yellow-500 hover:bg-yellow-600' },
+  { label: "I don't know it at all", quality: 0, className: 'bg-red-600 hover:bg-red-700' },
+];
 
 export default function CardReview({ userName, onComplete }: CardReviewProps) {
   const [cards, setCards] = useState<DueCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
-  const [chosenIdx, setChosenIdx] = useState<number | null>(null); // null until answered
-  const [dontKnow, setDontKnow] = useState(false);                 // user pressed "I don't know"
+  const [revealed, setRevealed] = useState(false);   // definition shown, rating buttons available
   const [submitting, setSubmitting] = useState(false);
-  const [audioPending, setAudioPending] = useState(false);         // true during the 2s wait before audio plays
+  const [audioPending, setAudioPending] = useState(false); // true during the wait before audio plays
 
-  const startRef = useRef<number>(performance.now());          // when the current card was shown
-  const correctLatenciesRef = useRef<number[]>([]);            // session latencies of correct answers
-  const lastPlayedIdRef = useRef<number | null>(null);         // guards against replaying the same card's audio
+  const lastPlayedIdRef = useRef<number | null>(null); // guards against replaying the same card's audio
 
   useEffect(() => {
     // Cards are universal vocabulary; review all cards due for this user.
@@ -55,7 +43,6 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
         const due: DueCard[] = res.data.due_cards ?? [];
         setCards(due);
         setLoading(false);
-        startRef.current = performance.now();
         // With no due cards we keep the view mounted to show a "nothing due" message.
       })
       .catch((err) => {
@@ -85,8 +72,6 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
     };
   }, [index, loading, cards]);
 
-  const answered = chosenIdx !== null || dontKnow;
-
   const submitReview = async (cardId: number, quality: number) => {
     setSubmitting(true);
     try {
@@ -98,37 +83,16 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
     }
   };
 
-  const handleSelect = async (optIdx: number) => {
-    if (answered || submitting) return;
+  // User self-rated their recall: record the SM-2 grade and move on.
+  const handleRate = async (quality: number) => {
+    if (submitting) return;
     const card = cards[index];
-    const opt = card.options[optIdx];
-    const latency = performance.now() - startRef.current;
-    const correct = opt.is_correct;
-
-    setChosenIdx(optIdx);
-
-    const quality = computeQuality(correct, latency, correctLatenciesRef.current);
-    if (correct) correctLatenciesRef.current.push(latency);
-
     await submitReview(card.id, quality);
-  };
-
-  // Explicit lapse: the user acknowledges they don't know the word (no guessing).
-  const handleDontKnow = async () => {
-    if (answered || submitting) return;
-    const card = cards[index];
-    setDontKnow(true);
-    await submitReview(card.id, 1); // quality 1 -> SM-2 lapse
-  };
-
-  const next = () => {
     if (index + 1 >= cards.length) {
       onComplete();
     } else {
-      setChosenIdx(null);
-      setDontKnow(false);
+      setRevealed(false);
       setIndex((i) => i + 1);
-      startRef.current = performance.now();
     }
   };
 
@@ -157,18 +121,10 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
 
   const card = cards[index];
 
-  const optionClass = (optIdx: number) => {
-    if (!answered) return 'bg-white border-gray-300 hover:border-amber-400';
-    const opt = card.options[optIdx];
-    if (opt.is_correct) return 'bg-green-100 border-green-500 text-green-800';
-    if (optIdx === chosenIdx) return 'bg-red-100 border-red-500 text-red-800';
-    return 'bg-white border-gray-200 text-gray-400';
-  };
-
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto p-6">
       <div className="w-full flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Which definition matches?</h2>
+        <h2 className="text-xl font-bold text-gray-800">Do you know this word?</h2>
         <span className="text-sm text-gray-500">{index + 1} / {cards.length}</span>
       </div>
 
@@ -180,12 +136,15 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
           exit={{ opacity: 0, transition: { duration: 0.2 } }}
           className="w-full flex flex-col items-center"
         >
-          {/* Front: the word */}
-          <div className="w-full min-h-28 flex items-center justify-center bg-white border-2 border-gray-300 rounded-xl shadow-lg p-6 mb-3">
-            <span className="text-3xl font-bold text-gray-800">{card.text}</span>
+          {/* Front: the word (with its part of speech) */}
+          <div className="w-full min-h-16 flex items-center justify-center gap-2 bg-white border-2 border-gray-300 rounded-xl shadow-lg p-3 mb-3">
+            <span className="text-xl font-bold text-gray-800">{card.text}</span>
+            {card.part_of_speech && (
+              <span className="italic text-sm text-indigo-600">{card.part_of_speech}</span>
+            )}
           </div>
 
-          {/* Audio "about to play" indicator: a 2s progress bar with a pulsing speaker */}
+          {/* Audio "about to play" indicator: a progress bar with a pulsing speaker */}
           <div className="w-full h-6 mb-3 flex items-center gap-2">
             {audioPending && (
               <>
@@ -203,43 +162,39 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
             )}
           </div>
 
-          {/* Multiple-choice definitions */}
-          <div className="w-full flex flex-col gap-3">
-            {card.options.map((opt, optIdx) => (
-              <button
-                key={optIdx}
-                disabled={answered || submitting}
-                onClick={() => handleSelect(optIdx)}
-                className={`text-left px-5 py-3 border-2 rounded-lg transition-colors ${optionClass(optIdx)}`}
-              >
-                {opt.definition}
-              </button>
-            ))}
-          </div>
+          {!revealed ? (
+            // Recall step: hide the definition until the user commits to remembering (or not).
+            <button
+              onClick={() => setRevealed(true)}
+              className="px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            >
+              Show definition
+            </button>
+          ) : (
+            <>
+              {/* Back: the definition */}
+              <div className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-5 mb-5 text-center">
+                <span className="text-lg text-gray-800">{card.definition}</span>
+              </div>
 
-          {/* Explicit lapse — acknowledge not knowing instead of guessing */}
-          <button
-            disabled={answered || submitting}
-            onClick={handleDontKnow}
-            className="mt-4 px-5 py-2 rounded-lg border-2 border-gray-500 text-gray-600 font-medium hover:bg-gray-100 hover:border-gray-700 disabled:opacity-40"
-          >
-            I don't know
-          </button>
+              {/* Self-rating: how well did you recall it? */}
+              <p className="text-sm text-gray-500 mb-2">How well did you know it?</p>
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {RATINGS.map((r) => (
+                  <button
+                    key={r.quality}
+                    disabled={submitting}
+                    onClick={() => handleRate(r.quality)}
+                    className={`px-4 py-3 rounded-lg text-white font-medium disabled:opacity-50 ${r.className}`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </motion.div>
       </AnimatePresence>
-
-      {/* After answering: feedback + advance */}
-      <div className="mt-6 min-h-12 flex items-center">
-        {answered && (
-          <button
-            onClick={next}
-            className="px-6 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium"
-          >
-            {index + 1 >= cards.length ? 'Done' : 'Next →'}
-          </button>
-        )}
-      </div>
-
     </div>
   );
 }

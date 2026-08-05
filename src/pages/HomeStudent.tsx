@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../api";
+import chimeSound from "../assets/chime.mp3";
 import { type LevelProps} from "../components/Level";
 import "../styles/Home.css"
 import Navbar from "../components/Navbar";
@@ -18,12 +19,18 @@ import { Outlet } from "react-router-dom";
 import AssignmentModal from "../components/AssignmentModal";
 import CardReview from "../components/CardReview";
 import TakeVideoQuizLive from "../components/TakeVideoQuizLive";
+import StudentLiveVideo from "../components/StudentLiveVideo";
+import DictionaryLookup from "../components/DictionaryLookup";
 
 function HomeStudent() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
     const pendingAssignments = useSelector((state: RootState) => state.pendingAssignments.assignments);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const [showVocabReview, setShowVocabReview] = useState(false);
+    // Latest image the teacher pushed to students (presigned S3 url), shown outside a live quiz.
+    const [liveImageUrl, setLiveImageUrl] = useState<string | null>(null);
+    // Latest YouTube url the teacher pushed to students, shown outside a live quiz.
+    const [liveVideoUrl, setLiveVideoUrl] = useState<string | null>(null);
 
     const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
 
@@ -35,7 +42,14 @@ function HomeStudent() {
     const [liveQuizVideoSegments, setLiveQuizVideoSegments] = useState<VideoSegment[]>([]);
 
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
- 
+
+    // Chime played when the teacher pushes an image or video to the student.
+    const chimeAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        chimeAudioRef.current = new Audio(chimeSound);
+    }, []);
+
  useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         //console.log("HomeStudent: handleMessage called with data:", data);
@@ -54,6 +68,20 @@ function HomeStudent() {
                 message: data.content,  // should contain quiz id
                 user_name: name,    // identify sender, which is teacher
             }));
+        }
+        else if (data.message_type === "live_image") {
+            // Teacher pushed an image to students; show the latest one.
+            setLiveImageUrl(data.content);
+            chimeAudioRef.current?.play().catch((error) => {
+                console.error("Error playing chime sound:", error);
+            });
+        }
+        else if (data.message_type === "live_video") {
+            // Teacher pushed a YouTube video to students; show the latest one (student presses Play).
+            setLiveVideoUrl(data.content);
+            chimeAudioRef.current?.play().catch((error) => {
+                console.error("Error playing chime sound:", error);
+            });
         }
         else if (data.message_type === "live_quiz_terminated") {
             //console.log("HomeStudent: Received terminate_live_quiz message from server.");
@@ -147,12 +175,13 @@ function HomeStudent() {
                     :
                     <>
                     <div className="flex flex-col bg-cyan-200 py-2 px-10">
-                        <div className='col-span-9 text-lg m-1'>
+                        <div className='col-span-9 text-lg m-1 flex items-start justify-between gap-4'>
                             <Navbar
                                 role="student"
                                 levels={levels}
                                 onShowAssignments={() => setShowAssignmentModal(true)}
                             />
+                            <DictionaryLookup />
                         </div>
                         <div className="m-1 flex justify-center">
                             <button
@@ -168,6 +197,27 @@ function HomeStudent() {
                         <AssignmentModal
                             assignments={pendingAssignments}
                             onClose={() => setShowAssignmentModal(false)}
+                        />
+                    )}
+                    {liveImageUrl && (
+                        <div className="flex flex-col items-center my-4">
+                            <img
+                                src={liveImageUrl}
+                                alt="Image from teacher"
+                                className="max-h-[70vh] max-w-full rounded-lg border-2 border-gray-400 shadow-lg"
+                            />
+                            <button
+                                onClick={() => setLiveImageUrl(null)}
+                                className="mt-2 px-4 py-1 rounded-md bg-gray-600 hover:bg-gray-800 text-white text-sm"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
+                    {liveVideoUrl && (
+                        <StudentLiveVideo
+                            videoUrl={liveVideoUrl}
+                            onDismiss={() => setLiveVideoUrl(null)}
                         />
                     )}
                     {showVocabReview ? (
