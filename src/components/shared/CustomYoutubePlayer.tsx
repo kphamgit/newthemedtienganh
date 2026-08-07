@@ -17,9 +17,12 @@ interface CustomYoutubePlayerProps {
   allVideoSegments?: VideoSegment[];
   onSegmentEnd?: () => void; // called once when the current segment reaches its stop time
   maxWidth?: string;   // max width of the player (CSS value); defaults to 640px
+  blockClicks?: boolean; // cover the whole frame with a transparent overlay so the viewer can't
+                         // click the video (disables YouTube's red play button / click-to-play);
+                         // playback is then driven only by the app's own Play button via the API.
 }
 
-export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime = 0, playKey, onSegmentEnd, maxWidth = '640px' }: CustomYoutubePlayerProps) {
+export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime = 0, playKey, onSegmentEnd, maxWidth = '640px', blockClicks = false }: CustomYoutubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerHostRef = useRef<HTMLDivElement>(null); // absolute, full-size div the iframe mounts into
   const playerRef = useRef<any>(null);
@@ -200,19 +203,36 @@ export default function CustomYoutubePlayer({ videoId, startTime = 0, stopTime =
         {/* The YouTube iframe injection-mounts inside here (fills the 16:9 box) */}
         <div ref={playerHostRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
 
-        {/* Transparent strip over YouTube's "More videos" bar at the bottom: it doesn't hide the
-            video/captions, it just intercepts clicks so the student can't click the suggestions. */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: '70px',
-            backgroundColor: 'transparent',
-            zIndex: 2,
-          }}
-        />
+        {blockClicks ? (
+          /* Transparent full-frame overlay: intercepts every click on the video so the viewer
+             can't use YouTube's red play button or click-to-play. The app's Play button drives
+             playback through the YT API, so it still works. Also covers the "More videos" bar. */
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'transparent',
+              zIndex: 2,
+            }}
+          />
+        ) : (
+          /* Transparent strip over YouTube's "More videos" bar at the bottom: it doesn't hide the
+             video/captions, it just intercepts clicks so the student can't click the suggestions. */
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: '100%',
+              height: '70px',
+              backgroundColor: 'transparent',
+              zIndex: 2,
+            }}
+          />
+        )}
       </div>
 
       {/* Student-facing captions on/off toggle */}

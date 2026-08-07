@@ -143,7 +143,7 @@ function TakeVideoQuizLive({ user_name, live_quiz_id, video_url, video_segments,
 
     // Called when a segment finishes playing — prompt the user to rewatch it.
     const handleSegmentPlayingEnd = () => {
-      console.log("TakeVDQuizLive: segment ended, segment number:", activeSegment?.segment_number);
+      //console.log("TakeVDQuizLive: segment ended, segment number:", activeSegment?.segment_number);
       setShowRewatchPrompt(true);
     };
 
@@ -155,7 +155,7 @@ function TakeVideoQuizLive({ user_name, live_quiz_id, video_url, video_segments,
 useEffect(() => {
       const handleMessage = (data: WebSocketMessageProps) => {
         if (data.message_type === "video_segment_number") {
-            console.log("TakeVDQuizLive: received video_segment_number message from server, segment number:", data.content);
+            //console.log("TakeVDQuizLive: received video_segment_number message from server, segment number:", data.content);
             setActiveSegment(video_segments.find((seg) => seg.segment_number === Number(data.content)) || null);
             setShowYouTubePlayer(true); // show the video player when a new segment is received
             if (chimeAduioRef.current) {
@@ -316,7 +316,7 @@ useEffect(() => {
    }
 
   return (
-    <div>TakeVDQuizLive
+    <div>
         { !showQuestion && showYouTubePlayer && (
             <CustomYoutubePlayer
             videoId={videoId}
@@ -324,27 +324,25 @@ useEffect(() => {
             stopTime={activeSegment ? parseTime(activeSegment.end_time) : 0}
             playKey={playTrigger}
             onSegmentEnd={handleSegmentPlayingEnd}
+            blockClicks
             />
         )}
 
-        { !showQuestion && (
-          <div className="mt-2">
-            <button
-              onClick={handlePlaySegment}
-              disabled={!activeSegment}
-              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
-            >
-              Play
-            </button>
-          </div>
-        )}
-
-        { video_segments.length > 0 && (
-            video_segments.map((seg) => (
-                <div key={seg.id}>
-                   <span className={`p-2 ${activeSegment?.segment_number === seg.segment_number ? 'bg-green-500 text-white font-bold' : 'bg-blue-200'}`}>{seg.segment_number}</span>
-                </div>
-            ))
+        { (!showQuestion || video_segments.length > 0) && (
+            <div className="mt-2 flex justify-center items-center gap-2">
+                { !showQuestion && (
+                  <button
+                    onClick={handlePlaySegment}
+                    disabled={!activeSegment}
+                    className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+                  >
+                    Play
+                  </button>
+                )}
+                {video_segments.map((seg) => (
+                   <span key={seg.id} className={`p-2 ${activeSegment?.segment_number === seg.segment_number ? 'bg-green-500 text-white font-bold' : 'bg-blue-200'}`}>{seg.segment_number}</span>
+                ))}
+            </div>
         )
         }
         {  liveQuestionNumber && (

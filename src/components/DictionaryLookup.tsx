@@ -17,6 +17,7 @@ interface DictSense {
 }
 interface DictPartOfSpeech {
   name: string;
+  audio_blob?: string;  // blob name (no ".mp3") set by the backend when audio was generated; "" = none
   senses?: DictSense[];
 }
 interface DictEntry {
@@ -102,11 +103,20 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
   // Teachers get a larger, wider results panel (they scan/curate more than students).
   const isTeacher = mode === "teacher";
 
-  // Play the word's pre-generated pronunciation (same blob + slow rate as ButtonSelectCloze).
-  const playWord = (word: string) => {
-    const audio = new Audio(`https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`);
-    audio.playbackRate = 0.85;
-    audio.play().catch(() => {});
+  // Play a part of speech's pronunciation at normal speed, then automatically again slowly.
+  // The backend stored the normal blob name on the POS (audio_blob) and also generated a natural
+  // slow re-synthesis at "slow_<audio_blob>.mp3", so both names are known without any hashing.
+  const playPos = (audioBlob: string) => {
+    const base = "https://kphamazureblobstore.blob.core.windows.net/tts-audio/";
+    const normal = new Audio(`${base}${audioBlob}.mp3`);
+    normal.onended = () => {
+      // Short pause, then the slow version at true speed (it's already slowed server-side).
+      setTimeout(() => {
+        const slow = new Audio(`${base}slow_${audioBlob}.mp3`);
+        slow.play().catch(() => {});
+      }, 250);
+    };
+    normal.play().catch(() => {});
   };
 
   return (
@@ -165,10 +175,10 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                   {pos.name && (
                     <span className={`italic text-indigo-700 ${isTeacher ? "text-base" : "text-sm"}`}>{pos.name}</span>
                   )}
-                  {/* Student: play the word's pronunciation. */}
-                  {!isTeacher && (
+                  {/* Student: play this part of speech's pronunciation, only if audio exists. */}
+                  {!isTeacher && pos.audio_blob && (
                     <button
-                      onClick={() => playWord(entry.head_word)}
+                      onClick={() => playPos(pos.audio_blob!)}
                       title="Play pronunciation"
                       aria-label="Play pronunciation"
                       className="ml-2 align-middle text-green-600 hover:text-green-700"
