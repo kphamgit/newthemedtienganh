@@ -17,6 +17,7 @@ import { type QuizProps } from "../components/shared/types";
 
 export interface TeacherControlRefProps {
     terminate_live_quiz: () => void;
+    send_question_to_user: (userName: string, questionNumber: number) => void;
 }
 
 interface Props {
@@ -122,7 +123,8 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
                 message: "terminate",
                 user_name: name,    // identify sender, which is teacher
             }));
-        }
+        },
+        send_question_to_user: sendQuestionNumberToUser,
     }));
 
     const sendQuizId = () => {
@@ -200,13 +202,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             alert("Please enter target user name.");
             return;
         }
-        /*
-        websocketRef.current.send(JSON.stringify({
-            message_type: "live_question_number",
-            content: questionNumber,
-            user_name: targetUserName,    // identify sender, which is teacher
-        }));
-        */
+   
         api.post(`/api/send_live_question_number/${questionNumber}/`, {
             live_quiz_id: activeLiveQuizId,
             target_user_name: targetUserName,
@@ -215,6 +211,8 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             console.log("Response from server after sending live question number:", response.data);
             console.log("Live question number sent successfully.");
             //alert("Live question number sent successfully.");
+            if (targetUserName != 'everybody')
+                setTargetUserName('everybody') // reset 
         })
         .catch(error => {
             alert("Error sending live question number. " + error.response?.data.error);
@@ -222,6 +220,25 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             //alert("Error sending live question number. " + error.response?.data.error);
         });
         setQuestionNumber("");
+    };
+
+    // Invoked when the teacher clicks a student's username in the scoreboard: send that
+    // student the given question number (computed by the scoreboard as current + 1).
+    const sendQuestionNumberToUser = (userName: string, questionNumber: number) => {
+        if (activeLiveQuizId === null) {
+            alert("No active live quiz. Please start a live quiz first.");
+            return;
+        }
+        api.post(`/api/send_live_question_number/${questionNumber}/`, {
+            live_quiz_id: activeLiveQuizId,
+            target_user_name: userName,
+        })
+        .then(response => {
+            console.log(`Sent question number ${questionNumber} to ${userName}:`, response.data);
+        })
+        .catch(error => {
+            alert("Error sending live question number. " + error.response?.data.error);
+        });
     };
 
     const handleTerminateLiveQuiz = () => {
@@ -446,7 +463,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
                 </div>
             )
             }
-
+            <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
             {/* Send a YouTube link to all students; they display it with a manual Play button. */}
             <div className="mt-10 bg-gray-200 p-3 rounded-md">
                 <h3 className="text-lg font-bold mb-2">Send YouTube Video to Students</h3>
@@ -517,7 +534,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
                 )}
             </div>
 
-            <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
+
 
             <ToastContainer />
         </div>

@@ -7,15 +7,42 @@ import { useUserConnections } from '../components/context/UserConnectionsContext
 import { type UserRowProps } from '../components/context/UserConnectionsContext';
 import { FaSpinner } from 'react-icons/fa';
 
-function StudentScoreRow({ user }: { user: UserRowProps }) {
+// Animated "working on it" indicator: three dots bouncing in sequence.
+function WorkingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 ml-2" title="Working on the question...">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-blue-700 animate-bounce"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function StudentScoreRow({ user, onNameClick }: { user: UserRowProps; onNameClick?: () => void }) {
   return (
     <div className='flex flex-row justify-start mb-2 items-center bg-amber-300 px-2'>
-      <div>{user.name}</div>
+      {onNameClick ? (
+        // Teacher view: the username is clickable.
+        <button
+          onClick={onNameClick}
+          className="text-blue-800 font-medium underline hover:text-blue-600 cursor-pointer"
+        >
+          {user.name}
+        </button>
+      ) : (
+        <div>{user.name}</div>
+      )}
       {user.live_question_number !== undefined && (
         <>
           <div className={`${user.live_score === undefined ? "bg-amber-600" : "bg-green-600"} py-0 ml-1 px-2 rounded-full text-md text-white`}>
             {user.live_question_number}
           </div>
+          {/* Student has a question but hasn't been scored yet — show a "working on it" animation. */}
+          {user.live_score === undefined && <WorkingDots />}
           <div className='flex flex-row justify-center items-center ml-2'>
             <div className='mx-2'>Score:</div>
             <div>
@@ -39,9 +66,11 @@ function StudentScoreRow({ user }: { user: UserRowProps }) {
 
 interface ScoreBoardProps {
     my_row: UserRowProps | null; // Expecting an array of UserRowProps
+    // teacher only: called when a username is clicked, with the student's next question number
+    onUserNameClick?: (userName: string, questionNumber: number) => void;
   }
 
-  const ScoreBoard: React.FC<ScoreBoardProps> = ({ my_row}) => {
+  const ScoreBoard: React.FC<ScoreBoardProps> = ({ my_row, onUserNameClick}) => {
 //function ScoreBoard( {name: string, live_question_number: number, live_score: number,  live_total_score: number }) : UserRowProps{
     const { name: myName } = useSelector((state: RootState) => state.user);
     //const connectedUsersInReduxStore = useSelector((state: RootState) => state.connectedUsers.list);
@@ -52,6 +81,14 @@ interface ScoreBoardProps {
 
     
     //const [quizName, setQuizName] = useState<string>("");
+
+    // Teacher clicked a student's username: increment that student's live_question_number by 1
+    // and forward the resulting number to the parent (which sends it via TeacherControlPanel).
+    const handleUserNameClick = (user: UserRowProps) => {
+        const nextQuestionNumber = (user.live_question_number ?? 0) + 1;
+        console.log(`ScoreBoard: ${user.name} clicked -> sending question number ${nextQuestionNumber}`);
+        onUserNameClick?.(user.name, nextQuestionNumber);
+    };
 
  useEffect(() => {
     console.log("ScoreBoard: useEffect my_row:", my_row);
@@ -72,18 +109,19 @@ interface ScoreBoardProps {
             
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
-                    return { ...row, live_question_number: Number(data.content), live_score: undefined }; // reset live score when question number is updated
+                    // reset live score and clear the previous answer when a new question is retrieved
+                    return { ...row, live_question_number: Number(data.content), live_score: undefined, live_user_answer: undefined };
                 }
                 return row;
             }));
-            
-      
+
+
         }
         else if (data.message_type === "student_acknowleged_live_question_number") {
             //console.log("ScoreBoard: Received student_acknowleged_live_question_number message from server for user:", data.user_name, " question number:", data.message);
             // update question number in redux store for that user
             const sender = data.user_name;
-            
+
             setUserRows((prevRows) => prevRows.map((row) => {
                 if (row.name === sender) {
                     return { ...row, live_question_number: Number(data.content), live_score: undefined }; // reset live score and total score when question number is updated
@@ -121,16 +159,16 @@ interface ScoreBoardProps {
         }
         else if (data.message_type === "live_quiz_terminated") {
             //console.log("ScoreBoard: Received live_quiz_terminated message from server.");
-            // reset all user rows
-            
+            // Quiz ended: clear every scoreboard field so each row shows only the name.
             setUserRows((prevRows) => prevRows.map((row) => ({
                 ...row,
-                live_quiz_id: undefined,
                 live_score: undefined,
-                total_score: undefined,
+                live_total_score: undefined,
                 live_question_number: undefined,
+                live_user_answer: undefined,
+                recording_received: undefined,
+                recording_presigned_url: undefined,
             })));
-            
         }
       }
       // Subscribe to the "message" event
@@ -152,7 +190,11 @@ interface ScoreBoardProps {
                     .map((user, index) => (
                         user.name !== "teacher" && user.name !== "admin" ) && (
                             <>
-                            <StudentScoreRow key={index} user={user} />
+                            <StudentScoreRow
+                                key={index}
+                                user={user}
+                                onNameClick={myName === "teacher" ? () => handleUserNameClick(user) : undefined}
+                            />
                             { myName === "teacher" && user.live_user_answer !== undefined &&
                                 <div className='flex flex-row justify-center items-center ml-2'>
                                     <div>

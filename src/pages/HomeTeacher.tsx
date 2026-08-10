@@ -8,15 +8,10 @@ import { type LevelProps } from "../components/Level";
 import TeacherControlPanel from "./TeacherControlPanel";
 //import type { WebSocketMessageProps } from "../components/shared/types";
 import { type TeacherControlRefProps } from "./TeacherControlPanel";
-//import ScoreBoardTeacher from "./ScoreBoardTeacher";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import ScoreBoard from "./ScoreBoard";
 import Navbar from "../components/Navbar";
 import DictionaryLookup from "../components/DictionaryLookup";
-//import ScoreBoard from "./ScoreBoard";
-//import { useDispatch } from "react-redux";
-//import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice"
-//import type { AppDispatch } from "../redux/store";
 
 type TeacherTab = "control" | "navbar";
 
@@ -75,7 +70,10 @@ function HomeTeacher() {
                 )}
             </div>
             <div className="bg-green-300 col-span-1">
-                <ScoreBoard my_row= {null} />
+                <ScoreBoard
+                    my_row={null}
+                    onUserNameClick={(userName, questionNumber) => teacherControlPanelRef.current?.send_question_to_user(userName, questionNumber)}
+                />
             </div>
         </div>
     );
