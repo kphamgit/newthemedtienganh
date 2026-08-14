@@ -1,4 +1,6 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import api from '../../api';
 //import { MessageProps } from './ChatPage';
 import { type ChatProps } from './ChatPage';
 
@@ -14,6 +16,41 @@ const ChatBody = (props: { messages: ChatProps[] }) => {
     //console.log("ChatBody: messages updated=", props.messages)
     scrollToBottom()
   }, [props.messages])
+
+  // Only the teacher may delete a student's recording (before they can't hear it anymore).
+  const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
+  const isTeacher = name === 'teacher';
+
+  // audio_urls the teacher has deleted this session (so we hide the player) + the one in flight.
+  const [deletedAudios, setDeletedAudios] = useState<Set<string>>(new Set());
+  const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
+
+  // A recording's presigned url encodes its S3 object key in the path. Recordings live under
+  // "audios/recordings/", so anchor on that prefix (works for both path- and virtual-hosted urls).
+  const extractFileKey = (audioUrl: string): string => {
+    try {
+      const path = decodeURIComponent(new URL(audioUrl).pathname);
+      const idx = path.indexOf('audios/');
+      return idx >= 0 ? path.slice(idx) : path.replace(/^\//, '');
+    } catch {
+      return '';
+    }
+  };
+
+  const handleDeleteAudio = (audioUrl: string) => {
+    const fileKey = extractFileKey(audioUrl);
+    if (!fileKey) return;
+    setDeletingUrl(audioUrl);
+    api.post('/english/delete-audio/', { file_key: fileKey })
+      .then(() => {
+        setDeletedAudios((prev) => new Set(prev).add(audioUrl));
+      })
+      .catch((err) => {
+        console.error('Error deleting audio:', err);
+        alert('Could not delete the audio.');
+      })
+      .finally(() => setDeletingUrl(null));
+  };
 
   // {{console.log("message in ChatBody=", message)}}
   return (
@@ -34,7 +71,23 @@ const ChatBody = (props: { messages: ChatProps[] }) => {
                 </p>
                 {/* Recorded voice answer — replay it (mainly for the teacher to score) */}
                 {message.audio_url && (
-                  <audio controls src={message.audio_url} className="mt-1 w-full h-8" />
+                  deletedAudios.has(message.audio_url) ? (
+                    <p className="mt-1 text-xs italic text-gray-500">Audio deleted</p>
+                  ) : (
+                    <div className="mt-1 flex items-center gap-2">
+                      <audio controls src={message.audio_url} className="flex-1 h-8" />
+                      {/* Teacher-only: delete the recording from S3 after listening. */}
+                      {isTeacher && (
+                        <button
+                          onClick={() => handleDeleteAudio(message.audio_url!)}
+                          disabled={deletingUrl === message.audio_url}
+                          className="shrink-0 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                        >
+                          {deletingUrl === message.audio_url ? '...' : 'Delete'}
+                        </button>
+                      )}
+                    </div>
+                  )
                 )}
             </div> )
           }
