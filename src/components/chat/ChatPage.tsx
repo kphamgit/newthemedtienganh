@@ -186,7 +186,7 @@ export interface ChatProps {
   
     return (
       <div
-        className="absolute bottom-[15px] right-[15px] bg-white shadow-lg border border-gray-300 rounded-lg w-[334px] h-[268px] flex flex-col z-20"
+        className={`absolute bottom-[15px] right-[15px] bg-white shadow-lg border border-gray-300 rounded-lg ${isStudent ? 'w-[334px]' : 'w-[440px]'} h-[268px] flex flex-col z-20`}
       >
           {/* Close arrow — sticks to the right edge of the chat window */}
           <button

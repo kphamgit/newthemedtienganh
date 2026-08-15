@@ -73,20 +73,21 @@ const ChatBody = (props: { messages: ChatProps[] }) => {
                 {message.audio_url && (
                   deletedAudios.has(message.audio_url) ? (
                     <p className="mt-1 text-xs italic text-gray-500">Audio deleted</p>
-                  ) : (
+                  ) : isTeacher ? (
+                    // Teacher: the chat box is wider, so the Delete button sits to the right of the audio.
                     <div className="mt-1 flex items-center gap-2">
-                      <audio controls src={message.audio_url} className="flex-1 h-8" />
-                      {/* Teacher-only: delete the recording from S3 after listening. */}
-                      {isTeacher && (
-                        <button
-                          onClick={() => handleDeleteAudio(message.audio_url!)}
-                          disabled={deletingUrl === message.audio_url}
-                          className="shrink-0 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                        >
-                          {deletingUrl === message.audio_url ? '...' : 'Delete'}
-                        </button>
-                      )}
+                      <audio controls src={message.audio_url} className="flex-1 min-w-0 h-8" />
+                      <button
+                        onClick={() => handleDeleteAudio(message.audio_url!)}
+                        disabled={deletingUrl === message.audio_url}
+                        className="shrink-0 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                      >
+                        {deletingUrl === message.audio_url ? 'Deleting...' : 'Delete'}
+                      </button>
                     </div>
+                  ) : (
+                    // Student: no delete button, audio fills the (narrower) row.
+                    <audio controls src={message.audio_url} className="mt-1 w-full h-8" />
                   )
                 )}
             </div> )
