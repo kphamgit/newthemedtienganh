@@ -10,8 +10,9 @@ import {toast, ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import ListUsers from "./ListUsers";
+import DictionaryModal from "../components/DictionaryModal";
 
-import { type QuizProps } from "../components/shared/types";
+import { type QuizProps, type MarkedWord } from "../components/shared/types";
 
 
 
@@ -62,6 +63,22 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
 
         // A YouTube link to push to students (they display it with a manual Play button).
         const [inputVideoLink, setInputVideoLink] = useState("");
+
+        // Free-form text to push to students (shown in their non-live view).
+        const [inputText, setInputText] = useState("");
+
+        // The input text split into per-word tokens (spaCy: text + POS + lemma), shown as buttons.
+        const [textButtons, setTextButtons] = useState<MarkedWord[] | null>(null);
+        const [tokenizing, setTokenizing] = useState(false);
+        // Tab for the Send-Text panel: "edit" the raw text, or view it as clickable word "buttons".
+        const [textMode, setTextMode] = useState<"edit" | "buttons">("edit");
+        // Token indices the teacher marked (clicked) as "to learn". Keyed by index (not word) so
+        // repeated words with different meanings (e.g. "record" verb vs. noun) mark independently.
+        const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+        // The marked token whose dictionary modal is open, or null when closed.
+        const [dictToken, setDictToken] = useState<MarkedWord | null>(null);
+        // Sense the teacher chose for each marked token: token index -> sense_id.
+        const [senseByIndex, setSenseByIndex] = useState<Record<number, number>>({});
 
     useEffect(() => {
         if (live_quiz_id) {
@@ -350,6 +367,75 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         setInputVideoLink("");
     };
 
+    // Broadcast free-form text to students. Blocked during a live quiz (same as images/videos),
+    // since students display it in their non-live-quiz view.
+    const sendTextToStudents = () => {
+        const text = inputText.trim();
+        if (!text) return;
+        if (activeLiveQuizId !== null) {
+            alert("Cannot send text while a live quiz is in progress.");
+            return;
+        }
+        if (!websocketRef.current) {
+            alert("WebSocket is not connected.");
+            return;
+        }
+        // Resolve the marked token indices into full MarkedWord objects, attaching the sense the
+        // teacher chose for each (if any) so the student can create the card from it.
+        const marked = (textButtons ?? [])
+            .filter((t) => selectedIndices.has(t.index))
+            .map((t) => ({ ...t, sense_id: senseByIndex[t.index] }));
+        websocketRef.current.send(JSON.stringify({
+            message_type: "live_text",
+            content: text,          // students display this text
+            user_name: name,        // identify sender, which is teacher
+            marked_words: marked,   // words the teacher marked as "to learn", resolved in context
+        }));
+        toast.success("Text sent!", {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: true,
+        });
+        // Reset the panel back to a clean edit state.
+        setInputText("");
+        setTextButtons(null);
+        setSelectedIndices(new Set());
+        setSenseByIndex({});
+        setTextMode("edit");
+    };
+
+    // Split the input text into clean word tokens (via spaCy on the backend) and show them as buttons.
+    const handleConvertToButtons = () => {
+        const text = inputText.trim();
+        if (!text) return;
+        setTextMode("buttons"); // switch to the buttons tab
+        setSelectedIndices(new Set()); // fresh token list -> clear any previous selection
+        setSenseByIndex({});           // and any sense associations
+        setTokenizing(true);
+        api.post<{ tokens: MarkedWord[] }>("/english/tokenize-text/", { text })
+            .then((res) => {
+                setTextButtons(res.data.tokens ?? []);
+            })
+            .catch((err) => {
+                console.error("Error tokenizing text:", err);
+                alert("Could not convert the text to buttons.");
+            })
+            .finally(() => setTokenizing(false));
+    };
+
+    // Toggle a token's "selected" (to-learn) state. When it becomes selected, also look up its
+    // lemma in the Viet dictionary and show the results in a modal.
+    const handleWordButtonClick = (token: MarkedWord) => {
+        const willSelect = !selectedIndices.has(token.index);
+        setSelectedIndices((prev) => {
+            const next = new Set(prev);
+            if (next.has(token.index)) next.delete(token.index);
+            else next.add(token.index);
+            return next;
+        });
+        if (willSelect) setDictToken(token);
+    };
+
     // Free the preview object url when the panel unmounts.
     useEffect(() => {
         return () => {
@@ -464,6 +550,91 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             )
             }
             <ListUsers userRows={userRows} onUserNameClick={onUserNameClick} />
+            {/* Send free-form text to all students; they display it in their non-live view. */}
+            <div className="mt-10 bg-gray-200 p-3 rounded-md">
+                <h3 className="text-lg font-bold mb-2">Send Text to Students</h3>
+
+                {/* Tabs: edit the raw text, or convert it to clickable word buttons. */}
+                <div className="flex gap-1 ml-2">
+                    <button
+                        className={`px-3 py-1 rounded-t-md text-sm font-medium ${
+                            textMode === "edit" ? "bg-purple-300 text-purple-900" : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                        }`}
+                        onClick={() => setTextMode("edit")}
+                    >
+                        Edit Text
+                    </button>
+                    <button
+                        className={`px-3 py-1 rounded-t-md text-sm font-medium ${
+                            textMode === "buttons" ? "bg-purple-300 text-purple-900" : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                        } ${!inputText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
+                        onClick={handleConvertToButtons}
+                        disabled={!inputText.trim()}
+                    >
+                        Convert to Buttons
+                    </button>
+                </div>
+
+                {/* Shared area: the textarea and the word buttons occupy the same region — only
+                    the active tab's content is shown. */}
+                <div className="mx-2">
+                    {textMode === "edit" ? (
+                        <textarea
+                            className="bg-white text-black p-2 rounded-b-md rounded-tr-md w-full h-24 resize-y"
+                            placeholder="Type a message to send to students..."
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                        />
+                    ) : (
+                        <div className="bg-gray-50 rounded-b-md rounded-tr-md p-3 min-h-24">
+                            {tokenizing ? (
+                                <p className="text-sm text-gray-500">Converting...</p>
+                            ) : textButtons && textButtons.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {textButtons.map((token) => {
+                                        const selected = selectedIndices.has(token.index);
+                                        return (
+                                        <button
+                                            key={token.index}
+                                            onClick={() => handleWordButtonClick(token)}
+                                            className={`px-2 py-1 rounded text-base ${
+                                                selected
+                                                    ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                                    : "bg-gray-100 hover:bg-blue-200 text-black"
+                                            }`}
+                                        >
+                                            {token.text}
+                                        </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">No words to show.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Send is enabled only once the words are visible (buttons tab, tokens present). */}
+                <div className="mt-2 ml-2">
+                    <button
+                        className={`text-white bg-blue-600 mb-2 p-2 rounded-md hover:bg-blue-800 ${
+                            textMode === "buttons" && textButtons && textButtons.length > 0 && activeLiveQuizId === null
+                                ? "" : "opacity-50 cursor-not-allowed"
+                        }`}
+                        onClick={sendTextToStudents}
+                        disabled={textMode !== "buttons" || !textButtons || textButtons.length === 0 || activeLiveQuizId !== null}
+                    >
+                        Send Text to Students
+                    </button>
+                    {activeLiveQuizId !== null && (
+                        <span className="text-sm text-red-700 ml-2">
+                            Cannot send text while a live quiz is in progress.
+                        </span>
+                    )}
+                </div>
+            </div>
+
             {/* Send a YouTube link to all students; they display it with a manual Play button. */}
             <div className="mt-10 bg-gray-200 p-3 rounded-md">
                 <h3 className="text-lg font-bold mb-2">Send YouTube Video to Students</h3>
@@ -535,6 +706,22 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             </div>
 
 
+
+            {dictToken && (
+                <DictionaryModal
+                    word={dictToken.lemma}
+                    selectedSenseId={senseByIndex[dictToken.index] ?? null}
+                    onSelectSense={(senseId) =>
+                        setSenseByIndex((prev) => {
+                            const next = { ...prev };
+                            if (senseId === null) delete next[dictToken.index];
+                            else next[dictToken.index] = senseId;
+                            return next;
+                        })
+                    }
+                    onClose={() => setDictToken(null)}
+                />
+            )}
 
             <ToastContainer />
         </div>

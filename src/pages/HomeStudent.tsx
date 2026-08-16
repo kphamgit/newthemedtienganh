@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import api from "../api";
 import chimeSound from "../assets/chime.mp3";
 import { type LevelProps} from "../components/Level";
@@ -13,13 +13,15 @@ import type { RootState } from '../redux/store';
 //import { clearLiveQuestionInfo} from "../redux/connectedUsersSlice";
 //import type { AppDispatch } from "../redux/store";
 import { useWebSocket } from "../components/context/WebSocketContext";
-import type { WebSocketMessageProps, VideoSegment } from "../components/shared/types";
+import type { WebSocketMessageProps, VideoSegment, MarkedWord } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import { Outlet } from "react-router-dom";
 import AssignmentModal from "../components/AssignmentModal";
 import CardReview from "../components/CardReview";
 import TakeVideoQuizLive from "../components/TakeVideoQuizLive";
 import StudentLiveVideo from "../components/StudentLiveVideo";
+import SingleCardReview, { type ReviewCard } from "../components/SingleCardReview";
+import DefinitionPopup from "../components/DefinitionPopup";
 import DictionaryLookup from "../components/DictionaryLookup";
 
 function HomeStudent() {
@@ -31,8 +33,20 @@ function HomeStudent() {
     const [liveImageUrl, setLiveImageUrl] = useState<string | null>(null);
     // Latest YouTube url the teacher pushed to students, shown outside a live quiz.
     const [liveVideoUrl, setLiveVideoUrl] = useState<string | null>(null);
+    // Latest free-form text the teacher pushed to students, shown outside a live quiz.
+    const [liveTextContent, setLiveTextContent] = useState<string | null>(null);
+    // Card shown for immediate review when the student clicks a marked (sense-tagged) word.
+    const [reviewCard, setReviewCard] = useState<ReviewCard | null>(null);
+    // Card whose definition is shown on a repeat click of a marked word (read-only, no rating).
+    const [definitionCard, setDefinitionCard] = useState<ReviewCard | null>(null);
+    // Words the teacher marked "to learn" in the pushed text; shown to the student as buttons.
+    const [liveTextMarkedWords, setLiveTextMarkedWords] = useState<MarkedWord[]>([]);
 
     const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
+    // Keep the latest live_quiz_id readable inside async callbacks (the welcome_message may set it
+    // shortly after mount, e.g. when reconnecting into a live quiz already in progress).
+    const liveQuizIdRef = useRef(liveQuizId);
+    liveQuizIdRef.current = liveQuizId;
 
     const {eventEmitter, websocketRef} = useWebSocket();
 
@@ -83,6 +97,26 @@ function HomeStudent() {
                 console.error("Error playing chime sound:", error);
             });
         }
+        else if (data.message_type === "live_text") {
+            // Teacher pushed a text message to students; show the latest one, plus any marked words.
+            const marked = data.marked_words ?? [];
+            /*
+            console.log("HomeStudent live_text received:", {
+                content: data.content,
+                marked_words: marked,
+            });
+            marked.forEach((w) =>
+                console.log(
+                    `  marked word: text="${w.text}" lemma="${w.lemma}" pos="${w.pos}" index=${w.index} start=${w.start} sense_id=${w.sense_id}`
+                )
+            );
+            */
+            setLiveTextContent(data.content);
+            setLiveTextMarkedWords(marked);
+            chimeAudioRef.current?.play().catch((error) => {
+                console.error("Error playing chime sound:", error);
+            });
+        }
         else if (data.message_type === "live_quiz_terminated") {
             //console.log("HomeStudent: Received terminate_live_quiz message from server.");
              setLiveQuizId(null);
@@ -97,11 +131,88 @@ function HomeStudent() {
         eventEmitter?.off("message", handleMessage);
       };
     }, [eventEmitter]); // Only include eventEmitter in the dependency array
-   
+
+    // Student clicked a marked word: play its Azure TTS audio, and — if it's tied to a dictionary
+    // sense — add that card to the review queue. First click: show the review flashcard. Repeat
+    // clicks (already in review): just show the definition once the audio finishes.
+    const handleMarkedWordClick = (word: MarkedWord) => {
+        const audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word.text}.mp3`;
+        const audio = new Audio(audioUrl);
+        audio.playbackRate = 0.85; // 1 = normal, < 1 = slower
+        let audioEnded = false;
+        audio.onended = () => { audioEnded = true; };
+        audio.play().catch(() => { audioEnded = true; });
+
+        if (word.sense_id != null) {
+            api.post<ReviewCard & { created: boolean }>(`/api/cards/from-sense/${word.sense_id}/add-to-review/`)
+                .then((res) => {
+                    if (res.data.created) {
+                        // First time: full review flashcard (option 2).
+                        setReviewCard(res.data);
+                    } else {
+                        // Already in review: show just the definition, after the audio has played.
+                        const showDefinition = () => setDefinitionCard(res.data);
+                        if (audioEnded) showDefinition();
+                        else audio.onended = showDefinition;
+                    }
+                })
+                .catch((err) => console.error("Error adding sense card to review:", err));
+        }
+    };
+
+    // Render the pushed text, turning each marked occurrence (located by its character offset)
+    // into an inline button and leaving the rest as plain text.
+    const renderTextWithButtons = (text: string, marked: MarkedWord[]): ReactNode => {
+        if (marked.length === 0) return text;
+        const sorted = [...marked].sort((a, b) => a.start - b.start);
+        const parts: ReactNode[] = [];
+        let cursor = 0;
+        sorted.forEach((word) => {
+            const end = word.start + word.text.length;
+            if (word.start < cursor) return; // skip overlaps (shouldn't happen)
+            if (word.start > cursor) parts.push(text.slice(cursor, word.start));
+            parts.push(
+                <button
+                    key={`w-${word.index}`}
+                    onClick={() => handleMarkedWordClick(word)}
+                    className="inline bg-white underline px-1 cursor-pointer"
+                >
+                    {text.slice(word.start, end)}
+                </button>
+            );
+            cursor = end;
+        });
+        if (cursor < text.length) parts.push(text.slice(cursor));
+        return parts;
+    };
+
     useEffect(() => {
         //console.log("Home component mounted, fetching levels...");
         getLevels();
     }, []);  // empty dependency array to run only once on mount
+
+    // On login: pop up the vocabulary review if cards are due — but NOT if the student is resuming
+    // a live quiz. Wait briefly so a reconnect's welcome_message can set live_quiz_id before we
+    // decide, and re-check after the fetch in case it arrives meanwhile.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (liveQuizIdRef.current) return; // resuming a live quiz -> skip auto review
+            api.get('/api/cards/due/')
+                .then((res) => {
+                    if (liveQuizIdRef.current) return; // a live quiz arrived while fetching
+                    const due = res.data.due_cards ?? [];
+                    if (due.length > 0) setShowVocabReview(true);
+                })
+                .catch((err) => console.error('Error checking due cards:', err));
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, []);  // run once on mount
+
+    // Backstop: if a live quiz becomes active at any point, cancel the auto vocabulary review
+    // (covers a slow welcome_message that arrives after the review already popped up).
+    useEffect(() => {
+        if (liveQuizId) setShowVocabReview(false);
+    }, [liveQuizId]);
 
     const getLevels = () => {
         //console.log("Fetching categories...");
@@ -183,15 +294,6 @@ function HomeStudent() {
                             />
                             <DictionaryLookup />
                         </div>
-                        <div className="m-1 flex justify-center">
-                            <button
-                                disabled={false}
-                                onClick={() => setShowVocabReview(true)}
-                                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-purple-700 text-white font-medium"
-                            >
-                                Review My Vocabulary
-                            </button>
-                        </div>
                     </div>
                     {showAssignmentModal && pendingAssignments.length > 0 && (
                         <AssignmentModal
@@ -220,19 +322,50 @@ function HomeStudent() {
                             onDismiss={() => setLiveVideoUrl(null)}
                         />
                     )}
-                    {showVocabReview ? (
-                        <CardReview
-                            userName={name ?? ''}
-                            onComplete={() => setShowVocabReview(false)}
-                        />
-                    ) : (
-                        <Outlet />
+                    {liveTextContent && (
+                        <div className="flex flex-col items-center my-4">
+                            {/* The text, with each teacher-marked word turned into an inline button. */}
+                            <div className="max-w-2xl w-full bg-white border-2 border-gray-400 rounded-lg shadow-lg p-5 text-lg text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                {renderTextWithButtons(liveTextContent, liveTextMarkedWords)}
+                            </div>
+                            <button
+                                onClick={() => { setLiveTextContent(null); setLiveTextMarkedWords([]); }}
+                                className="mt-2 px-4 py-1 rounded-md bg-gray-600 hover:bg-gray-800 text-white text-sm"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
                     )}
+                    <Outlet />
                     </>
                 }
             
             </div>
-           
+
+            {/* Vocabulary review pops up on login when cards are due (not during a live quiz). */}
+            {showVocabReview && !liveQuizId && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-8">
+                        <CardReview
+                            userName={name ?? ''}
+                            onComplete={() => setShowVocabReview(false)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {reviewCard && (
+                <SingleCardReview
+                    card={reviewCard}
+                    userName={name ?? ''}
+                    onClose={() => setReviewCard(null)}
+                />
+            )}
+
+            {definitionCard && (
+                <DefinitionPopup card={definitionCard} onClose={() => setDefinitionCard(null)} />
+            )}
+
         </div>
 
     );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { FaPlayCircle } from "react-icons/fa";
 import api from "../api";
 
@@ -14,6 +15,7 @@ interface DictSense {
   definition: string;
   examples?: DictExample[];
   card_id?: number | null; // id of the teacher-created card for this sense, if any
+  in_review?: boolean;     // true if the current student already has this card in their review
 }
 interface DictPartOfSpeech {
   name: string;
@@ -36,6 +38,7 @@ const SOURCES = [
 // mode="student": each reviewable sense gets a "+ Review" button (adds to the student's queue).
 // mode="teacher": each sense gets a "+ Create Card" button (creates the global card).
 export default function DictionaryLookup({ mode = "student" }: { mode?: "student" | "teacher" }) {
+  const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
   const [word, setWord] = useState("");
   const [source, setSource] = useState(SOURCES[0].value); // default: Viet
   const [entries, setEntries] = useState<DictEntry[] | null>(null);
@@ -52,7 +55,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
     setLoading(true);
     setError(null);
     setEntries(null);
-    api.post("/english/read-dictionary/", { word: term, source })
+    api.post("/english/read-dictionary/", { word: term, source, user_name: name })
       .then((res) => {
         setEntries(res.data as DictEntry[]);
       })
@@ -85,7 +88,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
 
   // Teacher: create the global card for this sense (idempotent on the backend).
   const createCard = (headWord: string, sense: DictSense, partOfSpeech: string) => {
-    api.post("/api/cards/", { text: headWord, definition: sense.definition, part_of_speech: partOfSpeech })
+    api.post("/api/cards/", { text: headWord, definition: sense.definition, part_of_speech: partOfSpeech, sense_id: sense.id })
       .then(() => {
         setCreatedSenseIds((prev) => new Set(prev).add(sense.id));
       })
@@ -208,9 +211,11 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                         ) : (
                           // Student: only senses a teacher has made a card for are reviewable.
                           sense.card_id != null && (
-                            addedCardIds.has(sense.card_id) ? (
+                            // Already in the student's review (from a prior session/marked-word click)
+                            // or added this session -> show a badge instead of the "+ Review" button.
+                            sense.in_review || addedCardIds.has(sense.card_id) ? (
                               <span className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                                ✓ Added
+                                ✓ In review
                               </span>
                             ) : (
                               <button

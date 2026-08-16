@@ -12,8 +12,9 @@ import { useUserConnections } from "../components/context/UserConnectionsContext
 import ScoreBoard from "./ScoreBoard";
 import Navbar from "../components/Navbar";
 import DictionaryLookup from "../components/DictionaryLookup";
+import TeacherUtils from "../components/TeacherUtils";
 
-type TeacherTab = "control" | "navbar";
+type TeacherTab = "control" | "navbar" | "utils";
 
 function HomeTeacher() {
 
@@ -53,6 +54,9 @@ function HomeTeacher() {
                     <button className={tabClass("navbar")} onClick={() => setActiveTab("navbar")}>
                         Navbar
                     </button>
+                    <button className={tabClass("utils")} onClick={() => setActiveTab("utils")}>
+                        Utils
+                    </button>
                     <div className="ml-auto pb-2">
                         <DictionaryLookup mode="teacher" />
                     </div>
@@ -61,12 +65,14 @@ function HomeTeacher() {
                 {/* Tab content */}
                 {activeTab === "control" ? (
                     <TeacherControlPanel ref={teacherControlPanelRef} live_quiz_id={liveQuizId} />
-                ) : (
+                ) : activeTab === "navbar" ? (
                     <>
                         <Navbar role="teacher" levels={levels} />
                         {/* Nested route content (e.g. Category) belongs to the Navbar browsing flow. */}
                         <Outlet />
                     </>
+                ) : (
+                    <TeacherUtils />
                 )}
             </div>
             <div className="bg-green-300 col-span-1">

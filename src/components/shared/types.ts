@@ -45,6 +45,7 @@ interface BaseWebSocketMessageProps {
   "chat" |
   "live_image" |
   "live_video" |
+  "live_text" |
   "live_score" |
   "live_user_answer" |
   "live_quiz_id" | 
@@ -82,6 +83,18 @@ export interface QuizProps {
   video_segments: VideoSegment[],
 }
 
+// A single word the teacher marked "to learn", resolved in context by spaCy. `index` is the
+// token's position in the tokenized text, so repeated words (e.g. "record" verb vs. noun) stay
+// distinct; `pos`/`lemma` disambiguate the meaning for dictionary lookup on the student side.
+export interface MarkedWord {
+  index: number;
+  text: string;
+  pos: string;
+  lemma: string;
+  start: number; // character offset of this token in the text (for inline rendering)
+  sense_id?: number; // dictionary sense the teacher associated with this word; card is made from it
+}
+
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
   connected_users?: ReceivedConnectedUserDataProps[];
   queried_value?: string; // only for cache_query_response message type
@@ -89,6 +102,7 @@ export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
   live_quiz_id: string; // for quiz host to identify which quiz the message is related to, and for students to identify which quiz to join
   live_question_number: string; // for quiz host to identify which question the message is related to, and for students to identify which question to answer
   audio_url?: string; // for chat voice answers: presigned S3 url of the recorded audio
+  marked_words?: MarkedWord[]; // for live_text: words the teacher marked as "to learn" (in context)
 }
 
 export interface QuestionProps {
