@@ -36,9 +36,10 @@ function HomeStudent() {
     // Latest free-form text the teacher pushed to students, shown outside a live quiz.
     const [liveTextContent, setLiveTextContent] = useState<string | null>(null);
     // Card shown for immediate review when the student clicks a marked (sense-tagged) word.
-    const [reviewCard, setReviewCard] = useState<ReviewCard | null>(null);
+    // `autoPlay` = whether the panel should autoplay its audio (only when lemma differs from surface).
+    const [reviewCard, setReviewCard] = useState<{ card: ReviewCard; autoPlay: boolean } | null>(null);
     // Card whose definition is shown on a repeat click of a marked word (read-only, no rating).
-    const [definitionCard, setDefinitionCard] = useState<ReviewCard | null>(null);
+    const [definitionCard, setDefinitionCard] = useState<{ card: ReviewCard; autoPlay: boolean } | null>(null);
     // Words the teacher marked "to learn" in the pushed text; shown to the student as buttons.
     const [liveTextMarkedWords, setLiveTextMarkedWords] = useState<MarkedWord[]>([]);
 
@@ -146,15 +147,17 @@ function HomeStudent() {
         if (word.sense_id != null) {
             api.post<ReviewCard & { created: boolean }>(`/api/cards/from-sense/${word.sense_id}/add-to-review/`)
                 .then((res) => {
-                    if (res.data.created) {
-                        // First time: full review flashcard (option 2).
-                        setReviewCard(res.data);
-                    } else {
-                        // Already in review: show just the definition, after the audio has played.
-                        const showDefinition = () => setDefinitionCard(res.data);
-                        if (audioEnded) showDefinition();
-                        else audio.onended = showDefinition;
-                    }
+                    const card = res.data;
+                    // The click always plays the surface form; the panel autoplays its (lemma) audio
+                    // only when that differs from the surface — otherwise it'd play the same clip twice.
+                    const panelAutoPlay = card.text.trim().toLowerCase() !== word.text.trim().toLowerCase();
+                    // Open the panel only AFTER the surface audio finishes, so it neither pops up nor
+                    // plays over the surface word. First time -> review flashcard; else -> definition.
+                    const showPanel = card.created
+                        ? () => setReviewCard({ card, autoPlay: panelAutoPlay })
+                        : () => setDefinitionCard({ card, autoPlay: panelAutoPlay });
+                    if (audioEnded) showPanel();
+                    else audio.onended = showPanel;
                 })
                 .catch((err) => console.error("Error adding sense card to review:", err));
         }
@@ -356,14 +359,19 @@ function HomeStudent() {
 
             {reviewCard && (
                 <SingleCardReview
-                    card={reviewCard}
+                    card={reviewCard.card}
                     userName={name ?? ''}
+                    autoPlay={reviewCard.autoPlay}
                     onClose={() => setReviewCard(null)}
                 />
             )}
 
             {definitionCard && (
-                <DefinitionPopup card={definitionCard} onClose={() => setDefinitionCard(null)} />
+                <DefinitionPopup
+                    card={definitionCard.card}
+                    autoPlay={definitionCard.autoPlay}
+                    onClose={() => setDefinitionCard(null)}
+                />
             )}
 
         </div>

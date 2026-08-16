@@ -8,6 +8,9 @@ export interface ReviewCard {
   part_of_speech?: string; // e.g. "verb", "noun"
 }
 
+// Base url for the Azure TTS pronunciation clips ("<word>.mp3").
+const TTS_BASE = 'https://kphamazureblobstore.blob.core.windows.net/tts-audio/';
+
 // Self-rating buttons → SM-2 quality (same mapping as CardReview).
 const RATINGS: { label: string; quality: number; className: string }[] = [
   { label: 'I know it very well', quality: 5, className: 'bg-green-600 hover:bg-green-700' },
@@ -21,10 +24,12 @@ const RATINGS: { label: string; quality: number; className: string }[] = [
 export default function SingleCardReview({
   card,
   userName,
+  autoPlay,
   onClose,
 }: {
   card: ReviewCard;
   userName: string;
+  autoPlay: boolean; // autoplay the pronunciation only when the lemma differs from the surface form
   onClose: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
@@ -50,7 +55,7 @@ export default function SingleCardReview({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold text-gray-800">Do you know this word?</h2>
+          <h2 className="text-lg font-bold text-gray-800">SingleCardReview: Do you know this word?</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-800">✕</button>
         </div>
 
@@ -61,6 +66,15 @@ export default function SingleCardReview({
             <span className="italic text-sm text-indigo-600">{card.part_of_speech}</span>
           )}
         </div>
+
+        {/* Pronunciation audio — autoplays when the card opens. */}
+        <audio
+          key={card.id}
+          src={`${TTS_BASE}${card.text}.mp3`}
+          autoPlay={autoPlay}
+          controls
+          className="w-full mb-4"
+        />
 
         {!revealed ? (
           <div className="flex justify-center">

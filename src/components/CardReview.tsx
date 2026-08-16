@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import api from '../api';
+
+// Base url for the Azure TTS pronunciation clips ("<word>.mp3").
+const TTS_BASE = 'https://kphamazureblobstore.blob.core.windows.net/tts-audio/';
 
 interface DueCard {
   id: number;
@@ -13,9 +16,6 @@ interface CardReviewProps {
   userName: string;
   onComplete: () => void;
 }
-
-// Delay before a card's pronunciation plays (and the progress bar fills), in milliseconds.
-const AUDIO_DELAY_MS = 1000;
 
 // Self-rating buttons → SM-2 quality. apply_sm2 treats quality < 4 as a lapse
 // (interval resets to 1 day) and only adjusts easiness when quality >= 4.
@@ -32,9 +32,6 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);   // definition shown, rating buttons available
   const [submitting, setSubmitting] = useState(false);
-  const [audioPending, setAudioPending] = useState(false); // true during the wait before audio plays
-
-  const lastPlayedIdRef = useRef<number | null>(null); // guards against replaying the same card's audio
 
   useEffect(() => {
     // Cards are universal vocabulary; review all cards due for this user.
@@ -50,27 +47,6 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
         setLoading(false);
       });
   }, [userName]);
-
-  // Play the word's pronunciation AUDIO_DELAY_MS after a new card is shown.
-  useEffect(() => {
-    if (loading || cards.length === 0) return;
-    const card = cards[index];
-    if (!card) return;
-    const audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${card.text}.mp3`;
-    setAudioPending(true);
-    const timeoutId = setTimeout(() => {
-      setAudioPending(false);
-      // Set the guard only when we actually play, so StrictMode's mount→cleanup→mount
-      // (which clears the first timer) doesn't leave the guard set with nothing scheduled.
-      if (lastPlayedIdRef.current === card.id) return;
-      lastPlayedIdRef.current = card.id;
-      new Audio(audioUrl).play().catch(() => {});
-    }, AUDIO_DELAY_MS);
-    return () => {
-      clearTimeout(timeoutId); // cancel if the card changes before the delay elapses
-      setAudioPending(false);
-    };
-  }, [index, loading, cards]);
 
   const submitReview = async (cardId: number, quality: number) => {
     setSubmitting(true);
@@ -124,7 +100,7 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto p-6">
       <div className="w-full flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Do you know this word?</h2>
+        <h2 className="text-xl font-bold text-gray-800">CardReview: Do you know this word?</h2>
         <span className="text-sm text-gray-500">{index + 1} / {cards.length}</span>
       </div>
 
@@ -144,23 +120,14 @@ export default function CardReview({ userName, onComplete }: CardReviewProps) {
             )}
           </div>
 
-          {/* Audio "about to play" indicator: a progress bar with a pulsing speaker */}
-          <div className="w-full h-6 mb-3 flex items-center gap-2">
-            {audioPending && (
-              <>
-                <span className="text-gray-500 animate-pulse">🔊</span>
-                <div className="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
-                  <motion.div
-                    key={card.id}
-                    className="h-full bg-amber-500"
-                    initial={{ width: '0%' }}
-                    animate={{ width: '100%' }}
-                    transition={{ duration: AUDIO_DELAY_MS / 1000, ease: 'linear' }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+          {/* Pronunciation audio — autoplays when each card is shown (key remounts it per card). */}
+          <audio
+            key={card.id}
+            src={`${TTS_BASE}${card.text}.mp3`}
+            autoPlay
+            controls
+            className="w-full mb-3"
+          />
 
           {!revealed ? (
             // Recall step: hide the definition until the user commits to remembering (or not).

@@ -1,8 +1,11 @@
 import { type ReviewCard } from './SingleCardReview';
 
+// Base url for the Azure TTS pronunciation clips ("<word>.mp3").
+const TTS_BASE = 'https://kphamazureblobstore.blob.core.windows.net/tts-audio/';
+
 // Read-only popup that just shows a word and its definition (used on repeat clicks of a marked
 // word, after the audio plays — no self-rating, so it doesn't disturb the SM-2 schedule).
-export default function DefinitionPopup({ card, onClose }: { card: ReviewCard; onClose: () => void }) {
+export default function DefinitionPopup({ card, autoPlay, onClose }: { card: ReviewCard; autoPlay: boolean; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
@@ -15,6 +18,14 @@ export default function DefinitionPopup({ card, onClose }: { card: ReviewCard; o
             <span className="italic text-sm text-indigo-600">{card.part_of_speech}</span>
           )}
         </div>
+        {/* Pronunciation audio — autoplays when the popup opens. */}
+        <audio
+          key={card.id}
+          src={`${TTS_BASE}${card.text}.mp3`}
+          autoPlay={autoPlay}
+          controls
+          className="w-full mb-3"
+        />
         <div className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-4 text-center">
           <span className="text-lg text-gray-800">{card.definition}</span>
         </div>
