@@ -325,7 +325,7 @@ function HomeStudent() {
                     {liveTextContent && (
                         <div className="flex flex-col items-center my-4">
                             {/* The text, with each teacher-marked word turned into an inline button. */}
-                            <div className="max-w-2xl w-full bg-white border-2 border-gray-400 rounded-lg shadow-lg p-5 text-lg text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            <div className="max-w-2xl w-full bg-white border-2 border-gray-400 rounded-lg shadow-lg p-5 text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
                                 {renderTextWithButtons(liveTextContent, liveTextMarkedWords)}
                             </div>
                             <button

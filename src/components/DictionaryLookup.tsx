@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { FaPlayCircle } from "react-icons/fa";
 import api from "../api";
@@ -18,6 +18,7 @@ interface DictSense {
   in_review?: boolean;     // true if the current student already has this card in their review
 }
 interface DictPartOfSpeech {
+  id?: number;          // used to attach auto-generated audio to this POS when creating a word
   name: string;
   audio_blob?: string;  // blob name (no ".mp3") set by the backend when audio was generated; "" = none
   senses?: DictSense[];
@@ -44,8 +45,19 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
   const [entries, setEntries] = useState<DictEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // card_ids the student has added to their review this session (for button feedback).
-  const [addedCardIds, setAddedCardIds] = useState<Set<number>>(new Set());
+  // When a lookup finds nothing, holds the word so we can offer to create it.
+  const [notFoundWord, setNotFoundWord] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  // Whether the current user may ADD entries (staff or student_staff). Others are read-only.
+  const [canAdd, setCanAdd] = useState(false);
+
+  useEffect(() => {
+    api.get("/api/me/")
+      .then((res) => setCanAdd(!!res.data.is_staff || !!res.data.student_staff))
+      .catch(() => setCanAdd(false));
+  }, []);
+  // sense ids the student has added to their review this session (for button feedback).
+  const [addedSenseIds, setAddedSenseIds] = useState<Set<number>>(new Set());
   // sense ids the teacher has created a card for this session (for button feedback).
   const [createdSenseIds, setCreatedSenseIds] = useState<Set<number>>(new Set());
 
@@ -54,15 +66,21 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
     if (!term) return;
     setLoading(true);
     setError(null);
+    setNotFoundWord(null);
     setEntries(null);
     api.post("/english/read-dictionary/", { word: term, source, user_name: name })
       .then((res) => {
-        setEntries(res.data as DictEntry[]);
+        const data = res.data as DictEntry[];
+        if (!data || data.length === 0) {
+          setNotFoundWord(term); // empty result -> offer to create it
+        } else {
+          setEntries(data);
+        }
       })
       .catch((err) => {
-        // 404 => no entry found; anything else => generic error.
+        // 404 => not found: offer to create it. Anything else => generic error.
         if (err.response?.status === 404) {
-          setError(`No dictionary entry found for "${term}".`);
+          setNotFoundWord(term);
         } else {
           setError(err.response?.data?.error ?? "Dictionary lookup failed.");
         }
@@ -70,18 +88,62 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
       .finally(() => setLoading(false));
   };
 
+  // Create a not-found word in the local dictionary, then display it and auto-generate its
+  // Azure audio (default voice, normal + slow) for each part of speech.
+  const createWord = () => {
+    const w = (notFoundWord || "").trim();
+    if (!w) return;
+    const populateUrl = source === "longman"
+      ? "/english/populate-longman-dictionary/"
+      : "/english/populate-viet-dictionary/";
+    setCreating(true);
+    setError(null);
+    api.post(populateUrl, { word: w })
+      .then(() => api.post("/english/read-dictionary/", { word: w, source, user_name: name }))
+      .then((res) => {
+        const data = res.data as DictEntry[];
+        setEntries(data);
+        setNotFoundWord(null);
+        // Fire default audio for each POS, then refresh so the Play buttons appear.
+        const jobs: Promise<unknown>[] = [];
+        data.forEach((entry) =>
+          (entry.part_of_speeches || []).forEach((pos) => {
+            if (pos.id != null) {
+              jobs.push(
+                api.post("/api/create-azure-audio/", { pos_id: pos.id, text: entry.head_word, pron: "" }).catch(() => {})
+              );
+            }
+          })
+        );
+        if (jobs.length) {
+          Promise.all(jobs).then(() => {
+            api.post("/english/read-dictionary/", { word: w, source, user_name: name })
+              .then((r) => setEntries(r.data as DictEntry[]))
+              .catch(() => {});
+          });
+        }
+      })
+      .catch((err) => {
+        // Show the backend's clear message (e.g. "not found") directly when present.
+        setError(err.response?.data?.error || `Could not create "${w}".`);
+        setNotFoundWord(null);
+      })
+      .finally(() => setCreating(false));
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") search();
   };
 
-  // Student: add the teacher-created card for this sense to the review queue.
-  const addSenseToReview = (cardId: number) => {
-    api.post(`/api/cards/${cardId}/add-to-review/`)
+  // Student: add this sense to the review queue. The backend creates the card from the sense
+  // if one doesn't exist yet (e.g. a word the student just created), then enrolls the review.
+  const addSenseToReview = (senseId: number) => {
+    api.post(`/api/cards/from-sense/${senseId}/add-to-review/`)
       .then(() => {
-        setAddedCardIds((prev) => new Set(prev).add(cardId));
+        setAddedSenseIds((prev) => new Set(prev).add(senseId));
       })
       .catch((err) => {
-        console.error("Error adding card to review:", err);
+        console.error("Error adding sense to review:", err);
         alert("Could not add this word to your review.");
       });
   };
@@ -101,6 +163,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
   const closeResults = () => {
     setEntries(null);
     setError(null);
+    setNotFoundWord(null);
   };
 
   // Teachers get a larger, wider results panel (they scan/curate more than students).
@@ -154,7 +217,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
       </button>
 
       {/* Results / error panel */}
-      {(entries !== null || error) && (
+      {(entries !== null || error || notFoundWord) && (
         <div className={`absolute top-full right-0 mt-1 ${isTeacher ? "w-[32rem]" : "w-96"} max-h-[70vh] overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-xl z-30 p-4 text-left`}>
           <button
             onClick={closeResults}
@@ -165,6 +228,33 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
           </button>
 
           {error && <p className="text-red-700 text-sm">{error}</p>}
+
+          {notFoundWord && (
+            canAdd ? (
+              <div className="text-sm text-gray-700">
+                <p>No dictionary entry found for <span className="font-semibold">"{notFoundWord}"</span>. Create it?</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={createWord}
+                    disabled={creating}
+                    className="bg-indigo-600 text-white text-sm px-3 py-1 rounded-md hover:bg-indigo-800 disabled:opacity-50"
+                  >
+                    {creating ? "Creating…" : "Yes, create"}
+                  </button>
+                  <button
+                    onClick={() => setNotFoundWord(null)}
+                    disabled={creating}
+                    className="bg-gray-200 text-gray-800 text-sm px-3 py-1 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Read-only users: no create option, just report that nothing was found.
+              <p className="text-sm text-gray-700">No dictionary entry found for <span className="font-semibold">"{notFoundWord}"</span>.</p>
+            )
+          )}
 
           {entries && entries.length === 0 && (
             <p className="text-gray-600 text-sm">No results.</p>
@@ -203,29 +293,27 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                             <button
                               onClick={() => createCard(entry.head_word, sense, pos.name)}
                               title="Create a review card for this sense"
-                              className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white"
+                              className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white"
                             >
                               + Create Card
                             </button>
                           )
                         ) : (
-                          // Student: only senses a teacher has made a card for are reviewable.
-                          sense.card_id != null && (
-                            // Already in the student's review (from a prior session/marked-word click)
-                            // or added this session -> show a badge instead of the "+ Review" button.
-                            sense.in_review || addedCardIds.has(sense.card_id) ? (
-                              <span className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                                ✓ In review
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => addSenseToReview(sense.card_id!)}
-                                title="Add this sense to my review"
-                                className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white"
-                              >
-                                + Review
-                              </button>
-                            )
+                          // Student: every sense is reviewable. If no card exists yet (e.g. a word
+                          // the student just created), the backend creates it on the first click.
+                          // Already in review (prior session) or added this session -> show a badge.
+                          sense.in_review || addedSenseIds.has(sense.id) ? (
+                            <span className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                              ✓ In review
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => addSenseToReview(sense.id)}
+                              title="Add this sense to my review"
+                              className="ml-2 align-baseline text-xs px-1.5 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                              {sense.card_id != null ? "+ Review" : "Create Card and add Review"}
+                            </button>
                           )
                         )}
                         {sense.examples && sense.examples.length > 0 && (
