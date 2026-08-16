@@ -11,6 +11,7 @@ import { useSelector } from 'react-redux';
 import HomeTeacher from "./HomeTeacher";
 import HomeStudent from "./HomeStudent";
 import HomeAdmin from "./HomeAdmin";
+import api from "../api";
 import { FaAngleDoubleLeft } from "react-icons/fa";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
 import MessageController from "./MessageController";
@@ -25,6 +26,17 @@ function Home() {
     //const rehydrated = useSelector((state: RootState) => state._persist?.rehydrated); //
     const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
 
+    // Which home to show is based on the user's real role (is_staff), not the username. We fetch
+    // it once; until it loads we hold off on the teacher/student choice to avoid a flash.
+    const [isStaff, setIsStaff] = useState(false);
+    const [roleLoaded, setRoleLoaded] = useState(false);
+
+    useEffect(() => {
+        api.get("/api/me/")
+            .then((res) => setIsStaff(!!res.data.is_staff))
+            .catch(() => setIsStaff(false))
+            .finally(() => setRoleLoaded(true));
+    }, []);
 
     const [isChatOpen, setIsChatOpen] = useState<boolean | null>(false); // start closed on mount
 
@@ -152,12 +164,14 @@ function Home() {
         if (name === 'admin') {
             return <HomeAdmin  />;
         }
-        else if (name === "teacher") {
+        // Wait for the role before choosing, so a teacher doesn't briefly flash the student home.
+        if (!roleLoaded) {
+            return null;
+        }
+        if (isStaff) {   // teachers (is_staff) get the teacher home + dictionary editing
             return <HomeTeacher />;
         }
-        else {  //name is student
-            return <HomeStudent />;
-        }
+        return <HomeStudent />;
       };
 
     return (

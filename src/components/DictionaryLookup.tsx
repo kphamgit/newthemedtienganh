@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { FaPlayCircle } from "react-icons/fa";
 import api from "../api";
+import DictionaryEditModal from "./DictionaryEditModal";
 
 // --- Shape of the /english/read-dictionary/ response (array of matching entries) ---
-interface DictExample {
+export interface DictExample {
   id: number;
   sentence: string;
   translation: string;
 }
-interface DictSense {
+export interface DictSense {
   id: number;
   sense_number: number;
   definition: string;
@@ -17,13 +18,13 @@ interface DictSense {
   card_id?: number | null; // id of the teacher-created card for this sense, if any
   in_review?: boolean;     // true if the current student already has this card in their review
 }
-interface DictPartOfSpeech {
+export interface DictPartOfSpeech {
   id?: number;          // used to attach auto-generated audio to this POS when creating a word
   name: string;
   audio_blob?: string;  // blob name (no ".mp3") set by the backend when audio was generated; "" = none
   senses?: DictSense[];
 }
-interface DictEntry {
+export interface DictEntry {
   head_word: string;
   source: string;
   part_of_speeches?: DictPartOfSpeech[];
@@ -50,6 +51,8 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
   const [creating, setCreating] = useState(false);
   // Whether the current user may ADD entries (staff or student_staff). Others are read-only.
   const [canAdd, setCanAdd] = useState(false);
+  // Teacher: the entry currently open in the edit modal (null = closed).
+  const [editingEntry, setEditingEntry] = useState<DictEntry | null>(null);
 
   useEffect(() => {
     api.get("/api/me/")
@@ -262,19 +265,30 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
 
           {entries?.map((entry, ei) => (
             <div key={ei} className="mb-4 last:mb-0">
-              <h3 className={`font-bold text-gray-900 ${isTeacher ? "text-2xl" : "text-lg"}`}>{entry.head_word}</h3>
+              <div className="flex flex-row items-center gap-2">
+                <h3 className={`font-bold text-gray-900 ${isTeacher ? "text-2xl" : "text-lg"}`}>{entry.head_word}</h3>
+                {isTeacher && (
+                  <button
+                    onClick={() => setEditingEntry(entry)}
+                    title="Edit senses and examples"
+                    className="text-sm px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
               {entry.part_of_speeches?.map((pos, pi) => (
                 <div key={pi} className="mt-1">
                   {pos.name && (
                     <span className={`italic text-indigo-700 ${isTeacher ? "text-base" : "text-sm"}`}>{pos.name}</span>
                   )}
-                  {/* Student: play this part of speech's pronunciation, only if audio exists. */}
-                  {!isTeacher && pos.audio_blob && (
+                  {/* Play this part of speech's pronunciation (teacher and student), if audio exists. */}
+                  {pos.audio_blob && (
                     <button
                       onClick={() => playPos(pos.audio_blob!)}
                       title="Play pronunciation"
                       aria-label="Play pronunciation"
-                      className="ml-2 align-middle text-green-600 hover:text-green-700"
+                      className="ml-2 align-middle bg-blue-600 hover:bg-blue-700 text-white rounded-full p-0.5 leading-none"
                     >
                       <FaPlayCircle className="inline text-lg" />
                     </button>
@@ -334,6 +348,16 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
             </div>
           ))}
         </div>
+      )}
+
+      {editingEntry && (
+        <DictionaryEditModal
+          entry={editingEntry}
+          onClose={(changed) => {
+            setEditingEntry(null);
+            if (changed) search(); // refresh the results so saved edits show in the panel
+          }}
+        />
       )}
     </div>
   );
