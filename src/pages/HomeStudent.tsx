@@ -37,9 +37,9 @@ function HomeStudent() {
     const [liveTextContent, setLiveTextContent] = useState<string | null>(null);
     // Card shown for immediate review when the student clicks a marked (sense-tagged) word.
     // `autoPlay` = whether the panel should autoplay its audio (only when lemma differs from surface).
-    const [reviewCard, setReviewCard] = useState<{ card: ReviewCard; autoPlay: boolean } | null>(null);
+    const [reviewCard, setReviewCard] = useState<{ card: ReviewCard; autoPlay: boolean; audioMissing: boolean; surfaceWord: string } | null>(null);
     // Card whose definition is shown on a repeat click of a marked word (read-only, no rating).
-    const [definitionCard, setDefinitionCard] = useState<{ card: ReviewCard; autoPlay: boolean } | null>(null);
+    const [definitionCard, setDefinitionCard] = useState<{ card: ReviewCard; autoPlay: boolean; audioMissing: boolean; surfaceWord: string } | null>(null);
     // Words the teacher marked "to learn" in the pushed text; shown to the student as buttons.
     const [liveTextMarkedWords, setLiveTextMarkedWords] = useState<MarkedWord[]>([]);
 
@@ -140,25 +140,30 @@ function HomeStudent() {
         const audioUrl = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word.text}.mp3`;
         const audio = new Audio(audioUrl);
         audio.playbackRate = 0.85; // 1 = normal, < 1 = slower
-        let audioEnded = false;
-        audio.onended = () => { audioEnded = true; };
-        audio.play().catch(() => { audioEnded = true; });
+
+        // The panel opens once we have BOTH the card (from the API) and the surface audio's outcome
+        // (finished playing, or no file). With no audio the panel STILL opens, just with a warning.
+        let card: (ReviewCard & { created: boolean }) | null = null;
+        let audioOutcome: "ended" | "missing" | null = null;
+        let shown = false;
+        const maybeShow = () => {
+            if (shown || card === null || audioOutcome === null) return;
+            shown = true;
+            const audioMissing = audioOutcome === "missing";
+            // Autoplay the panel's (lemma) audio only when it differs from the surface form.
+            const autoPlay = card.text.trim().toLowerCase() !== word.text.trim().toLowerCase();
+            const payload = { card, autoPlay, audioMissing, surfaceWord: word.text };
+            if (card.created) setReviewCard(payload);
+            else setDefinitionCard(payload);
+        };
+
+        audio.onended = () => { audioOutcome = "ended"; maybeShow(); };
+        audio.onerror = () => { if (audioOutcome === null) { audioOutcome = "missing"; maybeShow(); } };
+        audio.play().catch(() => { if (audioOutcome === null) { audioOutcome = "missing"; maybeShow(); } });
 
         if (word.sense_id != null) {
             api.post<ReviewCard & { created: boolean }>(`/api/cards/from-sense/${word.sense_id}/add-to-review/`)
-                .then((res) => {
-                    const card = res.data;
-                    // The click always plays the surface form; the panel autoplays its (lemma) audio
-                    // only when that differs from the surface — otherwise it'd play the same clip twice.
-                    const panelAutoPlay = card.text.trim().toLowerCase() !== word.text.trim().toLowerCase();
-                    // Open the panel only AFTER the surface audio finishes, so it neither pops up nor
-                    // plays over the surface word. First time -> review flashcard; else -> definition.
-                    const showPanel = card.created
-                        ? () => setReviewCard({ card, autoPlay: panelAutoPlay })
-                        : () => setDefinitionCard({ card, autoPlay: panelAutoPlay });
-                    if (audioEnded) showPanel();
-                    else audio.onended = showPanel;
-                })
+                .then((res) => { card = res.data; maybeShow(); })
                 .catch((err) => console.error("Error adding sense card to review:", err));
         }
     };
@@ -362,6 +367,8 @@ function HomeStudent() {
                     card={reviewCard.card}
                     userName={name ?? ''}
                     autoPlay={reviewCard.autoPlay}
+                    audioMissing={reviewCard.audioMissing}
+                    surfaceWord={reviewCard.surfaceWord}
                     onClose={() => setReviewCard(null)}
                 />
             )}
@@ -370,6 +377,8 @@ function HomeStudent() {
                 <DefinitionPopup
                     card={definitionCard.card}
                     autoPlay={definitionCard.autoPlay}
+                    audioMissing={definitionCard.audioMissing}
+                    surfaceWord={definitionCard.surfaceWord}
                     onClose={() => setDefinitionCard(null)}
                 />
             )}

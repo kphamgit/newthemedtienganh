@@ -95,6 +95,16 @@ export interface MarkedWord {
   sense_id?: number; // dictionary sense the teacher associated with this word; card is made from it
 }
 
+// The exact shape of a "live_text" message the teacher sends to students — only the fields this
+// message uses (unlike the broad WebSocketMessageProps, whose live_quiz_id/live_question_number
+// are required). Annotate the teacher's send payload with this to catch drift at compile time.
+export interface LiveTextMessage {
+  message_type: "live_text";
+  content: string;        // the text students display
+  user_name: string;      // sender (the teacher)
+  marked_words: MarkedWord[]; // words the teacher marked "to learn" (may be empty)
+}
+
 export interface WebSocketMessageProps extends BaseWebSocketMessageProps {
   connected_users?: ReceivedConnectedUserDataProps[];
   queried_value?: string; // only for cache_query_response message type

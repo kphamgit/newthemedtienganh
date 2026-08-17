@@ -12,7 +12,7 @@ import { useUserConnections } from "../components/context/UserConnectionsContext
 import ListUsers from "./ListUsers";
 import DictionaryModal from "../components/DictionaryModal";
 
-import { type QuizProps, type MarkedWord } from "../components/shared/types";
+import { type QuizProps, type MarkedWord, type LiveTextMessage } from "../components/shared/types";
 
 
 
@@ -369,7 +369,7 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
 
     // Broadcast free-form text to students. Blocked during a live quiz (same as images/videos),
     // since students display it in their non-live-quiz view.
-    const sendTextToStudents = () => {
+    const sendTextToStudents = async () => {
         const text = inputText.trim();
         if (!text) return;
         if (activeLiveQuizId !== null) {
@@ -385,12 +385,74 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
         const marked = (textButtons ?? [])
             .filter((t) => selectedIndices.has(t.index))
             .map((t) => ({ ...t, sense_id: senseByIndex[t.index] }));
-        websocketRef.current.send(JSON.stringify({
+
+        // Every marked word must have a sense chosen AND a card created for that sense. Verify
+        // against the backend and stop (with a reminder) if any word isn't ready.
+        const senseIds = marked
+            .map((m) => m.sense_id)
+            .filter((id): id is number => id != null);
+        let existingSenses = new Set<number>();
+        try {
+            const res = await api.post<{ existing_sense_ids: number[] }>(
+                "/api/cards/check-senses/",
+                { sense_ids: senseIds }
+            );
+            existingSenses = new Set(res.data.existing_sense_ids);
+        } catch (err) {
+            console.error("Error checking cards for senses:", err);
+            alert("Could not verify cards for the marked words. Please try again.");
+            return;
+        }
+        const notReady = marked.filter((m) => m.sense_id == null || !existingSenses.has(m.sense_id));
+        if (notReady.length > 0) {
+            alert(
+                "No card has been created yet for these marked words:\n\n" +
+                notReady.map((m) => `• ${m.text}`).join("\n") +
+                "\n\nClick each one, choose a sense, and use \"+ Create Card\" before sending."
+            );
+            return;
+        }
+
+        // Auto-create the Azure audio for each marked word (surface form) so the student can hear
+        // it on click. Idempotent on the backend — existing clips are reused (no synthesis). Run in
+        // small batches with allSettled so we stay polite to Azure/the server and one failure
+        // doesn't abort the rest; we report exactly how many words got their audio.
+        const uniqueWords = [...new Set(marked.map((m) => m.text))];
+        if (uniqueWords.length > 0) {
+            const BATCH_SIZE = 4; // max words synthesized at once
+            const failedWords: string[] = [];
+            // The normal clip is what the student hears on click (essential); slow is best-effort.
+            const createForWord = async (w: string) => {
+                await api.post("/api/create-azure-audio/", { text: w, blob_name: w });
+                await api.post("/api/create-azure-audio/", { text: w, blob_name: w, slow: true }).catch(() => {});
+            };
+            for (let i = 0; i < uniqueWords.length; i += BATCH_SIZE) {
+                const batch = uniqueWords.slice(i, i + BATCH_SIZE);
+                const results = await Promise.allSettled(batch.map(createForWord));
+                results.forEach((r, j) => { if (r.status === "rejected") failedWords.push(batch[j]); });
+            }
+            const okCount = uniqueWords.length - failedWords.length;
+            if (failedWords.length === 0) {
+                toast.info(`Audio ready for ${okCount} marked word${okCount !== 1 ? "s" : ""}.`, {
+                    position: "top-right",
+                    autoClose: 2000,
+                    hideProgressBar: true,
+                });
+            } else {
+                toast.warn(
+                    `Audio ready for ${okCount}/${uniqueWords.length} words. Failed: ${failedWords.join(", ")}. Sending anyway.`,
+                    { position: "top-right", autoClose: 4000 }
+                );
+            }
+        }
+
+        const payload: LiveTextMessage = {
             message_type: "live_text",
             content: text,          // students display this text
             user_name: name,        // identify sender, which is teacher
             marked_words: marked,   // words the teacher marked as "to learn", resolved in context
-        }));
+        };
+        websocketRef.current.send(JSON.stringify(payload));
         toast.success("Text sent!", {
             position: "top-right",
             autoClose: 2000,
@@ -553,6 +615,11 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             {/* Send free-form text to all students; they display it in their non-live view. */}
             <div className="mt-10 bg-gray-200 p-3 rounded-md">
                 <h3 className="text-lg font-bold mb-2">Send Text to Students</h3>
+                <div className="text-sm mb-3">When you mark a word for sending to students, make sure you:
+                     <div>1) have created the audio for it, (if no audio, when the student clicks on the word, NOTHING will happen) </div>
+                     <div>2) and you have created a dictionary entry for its lemma, and </div>
+                     <div>3) and you have selected a sense and created a card for the term.</div>
+                </div>
 
                 {/* Tabs: edit the raw text, or convert it to clickable word buttons. */}
                 <div className="flex gap-1 ml-2">

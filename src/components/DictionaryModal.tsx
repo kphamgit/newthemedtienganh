@@ -13,6 +13,7 @@ interface DictSense {
   sense_number: number;
   definition: string;
   examples?: DictExample[];
+  card_id?: number | null; // id of the card created for this sense, if any (card availability)
 }
 interface DictPartOfSpeech {
   name: string;
@@ -44,6 +45,18 @@ export default function DictionaryModal({
   const [entries, setEntries] = useState<DictEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Sense ids a card was just created for this session (for immediate "✓ Card exists" feedback).
+  const [createdSenseIds, setCreatedSenseIds] = useState<Set<number>>(new Set());
+
+  // Create the global card for this sense (idempotent on the backend).
+  const createCard = (headWord: string, sense: DictSense, partOfSpeech: string) => {
+    api.post("/api/cards/", { text: headWord, definition: sense.definition, part_of_speech: partOfSpeech, sense_id: sense.id })
+      .then(() => setCreatedSenseIds((prev) => new Set(prev).add(sense.id)))
+      .catch((err) => {
+        console.error("Error creating card:", err);
+        alert("Could not create a card for this sense.");
+      });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -116,7 +129,7 @@ export default function DictionaryModal({
                         checked={selectedSenseId === sense.id}
                         onChange={(e) => onSelectSense(e.target.checked ? sense.id : null)}
                       />
-                      <span>
+                      <span className="flex-1 min-w-0">
                       {sense.definition}
                       {sense.examples && sense.examples.length > 0 && (
                         <ul className="mt-1 ml-4 space-y-0.5">
@@ -129,6 +142,20 @@ export default function DictionaryModal({
                         </ul>
                       )}
                       </span>
+                      {/* Card availability for this sense (create one if missing). */}
+                      {sense.card_id != null || createdSenseIds.has(sense.id) ? (
+                        <span className="mt-0.5 shrink-0 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                          ✓ Card exists
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => createCard(entry.head_word, sense, pos.name)}
+                          title="Create a review card for this sense"
+                          className="mt-0.5 shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white"
+                        >
+                          + Create Card
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ol>

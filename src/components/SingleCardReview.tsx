@@ -25,11 +25,15 @@ export default function SingleCardReview({
   card,
   userName,
   autoPlay,
+  audioMissing,
+  surfaceWord,
   onClose,
 }: {
   card: ReviewCard;
   userName: string;
   autoPlay: boolean; // autoplay the pronunciation only when the lemma differs from the surface form
+  audioMissing?: boolean; // the surface word had no audio file — show a warning
+  surfaceWord?: string;   // the exact word clicked in the text (for the "no audio" warning)
   onClose: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
@@ -76,6 +80,12 @@ export default function SingleCardReview({
           className="w-full mb-4"
         />
 
+        {audioMissing && (
+          <p className="mb-4 text-center text-sm text-amber-700">
+            🔇 There's no audio for the word "{surfaceWord}". Ask your teacher to create the audio.
+          </p>
+        )}
+
         {!revealed ? (
           <div className="flex justify-center">
             <button
@@ -108,6 +118,11 @@ export default function SingleCardReview({
             </div>
           </>
         )}
+
+        {/* This panel only appears the first time a word is clicked — i.e. it was just added. */}
+        <p className="mt-4 text-center text-sm text-green-700">
+          ✓ This word has been added to your review list.
+        </p>
       </div>
     </div>
   );
