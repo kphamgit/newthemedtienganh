@@ -26,6 +26,7 @@ export interface DictPartOfSpeech {
 }
 export interface DictEntry {
   head_word: string;
+  hyphenated?: string; // syllable-hyphenated form of the head word (e.g. "dic-tio-nar-y")
   source: string;
   part_of_speeches?: DictPartOfSpeech[];
 }
@@ -277,6 +278,10 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                   </button>
                 )}
               </div>
+              {/* Syllable-hyphenated form of the head word. */}
+              {entry.hyphenated && (
+                <div className={`text-gray-500 ${isTeacher ? "text-base" : "text-sm"}`}>{entry.hyphenated}</div>
+              )}
               {entry.part_of_speeches?.map((pos, pi) => (
                 <div key={pi} className="mt-1">
                   {pos.name && (

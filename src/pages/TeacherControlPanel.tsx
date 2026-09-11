@@ -413,36 +413,58 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             return;
         }
 
-        // Auto-create the Azure audio for each marked word (surface form) so the student can hear
-        // it on click. Idempotent on the backend — existing clips are reused (no synthesis). Run in
-        // small batches with allSettled so we stay polite to Azure/the server and one failure
-        // doesn't abort the rest; we report exactly how many words got their audio.
+        // Ensure each marked word (surface form) has Azure audio so the student can hear it on
+        // click. First ask the backend which words already have audio (one batch call), then only
+        // synthesize the missing ones — in small batches with allSettled so we stay polite to
+        // Azure/the server and one failure doesn't abort the rest.
         const uniqueWords = [...new Set(marked.map((m) => m.text))];
         if (uniqueWords.length > 0) {
-            const BATCH_SIZE = 4; // max words synthesized at once
-            const failedWords: string[] = [];
-            // The normal clip is what the student hears on click (essential); slow is best-effort.
-            const createForWord = async (w: string) => {
-                await api.post("/api/create-azure-audio/", { text: w, blob_name: w });
-                await api.post("/api/create-azure-audio/", { text: w, blob_name: w, slow: true }).catch(() => {});
-            };
-            for (let i = 0; i < uniqueWords.length; i += BATCH_SIZE) {
-                const batch = uniqueWords.slice(i, i + BATCH_SIZE);
-                const results = await Promise.allSettled(batch.map(createForWord));
-                results.forEach((r, j) => { if (r.status === "rejected") failedWords.push(batch[j]); });
+            // Only create audio for words that don't already have it (skips redundant round-trips).
+            let wordsToCreate = uniqueWords;
+            try {
+                const res = await api.post<{ existing: string[] }>(
+                    "/api/audio/check-words/",
+                    { words: uniqueWords }
+                );
+                const existing = new Set(res.data.existing);
+                wordsToCreate = uniqueWords.filter((w) => !existing.has(w));
+            } catch (err) {
+                console.error("Error checking existing audio:", err);
+                // Fall back to trying all — the create endpoint is still idempotent.
             }
-            const okCount = uniqueWords.length - failedWords.length;
-            if (failedWords.length === 0) {
-                toast.info(`Audio ready for ${okCount} marked word${okCount !== 1 ? "s" : ""}.`, {
+
+            if (wordsToCreate.length === 0) {
+                toast.info("All marked words already have audio.", {
                     position: "top-right",
-                    autoClose: 2000,
+                    autoClose: 1500,
                     hideProgressBar: true,
                 });
             } else {
-                toast.warn(
-                    `Audio ready for ${okCount}/${uniqueWords.length} words. Failed: ${failedWords.join(", ")}. Sending anyway.`,
-                    { position: "top-right", autoClose: 4000 }
-                );
+                const BATCH_SIZE = 4; // max words synthesized at once
+                const failedWords: string[] = [];
+                // The normal clip is what the student hears on click (essential); slow is best-effort.
+                const createForWord = async (w: string) => {
+                    await api.post("/api/create-azure-audio/", { text: w, blob_name: w });
+                    await api.post("/api/create-azure-audio/", { text: w, blob_name: w, slow: true }).catch(() => {});
+                };
+                for (let i = 0; i < wordsToCreate.length; i += BATCH_SIZE) {
+                    const batch = wordsToCreate.slice(i, i + BATCH_SIZE);
+                    const results = await Promise.allSettled(batch.map(createForWord));
+                    results.forEach((r, j) => { if (r.status === "rejected") failedWords.push(batch[j]); });
+                }
+                const okCount = wordsToCreate.length - failedWords.length;
+                if (failedWords.length === 0) {
+                    toast.info(`Audio created for ${okCount} new word${okCount !== 1 ? "s" : ""}.`, {
+                        position: "top-right",
+                        autoClose: 2000,
+                        hideProgressBar: true,
+                    });
+                } else {
+                    toast.warn(
+                        `Audio created for ${okCount}/${wordsToCreate.length} new words. Failed: ${failedWords.join(", ")}. Sending anyway.`,
+                        { position: "top-right", autoClose: 4000 }
+                    );
+                }
             }
         }
 
