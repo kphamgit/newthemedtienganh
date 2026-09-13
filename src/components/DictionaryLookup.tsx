@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment, type ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { FaPlayCircle } from "react-icons/fa";
 import api from "../api";
@@ -22,8 +22,37 @@ export interface DictPartOfSpeech {
   id?: number;          // used to attach auto-generated audio to this POS when creating a word
   name: string;
   audio_blob?: string;  // blob name (no ".mp3") set by the backend when audio was generated; "" = none
+  viet_pron_code?: string | null; // JSON-array string of Vietnamese pronunciation alternatives
   senses?: DictSense[];
 }
+
+// The backend stores viet_pron_code as a JSON-array string (e.g. '["kɔn", "con"]').
+// Parse it defensively into a string[]; if it isn't valid JSON, fall back to the raw value.
+const parseVietProns = (raw: string | null | undefined): string[] => {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map(String) : [String(arr)];
+  } catch {
+    return [raw];
+  }
+};
+
+// Render one Vietnamese pronunciation alternative. If its last syllable is a lone "ồ" following a
+// hyphen (i.e. the string ends with "-ồ"), show that trailing "ồ" at a smaller size.
+const renderVietPron = (raw: string): ReactNode => {
+  const s = raw.normalize("NFC");
+  const TAIL = "ồ";
+  if (s.endsWith("-" + TAIL)) {
+    return (
+      <>
+        {s.slice(0, s.length - TAIL.length)}
+        <span className="text-[0.75em]">{TAIL}</span>
+      </>
+    );
+  }
+  return s;
+};
 export interface DictEntry {
   head_word: string;
   hyphenated?: string; // syllable-hyphenated form of the head word (e.g. "dic-tio-nar-y")
@@ -297,6 +326,17 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                     >
                       <FaPlayCircle className="inline text-lg" />
                     </button>
+                  )}
+                  {/* Vietnamese pronunciation (read-only), alternatives separated by " / ".
+                      Serif font so letters like l / i (e.g. in "all") stay distinguishable. */}
+                  {parseVietProns(pos.viet_pron_code).length > 0 && (
+                    <span className={`ml-2 text-gray-500 font-serif ${isTeacher ? "text-base" : "text-sm"}`}>
+                      /
+                      {parseVietProns(pos.viet_pron_code).map((p, i) => (
+                        <Fragment key={i}>{i > 0 && ", "}{renderVietPron(p)}</Fragment>
+                      ))}
+                      /
+                    </span>
                   )}
                   <ol className="list-decimal list-inside mt-1 space-y-1">
                     {pos.senses?.map((sense) => (

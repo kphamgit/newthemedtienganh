@@ -101,17 +101,6 @@ function HomeStudent() {
         else if (data.message_type === "live_text") {
             // Teacher pushed a text message to students; show the latest one, plus any marked words.
             const marked = data.marked_words ?? [];
-            /*
-            console.log("HomeStudent live_text received:", {
-                content: data.content,
-                marked_words: marked,
-            });
-            marked.forEach((w) =>
-                console.log(
-                    `  marked word: text="${w.text}" lemma="${w.lemma}" pos="${w.pos}" index=${w.index} start=${w.start} sense_id=${w.sense_id}`
-                )
-            );
-            */
             setLiveTextContent(data.content);
             setLiveTextMarkedWords(marked);
             chimeAudioRef.current?.play().catch((error) => {

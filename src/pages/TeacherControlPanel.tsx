@@ -250,9 +250,6 @@ export const TeacherControlPanel = ({ref, live_quiz_id }: Props) => {
             live_quiz_id: activeLiveQuizId,
             target_user_name: userName,
         })
-        .then(response => {
-            console.log(`Sent question number ${questionNumber} to ${userName}:`, response.data);
-        })
         .catch(error => {
             alert("Error sending live question number. " + error.response?.data.error);
         });
