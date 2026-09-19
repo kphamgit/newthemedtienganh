@@ -38,16 +38,19 @@ const parseVietProns = (raw: string | null | undefined): string[] => {
   }
 };
 
-// Render one Vietnamese pronunciation alternative. If its last syllable is a lone "ồ" following a
-// hyphen (i.e. the string ends with "-ồ"), show that trailing "ồ" at a smaller size.
+// Trailing combos that render smaller when they follow a hyphen at the very end of an alternative.
+const SMALL_TAILS = ["ồ", "ờn", "ừm"];
+
+// Render one Vietnamese pronunciation alternative. If it ends with a hyphen followed by one of the
+// SMALL_TAILS (e.g. "-ồ" or "-ờn"), show that trailing combo at a smaller size.
 const renderVietPron = (raw: string): ReactNode => {
   const s = raw.normalize("NFC");
-  const TAIL = "ồ";
-  if (s.endsWith("-" + TAIL)) {
+  const tail = SMALL_TAILS.find((t) => s.endsWith("-" + t));
+  if (tail) {
     return (
       <>
-        {s.slice(0, s.length - TAIL.length)}
-        <span className="text-[0.75em]">{TAIL}</span>
+        {s.slice(0, s.length - tail.length)}
+        <span className="text-[0.75em]">{tail}</span>
       </>
     );
   }
@@ -330,7 +333,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                   {/* Vietnamese pronunciation (read-only), alternatives separated by " / ".
                       Serif font so letters like l / i (e.g. in "all") stay distinguishable. */}
                   {parseVietProns(pos.viet_pron_code).length > 0 && (
-                    <span className={`ml-2 text-gray-500 font-serif ${isTeacher ? "text-base" : "text-sm"}`}>
+                    <span className={`ml-2 text-[#5a3825] font-serif ${isTeacher ? "text-base" : "text-sm"}`}>
                       /
                       {parseVietProns(pos.viet_pron_code).map((p, i) => (
                         <Fragment key={i}>{i > 0 && ", "}{renderVietPron(p)}</Fragment>
