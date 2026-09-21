@@ -9,7 +9,7 @@ import type { RootState } from "../redux/store";
 
 
 
-   export default function Navbar({ levels, onShowAssignments }: { role: string; levels: LevelProps[] | null; onShowAssignments?: () => void }) {
+   export default function Navbar({ levels, onShowAssignments, disabled = false }: { role: string; levels: LevelProps[] | null; onShowAssignments?: () => void; disabled?: boolean }) {
     const pendingAssignments = useSelector((state: RootState) => state.pendingAssignments.assignments);
     //const [animationParent] = useAutoAnimate();
     
@@ -68,7 +68,10 @@ import type { RootState } from "../redux/store";
 
 
     return (
-      <div className="flex  max-w-7xl justify-between px-5 py-0">
+      <div
+        className={`flex  max-w-7xl justify-between px-5 py-0 ${disabled ? "pointer-events-none opacity-50" : ""}`}
+        title={disabled ? "Finish or use “Terminate Quiz” to leave the quiz first." : undefined}
+      >
         {/* left side  */}
        
           {/* logo */}

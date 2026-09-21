@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 //import TimeoutModal from './TImeOutModal';
 import CorrectModal from './CorrectModal';
 
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { type ProcessQuestionAttemptResultsProps, type QuestionAttemptAssesmentResultsProps, type QuestionProps, type QuizAttemptProps } from './shared/types';
 //import { processQuestion } from './processQuestion';
 import IncorrectModal from './IncorrectModal';
@@ -49,7 +49,8 @@ const TakeQuiz: React.FC = () => {
   const [quizAttempt, setQuizAttempt] = useState<QuizAttemptProps>(null as any);
   const [questionAttemptId, setQuestionAttemptId] = useState<number | null>(null);
 
-  const { quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
+  const { category_id, quiz_id } = useParams<{ category_id: string, quiz_id: string }>();
+  const navigate = useNavigate();
 
   const { name } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
@@ -276,6 +277,14 @@ const handleReviewNo = () => {
     }
 
 
+  // Let the student end the quiz early. This does NOT mark the attempt completed — it just leaves
+  // the quiz route (back to the category), which closes the panel and re-enables the Navbar. The
+  // attempt stays "uncompleted" so it can be resumed later.
+  const handleTerminateQuiz = () => {
+    if (!window.confirm("End this quiz now?")) return;
+    navigate(`/categories/${category_id}`);
+  };
+
   if (endOfQuiz) {
     return (
       <div className='text-center bg-amber-50 mt-10'>
@@ -287,7 +296,13 @@ const handleReviewNo = () => {
 
   return (
     <>
-    <div className="flex flex-col items-center bg-amber-100 gap-6 p-4 w-full">
+    <div className="relative flex flex-col items-center bg-amber-100 gap-6 p-4 max-w-4xl mx-auto">
+      <button
+        onClick={handleTerminateQuiz}
+        className="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-800 text-white text-sm px-3 py-1 rounded-md"
+      >
+        Terminate Quiz
+      </button>
       {question && (
         <CountdownTimer
           key={questionAttemptId ?? 0}

@@ -15,7 +15,7 @@ import type { RootState } from '../redux/store';
 import { useWebSocket } from "../components/context/WebSocketContext";
 import type { WebSocketMessageProps, VideoSegment, MarkedWord } from "../components/shared/types";
 import { useUserConnections } from "../components/context/UserConnectionsContext";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import AssignmentModal from "../components/AssignmentModal";
 import CardReview from "../components/CardReview";
 import TakeVideoQuizLive from "../components/TakeVideoQuizLive";
@@ -44,6 +44,10 @@ function HomeStudent() {
     const [liveTextMarkedWords, setLiveTextMarkedWords] = useState<MarkedWord[]>([]);
 
     const {liveQuizId, liveQuestionNumber, setLiveQuizId} = useUserConnections();
+
+    // While the student is on a take-quiz route, disable the Navbar so they leave via "Terminate Quiz".
+    const location = useLocation();
+    const inQuiz = /\/take_(video_)?quiz\//.test(location.pathname);
     // Keep the latest live_quiz_id readable inside async callbacks (the welcome_message may set it
     // shortly after mount, e.g. when reconnecting into a live quiz already in progress).
     const liveQuizIdRef = useRef(liveQuizId);
@@ -288,6 +292,7 @@ function HomeStudent() {
                                 role="student"
                                 levels={levels}
                                 onShowAssignments={() => setShowAssignmentModal(true)}
+                                disabled={inQuiz}
                             />
                             <DictionaryLookup />
                         </div>

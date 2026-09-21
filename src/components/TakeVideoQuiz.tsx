@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import CustomYoutubePlayer from './shared/CustomYoutubePlayer';
 import { useEffect, useRef, useState } from 'react';
 import api from '../api';
@@ -63,11 +63,14 @@ const DEFAULT_SEGMENTS: VideoSegment[] = [
 ];
 
 // How many times a student may rewatch each segment before they must move on.
-const MAX_REWATCHES = 1;
+// (Total plays per segment = initial view + MAX_REWATCHES; 3 rewatches -> 4 plays total.)
+const MAX_REWATCHES = 3;
 
 export default function TakeVideoQuiz() {
   const location = useLocation();
   const { quiz_id, video_url, video_segments } = location.state || {};
+  const { category_id } = useParams<{ category_id: string, quiz_id: string }>();
+  const navigate = useNavigate();
 
   //console.log("VIDEO SEGMENTS from route state:", video_segments);
   const { name } = useSelector((state: { user: { name: string; isLoggedIn: boolean } }) => state.user);
@@ -506,11 +509,18 @@ export default function TakeVideoQuiz() {
 });
 */
 
+  // Let the student end the quiz early. This does NOT mark the attempt completed — it just leaves
+  // the quiz route (back to the category), which closes the panel and re-enables the Navbar. The
+  // attempt stays "uncompleted" so it can be resumed later.
+  const handleTerminateQuiz = () => {
+    if (!window.confirm("End this quiz now?")) return;
+    navigate(`/categories/${category_id}`);
+  };
+
   if (endOfQuiz) {
     return (
       <div className='text-center mt-10'>
         <h2 className='text-2xl font-bold mb-4'>Quiz Completed!</h2>
-       
       </div>
     );
    }
@@ -553,7 +563,13 @@ export default function TakeVideoQuiz() {
 
   return (
     <div className='bg-green-500'>
-      <div style={{ maxWidth: '720px', margin: 'auto' }}>
+      <div className="relative" style={{ maxWidth: '720px', margin: 'auto' }}>
+        <button
+          onClick={handleTerminateQuiz}
+          className="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-800 text-white text-sm px-3 py-1 rounded-md"
+        >
+          Terminate Quiz
+        </button>
         { showQuestion && question && (
                <div className='bg-cyan-200 flex flex-col rounded-md justify-center items-center'>
                <div className='my-5'>
