@@ -356,8 +356,8 @@ useEffect(() => {
               </div>
               {SafeHTML({ content: question.instructions ?? "" })}
               {question?.prompt && (
-                <div className="mb-3 mt-5 text-amber-600 whitespace-pre-wrap">
-                  PROMPT: {question.prompt}
+                <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
+                  {question.prompt}
                 </div>
               )
               }

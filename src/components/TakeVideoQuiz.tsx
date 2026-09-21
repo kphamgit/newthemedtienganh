@@ -12,7 +12,8 @@ import type { ChildRef } from './TakeQuiz';
 import IncorrectModal from './IncorrectModal';
 import CorrectModal from './CorrectModal';
 import QuestionInput from './QuestionInput';
-//import OpenAIStream from './shared/OpenAIStream';
+import OpenAIStream from './shared/OpenAIStream';
+import DOMPurify from 'dompurify';
 //import { on } from 'events';
 
 interface VideoSegment {
@@ -541,12 +542,30 @@ export default function TakeVideoQuiz() {
     }
   }
 
+  function SafeHTML({ content }: { content: string }) {
+    const sanitizedContent = DOMPurify.sanitize(content, {
+      USE_PROFILES: { html: true },
+      ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br', 'span', 'div', 'img'],
+      ALLOWED_ATTR: ['href', 'target', 'rel']
+    });
+    return <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
+  }
+
   return (
     <div className='bg-green-500'>
       <div style={{ maxWidth: '720px', margin: 'auto' }}>
         { showQuestion && question && (
                <div className='bg-cyan-200 flex flex-col rounded-md justify-center items-center'>
                <div className='my-5'>
+                 {SafeHTML({ content: question.instructions ?? "" })}
+                 {question?.prompt && (
+                   <div className="mb-3 mt-5 text-amber-800 whitespace-pre-wrap">
+                     {question.prompt}
+                   </div>
+                 )}
+                 {(question?.audio_str && question.audio_str.trim().length > 0) && (
+                   <OpenAIStream sentence={question.audio_str} />
+                 )}
                  {/* key on the attempt id forces a fresh input when the next question loads */}
                  <QuestionInput key={questionAttemptId ?? 0} question={question} ref={childRef} />
                </div>
