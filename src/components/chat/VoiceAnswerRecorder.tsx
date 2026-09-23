@@ -4,8 +4,9 @@ import { Visualizer } from 'react-sound-visualizer';
 import api from '../../api';
 
 interface VoiceAnswerRecorderProps {
-  // Called with the server-side transcript (and S3 url) once recording is stopped and transcribed.
-  onTranscribed: (text: string, audioUrl?: string) => void;
+  // Called with the server-side transcript (+ S3 url + Vietnamese translation)
+  // once recording is stopped and transcribed.
+  onTranscribed: (text: string, audioUrl?: string, translation?: string) => void;
   userName: string; // used to name the S3 object (matches the backend's "<user>_..." convention)
   disabled?: boolean;
   highlight?: boolean; // pulse the mic to prompt the student to answer by voice
@@ -39,11 +40,11 @@ const VoiceAnswerRecorder = ({ onTranscribed, userName, disabled, highlight }: V
       const filename = `${userName || 'anonymous'}_${timestamp}.webm`;
       const formData = new FormData();
       formData.append('audio', blob, filename);
-      const res = await api.post<{ transcription: string; audio_url?: string }>(
+      const res = await api.post<{ transcription: string; translation?: string; audio_url?: string }>(
         '/api/transcribe-and-save/',
         formData,
       );
-      onTranscribed(res.data.transcription ?? '', res.data.audio_url);
+      onTranscribed(res.data.transcription ?? '', res.data.audio_url, res.data.translation);
     } catch (err) {
       console.error('VoiceAnswerRecorder: transcribe/save failed', err);
     } finally {

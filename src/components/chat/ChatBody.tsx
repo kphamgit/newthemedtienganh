@@ -63,11 +63,19 @@ const ChatBody = (props: { messages: ChatProps[] }) => {
            // and show them in a distinct color.
            const isSR = message.text?.trim().startsWith("SR") ?? false;
            const displayText = isSR ? message.text!.trim().replace(/^SR\s*/, '') : message.text;
+           // A voice answer is sent as "English — Vietnamese". Split on the first " — "
+           // so the Vietnamese translation can be shown smaller and in dark brown.
+           const sepIndex = displayText?.indexOf(' — ') ?? -1;
+           const englishPart = sepIndex >= 0 ? displayText!.slice(0, sepIndex) : displayText;
+           const vietnamesePart = sepIndex >= 0 ? displayText!.slice(sepIndex + 3) : null;
 
            return (
            <div key={index} className='m-1'>
                 <p className={isSR ? 'text-purple-700 font-semibold' : ''}>
-                  {message.user_name}: {displayText}
+                  {message.user_name}: {englishPart}
+                  {vietnamesePart && (
+                    <span className='text-sm' style={{ color: '#5C4033' }}> — {vietnamesePart}</span>
+                  )}
                 </p>
                 {/* Recorded voice answer — replay it (mainly for the teacher to score) */}
                 {message.audio_url && (

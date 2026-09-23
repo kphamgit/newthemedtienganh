@@ -173,12 +173,16 @@ export interface ChatProps {
     // Student: a recorded answer has been saved to S3 and transcribed on the server. Show the
     // transcript to the student (echoed into the chat) and send it to the teacher, then LOCK the
     // mic so they can't re-record. (audioUrl is the S3 link, available for future use e.g. replay.)
-    const handleVoiceTranscribed = (transcript: string, audioUrl?: string) => {
+    const handleVoiceTranscribed = (transcript: string, audioUrl?: string, translation?: string) => {
       // Empty/failed transcription: leave the mic available AND keep the input disabled, so the
       // student must re-record (they can't type a "fake" transcription while the mic is open).
       if (!transcript || transcript.trim().length === 0) return;
-      // Send transcript + audio url; echoed to the student too so they see their transcription.
-      sendText(transcript, true, audioUrl);
+      // Append the Vietnamese translation inline (ChatBody renders in a <p>, so keep it one line).
+      const text = translation && translation.trim()
+        ? `${transcript} — ${translation.trim()}`
+        : transcript;
+      // Send transcript (+ translation) + audio url; echoed to the student too so they see it.
+      sendText(text, true, audioUrl);
       setMicDisabled(true);    // one attempt only — no retrying for a better transcription
       setInputDisabled(false); // answer accepted → re-enable typing
     };
