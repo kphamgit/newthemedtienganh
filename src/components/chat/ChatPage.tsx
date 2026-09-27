@@ -28,7 +28,11 @@ export interface ChatProps {
     user_name: string;
     audio_url?: string; // presigned S3 url of a recorded voice answer (for the teacher to replay)
   }
-  
+
+// Vietnamese-specific letters (đ ă ơ ư, â ê ô, and every tone-marked vowel). English never uses
+// these, so any match means the text contains Vietnamese — used to keep students chatting in English.
+const VIETNAMESE_REGEX = /[À-ÃÈ-ÊÌÍÒ-ÕÙÚÝà-ãè-êìíò-õùúýĂăĐđĨĩŨũƠơƯưẠ-ỹ]/;
+
     export const ChatPage = ({ ref, chat, onClose }: ChatPageProps) => {
 
     const [incomingMessages, setIncomingMessages] = useState<ChatProps[]>([]);
@@ -39,6 +43,9 @@ export interface ChatProps {
     const [isChatOpen, setIsChatOpen] = useState(true);
 
     const [outgoingMessage, setOutgoingMessage] = useState<string>('');
+
+    // Inline error shown under the composer when a student tries to send non-English text.
+    const [langError, setLangError] = useState<string | null>(null);
 
     // When the teacher sends a message beginning with "SR", the student must answer by voice:
     // the text input is disabled until they respond.
@@ -159,6 +166,14 @@ export interface ChatProps {
     };
 
     const sendChatMessage = () => {
+      // Students must chat in English; reject typed messages containing Vietnamese characters.
+      // (The teacher is exempt, and the voice-answer flow — which appends a Vietnamese translation
+      // — goes through handleVoiceTranscribed, not here.)
+      if (isStudent && VIETNAMESE_REGEX.test(outgoingMessage)) {
+        setLangError("Please chat in English only — Vietnamese isn't allowed here.");
+        return; // keep the text so the student can rewrite it
+      }
+      setLangError(null);
       sendText(outgoingMessage);
       clearComposer();
     };
@@ -223,7 +238,7 @@ export interface ChatProps {
                     className={`flex-1 bg-gray-200 text-black p-2 rounded-md ${inputDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder={inputDisabled ? 'Typing disabled — please speak your reply' : 'Type or speak your message...'}
                     value={outgoingMessage}
-                    onChange={(e) => setOutgoingMessage(e.target.value)}
+                    onChange={(e) => { setOutgoingMessage(e.target.value); if (langError) setLangError(null); }}
                   />
                   {/* Student: record a spoken answer; it's transcribed on the server and sent to the teacher.
                       Locked after one attempt (micDisabled) until the teacher sends a new message. */}
@@ -245,6 +260,9 @@ export interface ChatProps {
                     </button>
                   )}
                 </div>
+                {langError && (
+                  <p className="mt-1 text-xs text-red-600">{langError}</p>
+                )}
               </div>
             </div>
           </>

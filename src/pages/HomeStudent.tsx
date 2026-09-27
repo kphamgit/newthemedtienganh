@@ -23,6 +23,7 @@ import StudentLiveVideo from "../components/StudentLiveVideo";
 import SingleCardReview, { type ReviewCard } from "../components/SingleCardReview";
 import DefinitionPopup from "../components/DefinitionPopup";
 import DictionaryLookup from "../components/DictionaryLookup";
+import TranslationBox from "../components/TranslationBox";
 
 function HomeStudent() {
     const [levels, setLevels] = useState<LevelProps[]>([]);
@@ -341,8 +342,12 @@ function HomeStudent() {
                     <Outlet />
                     </>
                 }
-            
+
             </div>
+
+            {/* Translation helper — pinned at the very bottom of the home page, left-aligned.
+                Hidden during a live quiz or while taking a quiz. */}
+            {!liveQuizId && !inQuiz && <TranslationBox />}
 
             {/* Vocabulary review pops up on login when cards are due (not during a live quiz). */}
             {showVocabReview && !liveQuizId && (
