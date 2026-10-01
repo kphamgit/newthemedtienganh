@@ -39,22 +39,63 @@ const parseVietProns = (raw: string | null | undefined): string[] => {
 };
 
 // Trailing combos that render smaller when they follow a hyphen at the very end of an alternative.
-const SMALL_TAILS = ["ồ", "ờn", "ừm"];
+const SMALL_TAILS = ["ần", "ờm", "ồ", "ờn", "ừm"];
+// Weak parts to de-emphasize (small + dark brown) wherever they appear mid-string. Each rule finds
+// `match`; the first `keep` characters render normally and the remainder renders de-emphasized
+// (e.g. in "t(h)" only "(h)" shrinks, so keep = 1). Optional `show` overrides the de-emphasized
+// text — e.g. match "t(h)" but display just "h" (drop the parentheses).
+// TO UNDO the parentheses removal: delete `show: "h"` from the "t(h)" rule below.
+const SMALL_MIDDLES: { match: string; keep: number; show?: string }[] = [
+  { match: "-ần-", keep: 0 },
+  { match: "-ờm-", keep: 0 },
+  { match: "t(h)", keep: 1, show: "h" },
+];
 
-// Render one Vietnamese pronunciation alternative. If it ends with a hyphen followed by one of the
-// SMALL_TAILS (e.g. "-ồ" or "-ờn"), show that trailing combo at a smaller size.
+// Render one Vietnamese pronunciation alternative, de-emphasizing certain weak parts:
+//  - a middle marker from SMALL_MIDDLES (e.g. "-ần-", or the "(h)" in "t(h)"), shown small + brown,
+//  - a trailing combo from SMALL_TAILS after a hyphen (e.g. "-ồ" / "-ờn"), shown smaller.
 const renderVietPron = (raw: string): ReactNode => {
   const s = raw.normalize("NFC");
+
+  // Peel off a trailing weak combo first, so only the combo (not its hyphen) shrinks.
   const tail = SMALL_TAILS.find((t) => s.endsWith("-" + t));
-  if (tail) {
-    return (
-      <>
-        {s.slice(0, s.length - tail.length)}
-        <span className="text-[0.75em]">{tail}</span>
-      </>
+  const head = tail ? s.slice(0, s.length - tail.length) : s;
+
+  // Find the earliest occurrence of any middle marker at/after position `from`.
+  const nextMiddle = (from: number): { at: number; rule: (typeof SMALL_MIDDLES)[number] } | null => {
+    let best: { at: number; rule: (typeof SMALL_MIDDLES)[number] } | null = null;
+    for (const rule of SMALL_MIDDLES) {
+      const at = head.indexOf(rule.match, from);
+      if (at !== -1 && (best === null || at < best.at)) best = { at, rule };
+    }
+    return best;
+  };
+
+  // Split the head around each middle marker; the de-emphasized remainder renders small + dark brown.
+  const nodes: ReactNode[] = [];
+  let i = 0;
+  let k = 0;
+  let hit = nextMiddle(i);
+  while (hit) {
+    const { at, rule } = hit;
+    // Text before the match, plus the leading portion of the match that stays normal.
+    if (at + rule.keep > i) nodes.push(head.slice(i, at + rule.keep));
+    nodes.push(
+      <span key={`m${k++}`} className="text-[0.75em] text-[#5a3825]">
+        {rule.show ?? rule.match.slice(rule.keep)}
+      </span>
     );
+    i = at + rule.match.length;
+    hit = nextMiddle(i);
   }
-  return s;
+  if (i < head.length) nodes.push(head.slice(i));
+
+  return (
+    <>
+      {nodes}
+      {tail && <span className="text-[0.75em]">{tail}</span>}
+    </>
+  );
 };
 export interface DictEntry {
   head_word: string;
