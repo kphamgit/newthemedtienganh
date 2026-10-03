@@ -27,6 +27,7 @@ import { useCreateNextQuestionAttempt } from '../hooks/useCreateNextQuestionAtte
 
 import CountdownTimer from "../components/CountdownTimer";
 import TimeoutModal from './TImeOutModal';
+import ReadingDisplay from './ReadingDisplay';
 
 
 
@@ -38,7 +39,9 @@ export interface ChildRef {
     resetTranscript?: () => void;
   }
 
-const TakeQuiz: React.FC = () => {
+// `readingHtml` (optional): when provided (e.g. when rendered after TakeReadingQuiz's reading
+// gate), a "Reread" button appears next to "Terminate Quiz" that pops up the reading again.
+const TakeQuiz: React.FC<{ readingHtml?: string }> = ({ readingHtml }) => {
 
   const [reviewMode, setReviewMode] = useState<boolean>(false); // State to manage the flow of reviewing incorrectly answered questions after finishing the quiz. We start in the "initial" state where we show the end of quiz screen with the final score and a button to review incorrectly answered questions. When the user clicks the button to review incorrectly answered questions, we transition to the "reviewing_incorrect" state where we load and show incorrectly answered questions one by one with a button to go to the next question until there are no more incorrectly answered questions to review, at which point we transition to the "completed" state where we show a message that the review is complete and a button to navigate back to the unit screen.
   
@@ -55,6 +58,7 @@ const TakeQuiz: React.FC = () => {
   const { name } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
+  const [showReread, setShowReread] = useState(false);
   const [showCorrectModal, setShowCorrectModal] = useState(false);
   const [showIncorrectModal, setShowIncorrectModal] = useState(false);
 
@@ -297,12 +301,45 @@ const handleReviewNo = () => {
   return (
     <>
     <div className="relative flex flex-col items-center bg-amber-100 gap-6 p-4 max-w-4xl mx-auto">
-      <button
-        onClick={handleTerminateQuiz}
-        className="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-800 text-white text-sm px-3 py-1 rounded-md"
-      >
-        Terminate Quiz
-      </button>
+      <div className="absolute top-2 right-2 z-10 flex gap-2">
+        {readingHtml && (
+          <button
+            onClick={() => setShowReread(true)}
+            className="bg-indigo-600 hover:bg-indigo-800 text-white text-sm px-3 py-1 rounded-md"
+          >
+            Reread
+          </button>
+        )}
+        <button
+          onClick={handleTerminateQuiz}
+          className="bg-red-600 hover:bg-red-800 text-white text-sm px-3 py-1 rounded-md"
+        >
+          Terminate Quiz
+        </button>
+      </div>
+
+      {/* Reread popup: shows the reading passage again with a Close button. */}
+      {showReread && readingHtml && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowReread(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShowReread(false)}
+                className="bg-gray-200 text-gray-800 text-sm px-3 py-1 rounded-md hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+            <ReadingDisplay html={readingHtml} />
+          </div>
+        </div>
+      )}
       {question && (
         <CountdownTimer
           key={questionAttemptId ?? 0}

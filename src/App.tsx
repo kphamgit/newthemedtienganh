@@ -10,12 +10,12 @@ import Category from "./components/Category"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Logout from "./pages/Logout"
 import { lazy, Suspense } from "react"
-//import TakeVideoQuiz from "./components/TakeVideoQuiz"
 
 
 const Home = lazy(() => import("./pages/Home"))
 const TakeQuiz = lazy(() => import("./components/TakeQuiz"))
 const TakeVideoQuiz = lazy(() => import("./components/TakeVideoQuiz"))
+const TakeReadingQuiz = lazy(() => import("./components/TakeReadingQuiz"))
 
 
 const queryClient = new QueryClient()
@@ -39,6 +39,7 @@ function App() {
           <Route path="categories/:category_id" element={<Category />} />
           <Route path="categories/:category_id/take_quiz/:quiz_id" element={<TakeQuiz />} />
           <Route path="categories/:category_id/take_video_quiz/:quiz_id" element={<TakeVideoQuiz />} />
+          <Route path="categories/:category_id/take_reading_quiz/:quiz_id" element={<TakeReadingQuiz />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />

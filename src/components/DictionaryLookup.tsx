@@ -81,7 +81,7 @@ const renderVietPron = (raw: string): ReactNode => {
     // Text before the match, plus the leading portion of the match that stays normal.
     if (at + rule.keep > i) nodes.push(head.slice(i, at + rule.keep));
     nodes.push(
-      <span key={`m${k++}`} className="text-[0.75em] text-[#5a3825]">
+      <span key={`m${k++}`} className="text-[0.8em] text-[#5a3825]">
         {rule.show ?? rule.match.slice(rule.keep)}
       </span>
     );
@@ -93,7 +93,7 @@ const renderVietPron = (raw: string): ReactNode => {
   return (
     <>
       {nodes}
-      {tail && <span className="text-[0.75em]">{tail}</span>}
+      {tail && <span className="text-[0.8em]">{tail}</span>}
     </>
   );
 };
@@ -374,7 +374,7 @@ export default function DictionaryLookup({ mode = "student" }: { mode?: "student
                   {/* Vietnamese pronunciation (read-only), alternatives separated by " / ".
                       Serif font so letters like l / i (e.g. in "all") stay distinguishable. */}
                   {parseVietProns(pos.viet_pron_code).length > 0 && (
-                    <span className={`ml-2 text-[#5a3825] font-serif ${isTeacher ? "text-base" : "text-sm"}`}>
+                    <span className={`ml-2 text-[#5a3825] font-serif ${isTeacher ? "text-lg" : "text-base"}`}>
                       /
                       {parseVietProns(pos.viet_pron_code).map((p, i) => (
                         <Fragment key={i}>{i > 0 && ", "}{renderVietPron(p)}</Fragment>

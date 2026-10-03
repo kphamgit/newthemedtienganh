@@ -18,6 +18,7 @@ interface QuizProps {
     name: string,
     quiz_number: number,
     video_url?: string,
+    reading?: string | null,
     video_segments? : any[]
 }
 
@@ -118,6 +119,31 @@ function Category() {
         navigate(api_url, {state: {quiz_id: quiz.id, video_url : quiz.video_url, video_segments: quiz.video_segments}})
     }
 
+    // Student reads the quiz's reading passage first, then continues to the questions.
+    const take_reading_quiz = (quiz: QuizProps) => {
+        navigate(`/categories/${id}/take_reading_quiz/${quiz.id}`)
+    }
+
+    // True when the reading field has real content (ignores an empty <p></p> / whitespace,
+    // but counts a reading that only has an image).
+    const hasReading = (html?: string | null) => {
+        if (!html) return false;
+        if (/<img/i.test(html)) return true;
+        return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, '').trim().length > 0;
+    }
+
+    // Clicking a quiz name opens the right experience for its type:
+    // video quiz -> video; else a quiz with a reading -> reading; else the normal quiz.
+    const open_quiz = (quiz: QuizProps) => {
+        if (quiz.video_url) {
+            take_video_quiz(quiz);
+        } else if (hasReading(quiz.reading)) {
+            take_reading_quiz(quiz);
+        } else {
+            take_quiz(quiz);
+        }
+    }
+
     return (
         <div className="flex flex-col bg-amber-100 p-10">
             {
@@ -130,17 +156,9 @@ function Category() {
                                 <div key={quiz.id} className="px-6 my-1">
                                     <span>{quiz.quiz_number}.</span>
 
-                                    { quiz.video_url ?
-                                    <>
-                                        <button className=' px-2 rounded-md hover:underline' onClick={() => take_video_quiz(quiz)}>
+                                    <button className=' px-2 rounded-md hover:underline' onClick={() => open_quiz(quiz)}>
                                         {quiz.name}
                                     </button>
-                                    </>
-                                    :
-                                    <button className=' px-2 rounded-md hover:underline' onClick={() => take_quiz(quiz)}>
-                                    {quiz.name}
-                                </button>
-                                    }
                                     { isTeacher &&
                                         <span className="ml-2 text-base font-bold text-red-800">(id: {quiz.id})</span>
                                     }
